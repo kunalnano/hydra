@@ -1,0 +1,119 @@
+import { useState, useEffect } from 'react'
+import type { NetworkState, NetworkProcess, FirewallState } from '../../../../shared/types'
+
+function formatRate(bytesPerSec: number): string {
+  if (bytesPerSec < 1024) return `${bytesPerSec.toFixed(0)} B/s`
+  if (bytesPerSec < 1024 * 1024) return `${(bytesPerSec / 1024).toFixed(1)} KB/s`
+  return `${(bytesPerSec / (1024 * 1024)).toFixed(1)} MB/s`
+}
+
+type FirewallMatch = 'allow' | 'block' | 'unknown'
+
+function getFirewallStatus(processName: string, rules: FirewallState['rules']): FirewallMatch {
+  const normalized = processName.toLowerCase()
+  for (const rule of rules) {
+    const ruleName = rule.name.toLowerCase()
+    if (normalized.includes(ruleName) || ruleName.includes(normalized)) {
+      return rule.action
+    }
+  }
+  return 'unknown'
+}
+
+const FIREWALL_DOT: Record<FirewallMatch, string> = {
+  allow: 'bg-green-400',
+  block: 'bg-red-400',
+  unknown: 'bg-gray-600'
+}
+
+export function NetworkPanel(): JSX.Element {
+  const [networkState, setNetworkState] = useState<NetworkState | null>(null)
+  const [firewallState, setFirewallState] = useState<FirewallState | null>(null)
+
+  useEffect(() => {
+    const unsub = window.hydra.onNetworkState((state) => {
+      setNetworkState(state)
+    })
+
+    window.hydra.getFirewallRules().then(setFirewallState)
+
+    return unsub
+  }, [])
+
+  if (!networkState) {
+    return <div className="text-gray-600 text-sm">Monitoring network activity...</div>
+  }
+
+  const sortedProcesses = [...networkState.processes].sort(
+    (a, b) => b.bytesInPerSec + b.bytesOutPerSec - (a.bytesInPerSec + a.bytesOutPerSec)
+  )
+
+  const firewallRules = firewallState?.rules ?? []
+
+  return (
+    <div className="space-y-2 text-sm overflow-y-auto max-h-full">
+      {/* Summary bar */}
+      <div className="flex items-center gap-4 px-2 py-1.5 rounded bg-gray-800/40 border border-gray-800">
+        <div className="flex items-center gap-1.5">
+          <span className="text-green-400 text-xs">&#9660;</span>
+          <span className="text-green-400 font-mono text-xs font-medium">
+            {formatRate(networkState.totalBytesInPerSec)}
+          </span>
+          <span className="text-gray-600 text-xs">down</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-blue-400 text-xs">&#9650;</span>
+          <span className="text-blue-400 font-mono text-xs font-medium">
+            {formatRate(networkState.totalBytesOutPerSec)}
+          </span>
+          <span className="text-gray-600 text-xs">up</span>
+        </div>
+      </div>
+
+      {/* Process list */}
+      <div className="space-y-px">
+        {sortedProcesses.map((proc) => (
+          <ProcessRow
+            key={proc.pid}
+            proc={proc}
+            firewallMatch={getFirewallStatus(proc.name, firewallRules)}
+          />
+        ))}
+        {sortedProcesses.length === 0 && (
+          <div className="text-gray-600 text-xs px-2">No active network processes</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ProcessRow({
+  proc,
+  firewallMatch
+}: {
+  proc: NetworkProcess
+  firewallMatch: FirewallMatch
+}): JSX.Element {
+  return (
+    <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-800/50 border border-transparent transition-colors">
+      <div className="flex items-center gap-2 min-w-0">
+        <span
+          className={`w-2 h-2 rounded-full ${FIREWALL_DOT[firewallMatch]} shrink-0`}
+          title={`Firewall: ${firewallMatch}`}
+        />
+        <span className="text-white truncate max-w-[140px]" title={proc.name}>
+          {proc.name}
+        </span>
+        <span className="text-gray-700 text-xs font-mono shrink-0">PID {proc.pid}</span>
+      </div>
+      <div className="flex items-center gap-3 shrink-0 ml-2">
+        <span className="text-green-400 text-xs font-mono w-20 text-right">
+          &#9660; {formatRate(proc.bytesInPerSec)}
+        </span>
+        <span className="text-blue-400 text-xs font-mono w-20 text-right">
+          &#9650; {formatRate(proc.bytesOutPerSec)}
+        </span>
+      </div>
+    </div>
+  )
+}
