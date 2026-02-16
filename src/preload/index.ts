@@ -8,7 +8,8 @@ import type {
   HydraNotification,
   NetworkState,
   FirewallState,
-  SecurityScanResult
+  SecurityScanResult,
+  SecurityPosture
 } from '../shared/types'
 
 const api = {
@@ -101,6 +102,15 @@ const api = {
     ipcRenderer.on(IPC_CHANNELS.SECURITY_SCAN_RESULT, handler)
     return (): void => {
       ipcRenderer.removeListener(IPC_CHANNELS.SECURITY_SCAN_RESULT, handler)
+    }
+  },
+
+  onSecurityPosture: (callback: (posture: SecurityPosture) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, posture: SecurityPosture): void =>
+      callback(posture)
+    ipcRenderer.on(IPC_CHANNELS.SECURITY_POSTURE, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.SECURITY_POSTURE, handler)
     }
   }
 }

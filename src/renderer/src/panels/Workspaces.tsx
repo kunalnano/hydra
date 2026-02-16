@@ -2,18 +2,18 @@ import { useSystemStore } from '../stores/system'
 import { useUIStore } from '../stores/ui'
 import type { ProcessGroup, ProcessInfo } from '../../../../shared/types'
 
-const TYPE_COLORS: Record<ProcessGroup['type'], string> = {
-  project: 'text-blue-400',
-  agent: 'text-amber-400',
-  service: 'text-green-400',
-  other: 'text-gray-500'
-}
-
 const TYPE_LABELS: Record<ProcessGroup['type'], string> = {
   project: 'PRJ',
   agent: 'AI',
   service: 'SVC',
   other: 'SYS'
+}
+
+const TYPE_PILL_STYLES: Record<ProcessGroup['type'], string> = {
+  project: 'bg-blue-950/60 text-blue-400 border-blue-800/40',
+  agent: 'bg-amber-950/60 text-amber-400 border-amber-800/40',
+  service: 'bg-green-950/60 text-green-400 border-green-800/40',
+  other: 'bg-gray-900 text-gray-500 border-gray-700/40'
 }
 
 export function WorkspacesPanel(): JSX.Element {
@@ -28,6 +28,13 @@ export function WorkspacesPanel(): JSX.Element {
 
   return (
     <div className="space-y-0.5 text-sm overflow-y-auto max-h-full">
+      <div className="flex items-center text-[10px] text-gray-600 uppercase tracking-wider px-2 pb-1.5 mb-1 border-b border-gray-800/50">
+        <span className="flex-1">Workspace</span>
+        <span className="w-12 text-center">Type</span>
+        <span className="w-10 text-right">Procs</span>
+        <span className="w-16 text-right">CPU</span>
+        <span className="w-16 text-right">MEM</span>
+      </div>
       {groups.map((group) => (
         <GroupRow key={`${group.type}:${group.name}`} group={group} />
       ))}
@@ -71,21 +78,37 @@ function GroupRow({ group }: { group: ProcessGroup }): JSX.Element {
           >
             ▶
           </span>
-          <span className={`text-[10px] font-bold ${TYPE_COLORS[group.type]} shrink-0`}>
-            {TYPE_LABELS[group.type]}
-          </span>
           <span className="text-white truncate">{group.name}</span>
-          <span className="text-gray-600 text-xs shrink-0">{group.processes.length} proc</span>
         </div>
         <div className="flex items-center gap-3 shrink-0 ml-2">
+          <span
+            className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${TYPE_PILL_STYLES[group.type]}`}
+          >
+            {TYPE_LABELS[group.type]}
+          </span>
+          <span className="text-gray-600 text-xs shrink-0">{group.processes.length} proc</span>
           {group.ports.length > 0 && (
             <span className="text-gray-500 text-xs font-mono">
               {group.ports.map((p) => `:${p}`).join(' ')}
             </span>
           )}
-          <span className="text-blue-400 text-xs font-mono w-16 text-right">
-            {group.totalCpu.toFixed(1)}% cpu
-          </span>
+          <div className="flex items-center gap-1.5 w-16 justify-end">
+            <span className="text-blue-400 text-xs font-mono text-right">
+              {group.totalCpu.toFixed(1)}%
+            </span>
+            <div className="w-8 h-1 bg-gray-800 rounded-full overflow-hidden shrink-0">
+              <div
+                className={`h-full rounded-full ${
+                  group.totalCpu > 50
+                    ? 'bg-red-400'
+                    : group.totalCpu > 20
+                      ? 'bg-amber-400'
+                      : 'bg-blue-400'
+                }`}
+                style={{ width: `${Math.min(100, group.totalCpu)}%` }}
+              />
+            </div>
+          </div>
           <span className="text-purple-400 text-xs font-mono w-16 text-right">
             {group.totalMem.toFixed(1)}% mem
           </span>
@@ -102,8 +125,8 @@ function GroupRow({ group }: { group: ProcessGroup }): JSX.Element {
           </div>
           {[...group.processes]
             .sort((a, b) => b.cpu - a.cpu)
-            .map((proc) => (
-              <ProcessRow key={proc.pid} proc={proc} />
+            .map((proc, idx) => (
+              <ProcessRow key={proc.pid} proc={proc} isEven={idx % 2 === 0} />
             ))}
         </div>
       )}
@@ -111,7 +134,7 @@ function GroupRow({ group }: { group: ProcessGroup }): JSX.Element {
   )
 }
 
-function ProcessRow({ proc }: { proc: ProcessInfo }): JSX.Element {
+function ProcessRow({ proc, isEven }: { proc: ProcessInfo; isEven: boolean }): JSX.Element {
   const cpuColor =
     proc.cpu > 50 ? 'text-red-400' : proc.cpu > 20 ? 'text-amber-400' : 'text-gray-400'
   const memColor =
@@ -124,7 +147,9 @@ function ProcessRow({ proc }: { proc: ProcessInfo }): JSX.Element {
     .slice(0, 60)
 
   return (
-    <div className="flex items-center text-xs px-1 py-0.5 rounded hover:bg-gray-800/30 gap-2">
+    <div
+      className={`flex items-center text-xs px-1 py-0.5 rounded hover:bg-gray-800/30 gap-2 ${isEven ? 'bg-gray-900/30' : ''}`}
+    >
       <span className="text-gray-400 truncate flex-1" title={proc.command}>
         {shortCommand}
       </span>

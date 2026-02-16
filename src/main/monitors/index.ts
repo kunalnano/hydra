@@ -11,7 +11,7 @@ import { generateBriefing } from '../intelligence/briefing'
 import { DEFAULT_RULES } from '../intelligence/rules'
 import { getNetworkActivity } from './network'
 import { getFirewallRules } from './firewall'
-import { runSecurityScan } from '../intelligence/security'
+import { runSecurityScan, extractPosture } from '../intelligence/security'
 import type {
   SystemState,
   AutoHealEvent,
@@ -193,6 +193,14 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 2000): v
     const result = await runSecurityScan(command)
     if (!mainWindow.isDestroyed()) {
       mainWindow.webContents.send(IPC_CHANNELS.SECURITY_SCAN_RESULT, result)
+
+      // After a successful survey scan, send posture update to renderer
+      if (command === 'survey' && result.status === 'complete') {
+        const posture = extractPosture()
+        if (posture) {
+          mainWindow.webContents.send(IPC_CHANNELS.SECURITY_POSTURE, posture)
+        }
+      }
     }
     return result
   })

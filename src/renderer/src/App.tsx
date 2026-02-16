@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import { useSystemStore } from './stores/system'
+import { useTimeSeriesStore } from './stores/timeseries'
+import { Sparkline } from './components/Sparkline'
 import { WorkspacesPanel } from './panels/Workspaces'
 import { AgentsPanel } from './panels/Agents'
 import { PortsPanel } from './panels/Ports'
@@ -9,6 +11,19 @@ import { BriefingPanel } from './panels/Briefing'
 import { NotificationsPanel } from './panels/Notifications'
 import { NetworkPanel } from './panels/Network'
 import { SecurityPanel } from './panels/Security'
+import { ScorecardsStrip } from './panels/ScorecardsStrip'
+
+const PANEL_DOTS: Record<string, string> = {
+  Workspaces: 'bg-blue-400',
+  Agents: 'bg-amber-400',
+  'Git Status': 'bg-purple-400',
+  'AI Briefing': 'bg-cyan-400',
+  Network: 'bg-green-400',
+  Security: 'bg-red-400',
+  Ports: 'bg-teal-400',
+  Notifications: 'bg-orange-400',
+  Logs: 'bg-gray-400'
+}
 
 function Panel({
   title,
@@ -22,7 +37,10 @@ function Panel({
   return (
     <div className={`bg-gray-900 border border-gray-800 rounded-lg overflow-hidden ${className}`}>
       <div className="px-4 py-2 border-b border-gray-800 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{title}</h2>
+        <div className="flex items-center gap-2">
+          <span className={`w-1.5 h-1.5 rounded-full ${PANEL_DOTS[title] || 'bg-gray-600'}`} />
+          <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{title}</h2>
+        </div>
       </div>
       <div className="p-4 flex-1 overflow-hidden">{children}</div>
     </div>
@@ -31,26 +49,48 @@ function Panel({
 
 function Header(): JSX.Element {
   const { state, refresh } = useSystemStore()
+  const { cpuHistory, memHistory } = useTimeSeriesStore()
   return (
     <header className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
         <h1 className="text-lg font-bold text-white tracking-tight">HYDRA</h1>
         <span className="text-xs text-gray-500">Mission Control</span>
       </div>
-      <div className="flex items-center gap-6 text-sm">
+      <div className="flex items-center gap-5 text-sm">
         {state && (
           <>
-            <div className="text-gray-400">
-              CPU <span className="text-white font-mono">{state.cpu.usage.toFixed(1)}%</span>
+            <div className="flex items-center gap-1.5 text-gray-400">
+              <span className="text-xs">CPU</span>
+              <div className="w-16 h-4">
+                <Sparkline
+                  data={cpuHistory}
+                  color="#4ade80"
+                  filled={false}
+                  width={64}
+                  height={16}
+                />
+              </div>
+              <span className="text-white font-mono text-xs">{state.cpu.usage.toFixed(0)}%</span>
             </div>
-            <div className="text-gray-400">
-              MEM{' '}
-              <span className="text-white font-mono">{state.memory.usagePercent.toFixed(1)}%</span>
+            <div className="flex items-center gap-1.5 text-gray-400">
+              <span className="text-xs">MEM</span>
+              <div className="w-16 h-4">
+                <Sparkline
+                  data={memHistory}
+                  color="#a78bfa"
+                  filled={false}
+                  width={64}
+                  height={16}
+                />
+              </div>
+              <span className="text-white font-mono text-xs">
+                {state.memory.usagePercent.toFixed(0)}%
+              </span>
             </div>
-            <div className="text-gray-400">
+            <div className="text-gray-400 text-xs">
               <span className="text-white font-mono">{state.agents.length}</span> agents
             </div>
-            <div className="text-gray-400">
+            <div className="text-gray-400 text-xs">
               <span className="text-white font-mono">
                 {state.ports.filter((p) => p.state === 'LISTEN').length}
               </span>{' '}
@@ -95,7 +135,10 @@ function App(): JSX.Element {
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       <Header />
-      <main className="flex-1 p-4 grid grid-cols-2 grid-rows-[1fr_1fr_1fr_1fr_minmax(180px,1fr)] gap-4 overflow-hidden">
+      <main className="flex-1 p-4 grid grid-cols-2 grid-rows-[auto_1fr_1fr_1fr_1fr_minmax(160px,1fr)] gap-4 overflow-hidden">
+        <div className="col-span-2">
+          <ScorecardsStrip />
+        </div>
         <Panel title="Workspaces">
           <WorkspacesPanel />
         </Panel>

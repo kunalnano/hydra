@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { NetworkState, NetworkProcess, FirewallState } from '../../../../shared/types'
+import { useTimeSeriesStore } from '../stores/timeseries'
+import { Sparkline } from '../components/Sparkline'
 
 function formatRate(bytesPerSec: number): string {
   if (bytesPerSec < 1024) return `${bytesPerSec.toFixed(0)} B/s`
@@ -29,10 +31,22 @@ const FIREWALL_DOT: Record<FirewallMatch, string> = {
 export function NetworkPanel(): JSX.Element {
   const [networkState, setNetworkState] = useState<NetworkState | null>(null)
   const [firewallState, setFirewallState] = useState<FirewallState | null>(null)
+  const [processHistory, setProcessHistory] = useState<Record<number, number[]>>({})
+
+  const { netInHistory, netOutHistory } = useTimeSeriesStore()
 
   useEffect(() => {
     const unsub = window.hydra.onNetworkState((state) => {
       setNetworkState(state)
+      setProcessHistory((prev) => {
+        const next = { ...prev }
+        for (const proc of state.processes) {
+          const total = proc.bytesInPerSec + proc.bytesOutPerSec
+          const existing = next[proc.pid] || []
+          next[proc.pid] = [...existing, total].slice(-30)
+        }
+        return next
+      })
     })
 
     window.hydra.getFirewallRules().then(setFirewallState)
@@ -52,21 +66,25 @@ export function NetworkPanel(): JSX.Element {
 
   return (
     <div className="space-y-2 text-sm overflow-y-auto max-h-full">
-      {/* Summary bar */}
-      <div className="flex items-center gap-4 px-2 py-1.5 rounded bg-gray-800/40 border border-gray-800">
-        <div className="flex items-center gap-1.5">
-          <span className="text-green-400 text-xs">&#9660;</span>
-          <span className="text-green-400 font-mono text-xs font-medium">
-            {formatRate(networkState.totalBytesInPerSec)}
-          </span>
-          <span className="text-gray-600 text-xs">down</span>
+      {/* Bandwidth sparkline chart */}
+      <div className="mb-2">
+        <div className="relative h-12 w-full rounded bg-gray-800/30 overflow-hidden">
+          <div className="absolute inset-0">
+            <Sparkline data={netInHistory} color="#4ade80" filled={true} width={400} height={48} />
+          </div>
+          <div className="absolute inset-0">
+            <Sparkline data={netOutHistory} color="#60a5fa" filled={true} width={400} height={48} />
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-blue-400 text-xs">&#9650;</span>
-          <span className="text-blue-400 font-mono text-xs font-medium">
-            {formatRate(networkState.totalBytesOutPerSec)}
+        <div className="flex items-center gap-4 px-1 pt-1 text-[10px] text-gray-500">
+          <span>
+            <span className="text-green-400">&#9660;</span>{' '}
+            {formatRate(networkState.totalBytesInPerSec)} down
           </span>
-          <span className="text-gray-600 text-xs">up</span>
+          <span>
+            <span className="text-blue-400">&#9650;</span>{' '}
+            {formatRate(networkState.totalBytesOutPerSec)} up
+          </span>
         </div>
       </div>
 
@@ -77,6 +95,7 @@ export function NetworkPanel(): JSX.Element {
             key={proc.pid}
             proc={proc}
             firewallMatch={getFirewallStatus(proc.name, firewallRules)}
+            history={processHistory[proc.pid] || []}
           />
         ))}
         {sortedProcesses.length === 0 && (
@@ -89,10 +108,12 @@ export function NetworkPanel(): JSX.Element {
 
 function ProcessRow({
   proc,
-  firewallMatch
+  firewallMatch,
+  history
 }: {
   proc: NetworkProcess
   firewallMatch: FirewallMatch
+  history: number[]
 }): JSX.Element {
   return (
     <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-800/50 border border-transparent transition-colors">
@@ -107,6 +128,11 @@ function ProcessRow({
         <span className="text-gray-700 text-xs font-mono shrink-0">PID {proc.pid}</span>
       </div>
       <div className="flex items-center gap-3 shrink-0 ml-2">
+        {history.length > 1 && (
+          <div className="w-16 h-4 shrink-0">
+            <Sparkline data={history} color="#6b7280" filled={false} width={64} height={16} />
+          </div>
+        )}
         <span className="text-green-400 text-xs font-mono w-20 text-right">
           &#9660; {formatRate(proc.bytesInPerSec)}
         </span>

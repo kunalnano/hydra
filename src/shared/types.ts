@@ -90,6 +90,18 @@ export interface SecurityScanResult {
   status: 'running' | 'complete' | 'error'
 }
 
+export interface SecurityPosture {
+  overallScore: number
+  grade: string
+  verdict: string
+  categories: {
+    name: string
+    score: number
+    weight: number
+    summary: string
+  }[]
+}
+
 export interface SystemState {
   timestamp: number
   processes: ProcessGroup[]
@@ -166,5 +178,6 @@ export const IPC_CHANNELS = {
   FIREWALL_STATE: 'firewall:state',
   GET_FIREWALL_RULES: 'firewall:get-rules',
   SECURITY_SCAN_REQUEST: 'security:scan-request',
-  SECURITY_SCAN_RESULT: 'security:scan-result'
+  SECURITY_SCAN_RESULT: 'security:scan-result',
+  SECURITY_POSTURE: 'security:posture'
 } as const
