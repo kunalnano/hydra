@@ -9,7 +9,8 @@ import type {
   NetworkState,
   FirewallState,
   SecurityScanResult,
-  SecurityPosture
+  SecurityPosture,
+  HydraConfig
 } from '../shared/types'
 
 const api = {
@@ -112,7 +113,24 @@ const api = {
     return (): void => {
       ipcRenderer.removeListener(IPC_CHANNELS.SECURITY_POSTURE, handler)
     }
-  }
+  },
+
+  querySnapshots: (limit: number): Promise<unknown[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_SNAPSHOTS, limit),
+
+  queryAlerts: (limit: number): Promise<unknown[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_ALERTS, limit),
+
+  queryBriefings: (limit: number): Promise<unknown[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_BRIEFINGS, limit),
+
+  queryNotifications: (limit: number): Promise<unknown[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_NOTIFICATIONS, limit),
+
+  getConfig: (): Promise<HydraConfig> => ipcRenderer.invoke(IPC_CHANNELS.CONFIG_GET),
+
+  saveConfig: (config: HydraConfig): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.CONFIG_SAVE, config)
 }
 
 contextBridge.exposeInMainWorld('hydra', api)

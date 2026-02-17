@@ -13,7 +13,11 @@ const AGENT_PATTERNS: AgentPattern[] = [
     patterns: ['/claude', 'bin/claude', 'claude-code']
   },
   { type: 'codex', displayName: 'Codex', patterns: ['/codex', 'bin/codex'] },
-  { type: 'gemini', displayName: 'Gemini', patterns: ['/gemini', 'bin/gemini'] }
+  { type: 'gemini', displayName: 'Gemini', patterns: ['/gemini', 'bin/gemini'] },
+  { type: 'cursor', displayName: 'Cursor', patterns: ['cursor', '.cursor'] },
+  { type: 'aider', displayName: 'Aider', patterns: ['aider', '/aider'] },
+  { type: 'continue', displayName: 'Continue', patterns: ['continue'] },
+  { type: 'copilot', displayName: 'Copilot', patterns: ['copilot-agent', 'github-copilot'] }
 ]
 
 export function detectAgents(processes: ProcessInfo[]): AgentInfo[] {
@@ -38,6 +42,6 @@ export function detectAgents(processes: ProcessInfo[]): AgentInfo[] {
 
 function inferStatus(proc: ProcessInfo): AgentStatus {
   if (proc.cpu > 5) return 'active'
-  if (proc.cpu > 0.5) return 'idle'
+  if (proc.cpu > 1) return 'busy'
   return 'idle'
 }

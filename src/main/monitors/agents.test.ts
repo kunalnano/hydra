@@ -58,4 +58,84 @@ describe('detectAgents', () => {
     const claude = agents.find((a) => a.type === 'claude-code')
     expect(claude!.workingDir).toBe('/Users/alsharma/Documents/ai/myAIProjects/Alfred')
   })
+
+  it('identifies Cursor processes', () => {
+    const procs: ProcessInfo[] = [
+      { pid: 9001, user: 'test', cpu: 8, mem: 2, command: '/Applications/Cursor.app/Contents/MacOS/cursor', name: 'cursor' }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents).toHaveLength(1)
+    expect(agents[0].type).toBe('cursor')
+    expect(agents[0].name).toBe('Cursor')
+  })
+
+  it('identifies Aider processes', () => {
+    const procs: ProcessInfo[] = [
+      { pid: 9002, user: 'test', cpu: 3, mem: 1, command: '/usr/local/bin/aider --model gpt-4', name: 'aider' }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents).toHaveLength(1)
+    expect(agents[0].type).toBe('aider')
+    expect(agents[0].name).toBe('Aider')
+  })
+
+  it('identifies Continue processes', () => {
+    const procs: ProcessInfo[] = [
+      { pid: 9003, user: 'test', cpu: 2, mem: 0.5, command: '/extensions/continue/server', name: 'continue' }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents).toHaveLength(1)
+    expect(agents[0].type).toBe('continue')
+    expect(agents[0].name).toBe('Continue')
+  })
+
+  it('identifies Copilot processes', () => {
+    const procs: ProcessInfo[] = [
+      { pid: 9004, user: 'test', cpu: 6, mem: 1.5, command: '/usr/lib/github-copilot/copilot-agent', name: 'copilot-agent' }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents).toHaveLength(1)
+    expect(agents[0].type).toBe('copilot')
+    expect(agents[0].name).toBe('Copilot')
+  })
+
+  it('returns active status for CPU > 5%', () => {
+    const procs: ProcessInfo[] = [
+      { pid: 100, user: 'test', cpu: 10, mem: 1, command: '/usr/local/bin/claude', name: 'claude' }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents[0].status).toBe('active')
+  })
+
+  it('returns busy status for CPU > 1% and <= 5%', () => {
+    const procs: ProcessInfo[] = [
+      { pid: 101, user: 'test', cpu: 3, mem: 1, command: '/usr/local/bin/claude', name: 'claude' }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents[0].status).toBe('busy')
+  })
+
+  it('returns idle status for CPU <= 1%', () => {
+    const procs: ProcessInfo[] = [
+      { pid: 102, user: 'test', cpu: 0.5, mem: 1, command: '/usr/local/bin/claude', name: 'claude' }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents[0].status).toBe('idle')
+  })
+
+  it('returns idle status for CPU exactly 1%', () => {
+    const procs: ProcessInfo[] = [
+      { pid: 103, user: 'test', cpu: 1, mem: 1, command: '/usr/local/bin/claude', name: 'claude' }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents[0].status).toBe('idle')
+  })
+
+  it('returns active status for CPU exactly 5.1%', () => {
+    const procs: ProcessInfo[] = [
+      { pid: 104, user: 'test', cpu: 5.1, mem: 1, command: '/usr/local/bin/claude', name: 'claude' }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents[0].status).toBe('active')
+  })
 })

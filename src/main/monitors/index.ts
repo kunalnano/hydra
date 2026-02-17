@@ -1,4 +1,4 @@
-import { ipcMain, Notification, type BrowserWindow } from 'electron'
+import { ipcMain, type BrowserWindow } from 'electron'
 import { getProcesses, groupProcesses } from './processes'
 import { getPorts } from './ports'
 import { detectAgents } from './agents'
@@ -12,6 +12,14 @@ import { DEFAULT_RULES } from '../intelligence/rules'
 import { getNetworkActivity } from './network'
 import { getFirewallRules } from './firewall'
 import { runSecurityScan, extractPosture } from '../intelligence/security'
+import { showDesktopNotification } from '../notifications'
+import {
+  insertSnapshot,
+  insertAlert,
+  insertBriefing,
+  insertNotification as dbInsertNotification,
+  dismissNotification as dbDismissNotification
+} from '../db/queries'
 import type {
   SystemState,
   AutoHealEvent,
@@ -31,6 +39,7 @@ let trayCallback: ((state: SystemState) => void) | null = null
 let latestNetwork: NetworkState | null = null
 let latestFirewall: FirewallState | null = null
 let firewallPollCount = 0
+let snapshotPollCount = 0
 
 async function collectSystemState(): Promise<SystemState> {
   const [processes, ports, gitRepos] = await Promise.all([
@@ -106,6 +115,11 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 2000): v
           if (!mainWindow.isDestroyed()) {
             mainWindow.webContents.send(IPC_CHANNELS.AUTO_HEAL_EVENT, event)
           }
+          try {
+            insertAlert(event)
+          } catch {
+            /* DB write failed — continue */
+          }
           const notif: HydraNotification = {
             id: `${event.timestamp}-${event.rule}`,
             title: event.rule.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
@@ -115,14 +129,16 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 2000): v
             dismissed: false
           }
           notifications.push(notif)
+          try {
+            dbInsertNotification(notif)
+          } catch {
+            /* DB write failed — continue */
+          }
           if (!mainWindow.isDestroyed()) {
             mainWindow.webContents.send(IPC_CHANNELS.NOTIFICATION, notif)
           }
-          if (notif.level === 'critical' || notif.level === 'warning') {
-            new Notification({
-              title: `HYDRA: ${notif.title}`,
-              body: notif.body
-            }).show()
+          if (notif.level === 'critical') {
+            showDesktopNotification(`HYDRA: ${notif.title}`, notif.body)
           }
         }
       }
@@ -156,6 +172,17 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 2000): v
           console.error('Firewall monitor failed:', err)
         }
       }
+
+      // DB snapshot persistence (every 15th cycle = ~30s)
+      snapshotPollCount++
+      if (snapshotPollCount >= 15) {
+        snapshotPollCount = 0
+        try {
+          insertSnapshot(latestState)
+        } catch (err) {
+          console.error('Snapshot DB write failed:', err)
+        }
+      }
     } catch (err) {
       console.error('Monitor cycle failed:', err)
     }
@@ -172,7 +199,13 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 2000): v
 
   ipcMain.handle(IPC_CHANNELS.BRIEFING_REQUEST, async () => {
     if (!latestState) return null
-    return generateBriefing(latestState)
+    const result = await generateBriefing(latestState)
+    try {
+      insertBriefing(result)
+    } catch {
+      /* DB write failed — continue */
+    }
+    return result
   })
 
   ipcMain.handle(IPC_CHANNELS.GET_HEAL_HISTORY, () => healHistory)
@@ -180,6 +213,11 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 2000): v
   ipcMain.on(IPC_CHANNELS.DISMISS_NOTIFICATION, (_event, id: string) => {
     const notif = notifications.find((n) => n.id === id)
     if (notif) notif.dismissed = true
+    try {
+      dbDismissNotification(id)
+    } catch {
+      /* DB write failed — continue */
+    }
   })
 
   ipcMain.handle(IPC_CHANNELS.GET_FIREWALL_RULES, async () => {
@@ -227,4 +265,5 @@ export function stopMonitoring(): void {
   latestNetwork = null
   latestFirewall = null
   firewallPollCount = 0
+  snapshotPollCount = 0
 }

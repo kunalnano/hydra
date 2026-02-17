@@ -1,5 +1,6 @@
 import { readFile, stat } from 'fs/promises'
 import type { FirewallRule, FirewallState } from '../../shared/types'
+import { isMacOS } from '../platform'
 
 const LULU_RULES_PATH = '/Library/Objective-See/LuLu/rules.plist'
 
@@ -66,6 +67,10 @@ export function parseLuluRules(xmlContent: string): FirewallRule[] {
  * Caches result and only re-parses when the file's mtime changes.
  */
 export async function getFirewallRules(): Promise<FirewallState> {
+  if (!isMacOS()) {
+    return { rules: [], totalAllowed: 0, totalBlocked: 0, lastUpdated: Date.now() }
+  }
+
   try {
     const fileStat = await stat(LULU_RULES_PATH)
     const mtime = fileStat.mtimeMs

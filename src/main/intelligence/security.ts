@@ -1,11 +1,34 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import type { SecurityScanResult, SecurityPosture } from '../../shared/types'
+import { loadConfig } from '../config'
 
 const execAsync = promisify(exec)
 
-const STAFF_BIN = '/Users/alsharma/Documents/ai/myAIProjects/staff-of-gandalf/venv/bin/staff'
 const SCAN_TIMEOUT_MS = 120_000
+
+/**
+ * Resolve the staff binary path. Priority:
+ * 1. Config file staffBinPath
+ * 2. `which staff` lookup
+ * 3. Bare 'staff' (hope it's in PATH)
+ */
+async function resolveStaffBin(): Promise<string> {
+  const config = loadConfig()
+  if (config.staffBinPath) {
+    return config.staffBinPath
+  }
+
+  try {
+    const { stdout } = await execAsync('which staff', { timeout: 5000 })
+    const resolved = stdout.trim()
+    if (resolved) return resolved
+  } catch {
+    // which failed — fall through
+  }
+
+  return 'staff'
+}
 
 export const SCAN_COMMANDS = [
   {
@@ -147,7 +170,8 @@ export function parsePostureFromScanOutput(output: string): SecurityPosture | nu
 }
 
 // NOTE: exec() is used intentionally here. All command arguments come from hardcoded
-// constants (STAFF_BIN, SCAN_COMMANDS) — no user input is interpolated into the shell string.
+// constants (SCAN_COMMANDS) and a config-resolved binary path — no user input is
+// interpolated into the shell string.
 export async function runSecurityScan(command: string): Promise<SecurityScanResult> {
   const id = generateScanId(command)
   const timestamp = Date.now()
@@ -173,14 +197,14 @@ export async function runSecurityScan(command: string): Promise<SecurityScanResu
     }
   }
 
-  const fullCommand = `${STAFF_BIN} ${command} ${cmdInfo.args}`
+  const staffBin = await resolveStaffBin()
+  const fullCommand = `${staffBin} ${command} ${cmdInfo.args}`
 
   try {
     const { stdout, stderr } = await execAsync(fullCommand, {
       timeout: SCAN_TIMEOUT_MS,
       env: {
-        ...process.env,
-        PATH: `/Users/alsharma/Documents/ai/myAIProjects/staff-of-gandalf/venv/bin:${process.env.PATH}`
+        ...process.env
       }
     })
 
@@ -206,7 +230,6 @@ export async function runSecurityScan(command: string): Promise<SecurityScanResu
     if (err instanceof Error && 'killed' in err && err.killed) {
       message = `Scan timed out after ${SCAN_TIMEOUT_MS / 1000}s`
     } else if (err instanceof Error) {
-      // exec errors include stderr in the message — pull it out for cleaner output
       const execErr = err as Error & { stderr?: string; stdout?: string }
       message = execErr.stderr?.trim() || execErr.stdout?.trim() || err.message
     } else {

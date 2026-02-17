@@ -4,6 +4,7 @@ import type { AgentInfo } from '../../../../shared/types'
 
 const STATUS_STYLES: Record<AgentInfo['status'], { dot: string; label: string }> = {
   active: { dot: 'bg-green-400', label: 'active' },
+  busy: { dot: 'bg-cyan-400', label: 'busy' },
   idle: { dot: 'bg-gray-500', label: 'idle' },
   waiting: { dot: 'bg-amber-400 animate-pulse', label: 'waiting' },
   unknown: { dot: 'bg-gray-700', label: 'unknown' }
@@ -11,6 +12,7 @@ const STATUS_STYLES: Record<AgentInfo['status'], { dot: string; label: string }>
 
 const STATUS_PILL: Record<AgentInfo['status'], string> = {
   active: 'bg-green-950/60 text-green-400 border-green-800/40',
+  busy: 'bg-cyan-950/60 text-cyan-400 border-cyan-800/40',
   idle: 'bg-gray-800/60 text-gray-500 border-gray-700/40',
   waiting: 'bg-amber-950/60 text-amber-400 border-amber-800/40 animate-pulse',
   unknown: 'bg-gray-900 text-gray-600 border-gray-800'
@@ -20,6 +22,10 @@ const TYPE_LABELS: Record<AgentInfo['type'], string> = {
   'claude-code': 'Claude Code',
   codex: 'Codex',
   gemini: 'Gemini',
+  cursor: 'Cursor',
+  aider: 'Aider',
+  continue: 'Continue',
+  copilot: 'Copilot',
   other: 'Agent'
 }
 
@@ -27,6 +33,10 @@ const TYPE_ICONS: Record<AgentInfo['type'], string> = {
   'claude-code': '\u25C6',
   codex: '\u25C7',
   gemini: '\u2726',
+  cursor: '\u25C8',
+  aider: '\u25A0',
+  continue: '\u25B6',
+  copilot: '\u2605',
   other: '\u25CB'
 }
 
@@ -34,6 +44,10 @@ const TYPE_COLORS: Record<AgentInfo['type'], string> = {
   'claude-code': 'text-amber-400',
   codex: 'text-blue-400',
   gemini: 'text-purple-400',
+  cursor: 'text-teal-400',
+  aider: 'text-green-400',
+  continue: 'text-rose-400',
+  copilot: 'text-sky-400',
   other: 'text-gray-400'
 }
 

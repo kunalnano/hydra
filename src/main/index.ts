@@ -1,7 +1,23 @@
-import { app, BrowserWindow, Menu, Tray, nativeImage, shell, globalShortcut } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  Menu,
+  Tray,
+  nativeImage,
+  shell,
+  globalShortcut,
+  ipcMain
+} from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { startMonitoring, stopMonitoring, onStateUpdate } from './monitors/index'
+import { getDb, closeDb } from './db/index'
+import {
+  getRecentSnapshots,
+  getAlertHistory,
+  getRecentBriefings,
+  getNotifications
+} from './db/queries'
 import { IPC_CHANNELS } from '../shared/types'
 import type { SystemState } from '../shared/types'
 
@@ -141,6 +157,21 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  // Initialize SQLite database
+  getDb()
+
+  // DB query IPC handlers
+  ipcMain.handle(IPC_CHANNELS.DB_QUERY_SNAPSHOTS, (_event, limit: number) =>
+    getRecentSnapshots(limit)
+  )
+  ipcMain.handle(IPC_CHANNELS.DB_QUERY_ALERTS, (_event, limit: number) => getAlertHistory(limit))
+  ipcMain.handle(IPC_CHANNELS.DB_QUERY_BRIEFINGS, (_event, limit: number) =>
+    getRecentBriefings(limit)
+  )
+  ipcMain.handle(IPC_CHANNELS.DB_QUERY_NOTIFICATIONS, (_event, limit: number) =>
+    getNotifications(limit)
+  )
+
   createTray()
   createWindow()
 
@@ -164,4 +195,5 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   globalShortcut.unregisterAll()
   stopMonitoring()
+  closeDb()
 })

@@ -1,76 +1,119 @@
-<h1 align="center">electron-app</h1>
+# HYDRA — AI-Native Mission Control
 
-<p align="center">An Electron application with Vue3 and TypeScript</p>
+> htop meets aircraft carrier CIC meets AI briefing officer
 
-<p align="center">
-<img src="https://img.shields.io/github/package-json/dependency-version/alex8088/electron-vite-boilerplate/dev/electron" alt="electron-version">
-<img src="https://img.shields.io/github/package-json/dependency-version/alex8088/electron-vite-boilerplate/dev/electron-vite" alt="electron-vite-version" />
-<img src="https://img.shields.io/github/package-json/dependency-version/alex8088/electron-vite-boilerplate/dev/electron-builder" alt="electron-builder-version" />
-<img src="https://img.shields.io/github/package-json/dependency-version/alex8088/electron-vite-boilerplate/dev/vite" alt="vite-version" />
-<img src="https://img.shields.io/github/package-json/dependency-version/alex8088/electron-vite-boilerplate/dev/vue" alt="vue-version" />
-<img src="https://img.shields.io/github/package-json/dependency-version/alex8088/electron-vite-boilerplate/dev/typescript" alt="typescript-version" />
-</p>
+A desktop app for developers monitoring local machines — processes, AI agents, git repos, network, security — with an AI intelligence layer powered by Claude.
 
-<p align='center'>
-<img src='./build/electron-vite-vue-ts.png'/>
-</p>
+![Dashboard](docs/screenshots/dashboard.png)
 
 ## Features
 
-- 💡 Optimize asset handling
-- 🚀 Fast HMR for renderer processes
-- 🔥 Hot reloading for main process and preload scripts
-- 🔌 Easy to debug
-- 🔒 Compile to v8 bytecode to protect source code
+HYDRA provides 14 integrated monitoring and intelligence systems:
 
-## Getting Started
+| System                 | Description                                                                |
+| ---------------------- | -------------------------------------------------------------------------- |
+| **Process Monitoring** | Smart process grouping by project, agent, and service via `ps aux` parsing |
+| **Port Monitoring**    | Listening port detection and port-to-process mapping via `lsof`            |
+| **AI Agent Detection** | Automatic detection of Claude Code, Codex, and Gemini agents               |
+| **Git Status**         | Multi-repo branch tracking, dirty state, ahead/behind counts               |
+| **Network Bandwidth**  | Per-process bandwidth monitoring with rate computation via `nettop`        |
+| **Firewall Rules**     | LuLu firewall rule parsing — allow/block correlation per process           |
+| **Log Tailing**        | Live log file streaming with file watcher                                  |
+| **AI Briefing**        | On-demand Claude Haiku briefings of system state (Cmd+B)                   |
+| **Auto-Heal Engine**   | Rule-based self-healing with 60s cooldowns (5 built-in rules)              |
+| **Security Scans**     | Staff of Gandalf integration (survey, illuminate, shadowfax, delve, scry)  |
+| **Dashboard UI**       | 9 panels with dark theme and neon accents                                  |
+| **Scorecards Strip**   | 6 at-a-glance health cards with big numbers and trends                     |
+| **Time-Series Charts** | Ring buffer (60 snapshots, ~2min history) with SVG sparklines              |
+| **System Tray**        | Color-coded health indicator in the menu bar                               |
 
-Read [documentation](https://electron-vite.org/) for more details.
+## Prerequisites
 
-- [Configuring](https://electron-vite.org/config/)
-- [Development](https://electron-vite.org/guide/dev.html)
-- [Asset Handling](https://electron-vite.org/guide/assets.html)
-- [HMR](https://electron-vite.org/guide/hmr.html) & [Hot Reloading](https://electron-vite.org/guide/hot-reloading.html)
-- [Debugging](https://electron-vite.org/guide/debugging.html)
-- [Source code protection](https://electron-vite.org/guide/source-code-protection.html)
-- [Distribution](https://electron-vite.org/guide/distribution.html)
-- [Troubleshooting](https://electron-vite.org/guide/troubleshooting.html)
+- **Node.js** 18+
+- **macOS** (required for full functionality — `nettop`, `lsof`, LuLu firewall monitoring)
+- **ANTHROPIC_API_KEY** environment variable (optional, for AI briefings)
 
-You can also use the [create-electron](https://github.com/alex8088/quick-start/tree/master/packages/create-electron) tool to scaffold your project for other frameworks (e.g. `React`, `Svelte` or `Solid`).
-
-## Recommended IDE Setup
-
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin)
-
-## Project Setup
-
-### Install
+## Quick Start
 
 ```bash
-$ npm install
+git clone https://github.com/kunalnano/hydra.git
+cd hydra
+npm install
+npm run dev
 ```
 
-### Development
+## Build
 
 ```bash
-$ npm run dev
+# Production build
+npm run build
+
+# Package for macOS (.dmg)
+npm run build:mac
+
+# Package for Linux (.AppImage)
+npm run build:linux
 ```
 
-### Build
+## Configuration
+
+### Environment Variables
+
+| Variable            | Required | Description                                                                           |
+| ------------------- | -------- | ------------------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY` | No       | Enables AI briefings via Claude Haiku. Without it, briefings show a "no key" message. |
+
+### Config File
+
+HYDRA stores configuration at `~/.config/hydra/config.json`. This includes:
+
+- Monitored git repository paths
+- Auto-heal rule preferences
+- Panel layout and collapse state
+
+## Architecture
+
+HYDRA follows a strict Electron main/renderer split:
+
+- **Main process** (`src/main/`) — System monitors run on a 2s interval, collecting data via CLI parsing. The intelligence layer provides AI briefings and auto-heal rules.
+- **Preload** (`src/preload/`) — Typed IPC bridge via `contextBridge`. All channels defined in `shared/types.ts`.
+- **Renderer** (`src/renderer/`) — React 18 dashboard with Zustand stores. 9 panels, 4 pure SVG chart components.
+- **Shared** (`src/shared/`) — TypeScript interfaces shared across all processes.
+
+See [CLAUDE.md](CLAUDE.md) for full architectural details, coding conventions, and the complete file map.
+
+## Tech Stack
+
+- **Electron 28** — Desktop runtime
+- **React 18** — UI framework
+- **TypeScript** — Type safety across all processes
+- **Tailwind 4** — Utility-first styling
+- **Zustand** — State management (system store + timeseries ring buffer + UI store)
+- **Vite** — Build tooling via electron-vite
+- **Vitest** — Testing framework
+- **SQLite** — Local persistence for history and trends (via better-sqlite3)
+
+## Testing
 
 ```bash
-# For windows
-$ npm run build:win
+# Run all tests
+npx vitest --run
 
-# For macOS
-$ npm run build:mac
-
-# For Linux
-$ npm run build:linux
+# Watch mode
+npx vitest --watch
 ```
 
-## Examples
+Tests cover all monitor parsers with edge cases: empty output, malformed data, header-only input. Rate computation tests use a two-snapshot pattern. All parsers are pure functions — no mocking needed.
 
-- [electron-vite-bytecode-example](https://github.com/alex8088/electron-vite-bytecode-example), source code protection
-- [electron-vite-decorator-example](https://github.com/alex8088/electron-vite-decorator-example), typescipt decorator
-- [electron-vite-worker-example](https://github.com/alex8088/electron-vite-worker-example), worker and fork
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Make your changes and add tests
+4. Run the test suite (`npx vitest --run`)
+5. Commit with conventional messages (`feat:`, `fix:`, `docs:`, `refactor:`)
+6. Open a Pull Request
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2024-2025 HYDRA Contributors

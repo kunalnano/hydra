@@ -1,6 +1,7 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import type { NetworkProcess, NetworkState } from '../../shared/types'
+import { isMacOS } from '../platform'
 
 const execAsync = promisify(exec)
 
@@ -100,6 +101,10 @@ function aggregateByPid(entries: RawNetworkEntry[]): RawNetworkEntry[] {
  */
 export async function getNetworkActivity(): Promise<NetworkState> {
   const now = Date.now()
+
+  if (!isMacOS()) {
+    return { processes: [], totalBytesInPerSec: 0, totalBytesOutPerSec: 0, timestamp: now }
+  }
 
   try {
     const { stdout } = await execAsync('nettop -P -L 1 -t external -J bytes_in,bytes_out', {

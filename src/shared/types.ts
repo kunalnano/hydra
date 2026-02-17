@@ -28,11 +28,11 @@ export interface PortInfo {
   address: string
 }
 
-export type AgentStatus = 'active' | 'idle' | 'waiting' | 'unknown'
+export type AgentStatus = 'active' | 'busy' | 'idle' | 'waiting' | 'unknown'
 
 export interface AgentInfo {
   name: string
-  type: 'claude-code' | 'codex' | 'gemini' | 'other'
+  type: 'claude-code' | 'codex' | 'gemini' | 'cursor' | 'aider' | 'continue' | 'copilot' | 'other'
   status: AgentStatus
   pid: number
   workingDir?: string
@@ -179,5 +179,20 @@ export const IPC_CHANNELS = {
   GET_FIREWALL_RULES: 'firewall:get-rules',
   SECURITY_SCAN_REQUEST: 'security:scan-request',
   SECURITY_SCAN_RESULT: 'security:scan-result',
-  SECURITY_POSTURE: 'security:posture'
+  SECURITY_POSTURE: 'security:posture',
+  DB_QUERY_SNAPSHOTS: 'db:query-snapshots',
+  DB_QUERY_ALERTS: 'db:query-alerts',
+  DB_QUERY_BRIEFINGS: 'db:query-briefings',
+  DB_QUERY_NOTIFICATIONS: 'db:query-notifications',
+  CONFIG_GET: 'config:get',
+  CONFIG_SAVE: 'config:save'
 } as const
+
+export interface HydraConfig {
+  apiKey?: string
+  gitRepoPaths: string[]
+  monitorInterval: number
+  snapshotInterval: number
+  staffBinPath?: string
+  agentPatterns?: { type: string; displayName: string; patterns: string[] }[]
+}
