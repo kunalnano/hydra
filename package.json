@@ -11,6 +11,9 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
+    "rebuild:electron": "@electron/rebuild -f -w better-sqlite3 -s",
+    "rebuild:node": "npm rebuild better-sqlite3",
+    "predev": "npm run rebuild:electron 2>/dev/null || true",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
@@ -18,7 +21,9 @@
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux",
+    "pretest": "npm run rebuild:node 2>/dev/null || true",
     "test": "vitest run",
+    "pretest:watch": "npm run rebuild:node 2>/dev/null || true",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -33,6 +38,7 @@
   "devDependencies": {
     "@electron-toolkit/eslint-config-ts": "^1.0.1",
     "@electron-toolkit/tsconfig": "^1.0.1",
+    "@electron/rebuild": "^4.0.3",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^18.19.9",
     "@types/react": "^18.2.48",
