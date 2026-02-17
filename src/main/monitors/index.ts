@@ -38,7 +38,7 @@ let notifications: HydraNotification[] = []
 let trayCallback: ((state: SystemState) => void) | null = null
 let latestNetwork: NetworkState | null = null
 let latestFirewall: FirewallState | null = null
-let firewallPollCount = 0
+let firewallPollCount = 14 // Start at 14 so first cycle (14+1=15) triggers immediately
 let snapshotPollCount = 0
 
 async function collectSystemState(): Promise<SystemState> {
@@ -264,6 +264,6 @@ export function stopMonitoring(): void {
   trayCallback = null
   latestNetwork = null
   latestFirewall = null
-  firewallPollCount = 0
+  firewallPollCount = 14
   snapshotPollCount = 0
 }

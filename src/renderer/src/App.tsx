@@ -222,9 +222,9 @@ function App(): JSX.Element {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div className="min-h-screen bg-gray-950 text-white">
       <Header />
-      <main className="flex-1 p-4 grid grid-cols-3 grid-rows-[auto_1fr_1fr_1fr_1fr_minmax(160px,1fr)] gap-3 overflow-y-auto">
+      <main className="p-4 grid grid-cols-3 grid-rows-[auto_minmax(220px,auto)_minmax(220px,auto)_minmax(220px,auto)_minmax(220px,auto)_minmax(180px,auto)] gap-3">
         {/* Row 1: Scorecards strip */}
         <div className="col-span-3">
           <ScorecardsStrip />

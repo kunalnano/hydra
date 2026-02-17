@@ -1,4 +1,4 @@
-import { stat } from 'fs/promises'
+import { stat, access } from 'fs/promises'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { join } from 'path'
@@ -7,6 +7,22 @@ import { isMacOS } from '../platform'
 
 const execFileAsync = promisify(execFile)
 const LULU_RULES_PATH = '/Library/Objective-See/LuLu/rules.plist'
+
+/** Build candidate paths for the Python parser script. */
+function getParserPaths(): string[] {
+  const candidates = [
+    join(__dirname, '../../src/main/monitors/lulu-parser.py'),
+    join(process.cwd(), 'src/main/monitors/lulu-parser.py')
+  ]
+  // In packaged Electron app, try relative to resources
+  try {
+    const { app } = require('electron')
+    candidates.unshift(join(app.getAppPath(), 'src/main/monitors/lulu-parser.py'))
+  } catch {
+    // Not in Electron context (e.g. tests)
+  }
+  return candidates
+}
 
 let cachedState: FirewallState | null = null
 let cachedMtime: number = 0
@@ -106,13 +122,11 @@ export async function getFirewallRules(): Promise<FirewallState> {
     // Use Python helper to parse NSKeyedArchiver binary plist.
     // All arguments are hardcoded constants — no user input.
     let rules: FirewallRule[] = []
-    const parserPaths = [
-      join(__dirname, '../../src/main/monitors/lulu-parser.py'),
-      join(process.cwd(), 'src/main/monitors/lulu-parser.py')
-    ]
+    const parserPaths = getParserPaths()
 
     for (const parserPath of parserPaths) {
       try {
+        await access(parserPath)
         const { stdout } = await execFileAsync('python3', [parserPath, LULU_RULES_PATH], {
           timeout: 10000
         })
@@ -121,6 +135,10 @@ export async function getFirewallRules(): Promise<FirewallState> {
       } catch {
         continue
       }
+    }
+
+    if (rules.length === 0) {
+      console.warn('[firewall] Python parser found no rules. Tried paths:', parserPaths)
     }
 
     const totalAllowed = rules.filter((r) => r.action === 'allow').length
