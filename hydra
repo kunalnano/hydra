@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+HYDRA_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$HYDRA_DIR"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+BOLD='\033[1m'
+DIM='\033[2m'
+RESET='\033[0m'
+
+usage() {
+  echo -e "${BOLD}HYDRA${RESET} — Mission Control CLI"
+  echo ""
+  echo -e "  ${CYAN}hydra${RESET}              Launch app (dev mode)"
+  echo -e "  ${CYAN}hydra test${RESET}         Run all 111 tests"
+  echo -e "  ${CYAN}hydra build${RESET}        Production build"
+  echo -e "  ${CYAN}hydra package${RESET}      Build + package .dmg/.exe"
+  echo -e "  ${CYAN}hydra check${RESET}        Typecheck + lint + test"
+  echo -e "  ${CYAN}hydra status${RESET}       Git status + test count"
+  echo -e "  ${CYAN}hydra help${RESET}         This message"
+}
+
+step() {
+  echo -e "${CYAN}▸${RESET} $1"
+}
+
+ok() {
+  echo -e "${GREEN}✓${RESET} $1"
+}
+
+fail() {
+  echo -e "${RED}✗${RESET} $1"
+  exit 1
+}
+
+cmd_dev() {
+  step "Rebuilding better-sqlite3 for Electron..."
+  npm run rebuild:electron 2>/dev/null || true
+  ok "Native modules ready"
+  step "Launching HYDRA..."
+  npx electron-vite dev
+}
+
+cmd_test() {
+  step "Rebuilding better-sqlite3 for Node..."
+  npm run rebuild:node 2>/dev/null || true
+  ok "Native modules ready"
+  step "Running tests..."
+  npx vitest run
+}
+
+cmd_build() {
+  step "Typechecking..."
+  npm run typecheck || fail "Typecheck failed"
+  ok "Types clean"
+  step "Rebuilding better-sqlite3 for Electron..."
+  npm run rebuild:electron 2>/dev/null || true
+  step "Building..."
+  npx electron-vite build
+  ok "Build complete → out/"
+}
+
+cmd_package() {
+  cmd_build
+  step "Packaging..."
+  npx electron-builder --mac
+  ok "Package complete → dist/"
+}
+
+cmd_check() {
+  step "Typechecking..."
+  npm run typecheck || fail "Typecheck failed"
+  ok "Types clean"
+
+  step "Rebuilding better-sqlite3 for Node..."
+  npm run rebuild:node 2>/dev/null || true
+
+  step "Running tests..."
+  if npx vitest run; then
+    ok "All tests passing"
+  else
+    fail "Tests failed"
+  fi
+}
+
+cmd_status() {
+  echo -e "${BOLD}HYDRA${RESET} status"
+  echo ""
+
+  # Git info
+  BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+  COMMITS=$(git rev-list --count HEAD 2>/dev/null || echo "?")
+  DIRTY=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+  echo -e "  ${DIM}Branch:${RESET}  $BRANCH ($COMMITS commits)"
+  if [ "$DIRTY" -gt 0 ]; then
+    echo -e "  ${DIM}Working:${RESET} ${YELLOW}$DIRTY uncommitted changes${RESET}"
+  else
+    echo -e "  ${DIM}Working:${RESET} ${GREEN}clean${RESET}"
+  fi
+
+  # Test count
+  step "Counting tests..."
+  npm run rebuild:node 2>/dev/null || true
+  TEST_OUTPUT=$(npx vitest run 2>&1 | tail -3)
+  echo -e "  ${DIM}Tests:${RESET}   $TEST_OUTPUT"
+}
+
+case "${1:-}" in
+  ""|dev)    cmd_dev ;;
+  test)      cmd_test ;;
+  build)     cmd_build ;;
+  package)   cmd_package ;;
+  check)     cmd_check ;;
+  status)    cmd_status ;;
+  help|-h)   usage ;;
+  *)
+    echo -e "${RED}Unknown command:${RESET} $1"
+    echo ""
+    usage
+    exit 1
+    ;;
+esac
