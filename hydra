@@ -42,7 +42,7 @@ cmd_dev() {
   npm run rebuild:electron 2>/dev/null || true
   ok "Native modules ready"
   step "Launching HYDRA..."
-  npx electron-vite dev
+  npm run dev --ignore-scripts
 }
 
 cmd_test() {
@@ -50,7 +50,7 @@ cmd_test() {
   npm run rebuild:node 2>/dev/null || true
   ok "Native modules ready"
   step "Running tests..."
-  npx vitest run
+  npm test --ignore-scripts
 }
 
 cmd_build() {
@@ -60,14 +60,14 @@ cmd_build() {
   step "Rebuilding better-sqlite3 for Electron..."
   npm run rebuild:electron 2>/dev/null || true
   step "Building..."
-  npx electron-vite build
+  npm run build --ignore-scripts
   ok "Build complete → out/"
 }
 
 cmd_package() {
   cmd_build
   step "Packaging..."
-  npx electron-builder --mac
+  npm run build:mac --ignore-scripts
   ok "Package complete → dist/"
 }
 
@@ -80,7 +80,7 @@ cmd_check() {
   npm run rebuild:node 2>/dev/null || true
 
   step "Running tests..."
-  if npx vitest run; then
+  if npm test --ignore-scripts; then
     ok "All tests passing"
   else
     fail "Tests failed"
@@ -105,7 +105,7 @@ cmd_status() {
   # Test count
   step "Counting tests..."
   npm run rebuild:node 2>/dev/null || true
-  TEST_OUTPUT=$(npx vitest run 2>&1 | tail -3)
+  TEST_OUTPUT=$(npm test --ignore-scripts 2>&1 | tail -3)
   echo -e "  ${DIM}Tests:${RESET}   $TEST_OUTPUT"
 }
 
