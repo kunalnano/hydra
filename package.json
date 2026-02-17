@@ -11,7 +11,7 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
-    "rebuild:electron": "@electron/rebuild -f -w better-sqlite3 -s",
+    "rebuild:electron": "electron-rebuild -f -w better-sqlite3 -s",
     "rebuild:node": "npm rebuild better-sqlite3",
     "predev": "npm run rebuild:electron 2>/dev/null || true",
     "dev": "electron-vite dev",
