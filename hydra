@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-HYDRA_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT="$(readlink "$0" 2>/dev/null || echo "$0")"
+HYDRA_DIR="$(cd "$(dirname "$SCRIPT")" && pwd)"
 cd "$HYDRA_DIR"
 
 RED='\033[0;31m'
