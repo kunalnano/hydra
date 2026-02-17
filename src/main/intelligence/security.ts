@@ -30,15 +30,56 @@ async function resolveStaffBin(): Promise<string> {
   return 'staff'
 }
 
+// Default local network CIDR — derived from gateway at startup
+let localNetworkTarget = '192.168.1.0/24'
+
+async function detectLocalNetwork(): Promise<void> {
+  try {
+    const { stdout } = await execAsync('ipconfig getifaddr en0', { timeout: 5000 })
+    const ip = stdout.trim()
+    if (ip) {
+      // Convert e.g. 192.168.7.225 to 192.168.7.0/24
+      const parts = ip.split('.')
+      parts[3] = '0/24'
+      localNetworkTarget = parts.join('.')
+    }
+  } catch {
+    // Fall back to default
+  }
+}
+
+// Fire and forget — resolve before first scan
+detectLocalNetwork()
+
 export const SCAN_COMMANDS = [
   {
     command: 'survey',
     description: 'Full security assessment',
-    args: '--home -o /tmp/hydra-scan-report.md'
+    get args(): string {
+      return `${localNetworkTarget} -o /tmp/hydra-scan-report.md`
+    }
   },
-  { command: 'illuminate', description: 'Host discovery (ping sweep)', args: '--home' },
-  { command: 'shadowfax', description: 'Fast port scan', args: '--home' },
-  { command: 'delve', description: 'Deep vulnerability scan', args: '--home' },
+  {
+    command: 'illuminate',
+    description: 'Host discovery (ping sweep)',
+    get args(): string {
+      return localNetworkTarget
+    }
+  },
+  {
+    command: 'shadowfax',
+    description: 'Fast port scan',
+    get args(): string {
+      return localNetworkTarget
+    }
+  },
+  {
+    command: 'delve',
+    description: 'Deep vulnerability scan',
+    get args(): string {
+      return localNetworkTarget
+    }
+  },
   { command: 'scry', description: 'DNS & domain intelligence', args: 'google.com' }
 ] as const
 

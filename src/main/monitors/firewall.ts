@@ -1,7 +1,11 @@
-import { readFile, stat } from 'fs/promises'
+import { stat } from 'fs/promises'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+import { join } from 'path'
 import type { FirewallRule, FirewallState } from '../../shared/types'
 import { isMacOS } from '../platform'
 
+const execFileAsync = promisify(execFile)
 const LULU_RULES_PATH = '/Library/Objective-See/LuLu/rules.plist'
 
 let cachedState: FirewallState | null = null
@@ -19,13 +23,12 @@ function extractName(path: string): string {
 
 /**
  * Parse a LuLu rules.plist XML string into FirewallRule[].
- * Uses regex-based extraction with no external dependencies.
+ * Uses regex-based extraction — works with XML plists only.
+ * For binary plists, use parseLuluRulesJson() instead.
  */
 export function parseLuluRules(xmlContent: string): FirewallRule[] {
   const rules: FirewallRule[] = []
 
-  // Find the outer <dict> under the "rules" key.
-  // Structure: <key>rules</key> <dict> ... </dict>
   const rulesMatch = xmlContent.match(
     /<key>rules<\/key>\s*<dict>([\s\S]*?)<\/dict>\s*<\/dict>\s*<\/plist>/
   )
@@ -33,8 +36,6 @@ export function parseLuluRules(xmlContent: string): FirewallRule[] {
 
   const rulesBlock = rulesMatch[1]
 
-  // Each rule entry is: <key>/path/to/binary</key> <dict>...</dict>
-  // The inner dict should not contain nested dicts (LuLu format is flat).
   const entryRegex = /<key>([^<]+)<\/key>\s*<dict>([\s\S]*?)<\/dict>/g
   let entryMatch: RegExpExecArray | null
 
@@ -42,7 +43,6 @@ export function parseLuluRules(xmlContent: string): FirewallRule[] {
     const binaryPath = entryMatch[1]
     const innerDict = entryMatch[2]
 
-    // Parse inner dict key-value pairs
     const actionMatch = innerDict.match(/<key>action<\/key>\s*<integer>(\d+)<\/integer>/)
     const typeMatch = innerDict.match(/<key>type<\/key>\s*<integer>(\d+)<\/integer>/)
 
@@ -63,7 +63,31 @@ export function parseLuluRules(xmlContent: string): FirewallRule[] {
 }
 
 /**
+ * Parse LuLu rules from JSON output of the Python helper script.
+ * Handles NSKeyedArchiver binary plist format that regex can't parse.
+ */
+export function parseLuluRulesJson(jsonOutput: string): FirewallRule[] {
+  try {
+    const parsed = JSON.parse(jsonOutput) as Array<{
+      path: string
+      name: string
+      action: string
+      type: string
+    }>
+    return parsed.map((r) => ({
+      path: r.path,
+      name: r.name,
+      action: r.action === 'block' ? ('block' as const) : ('allow' as const),
+      type: r.type === 'system' ? ('system' as const) : ('user' as const)
+    }))
+  } catch {
+    return []
+  }
+}
+
+/**
  * Read and parse LuLu firewall rules.
+ * Uses Python helper to parse NSKeyedArchiver binary plist, with XML fallback.
  * Caches result and only re-parses when the file's mtime changes.
  */
 export async function getFirewallRules(): Promise<FirewallState> {
@@ -79,8 +103,25 @@ export async function getFirewallRules(): Promise<FirewallState> {
       return cachedState
     }
 
-    const content = await readFile(LULU_RULES_PATH, 'utf-8')
-    const rules = parseLuluRules(content)
+    // Use Python helper to parse NSKeyedArchiver binary plist.
+    // All arguments are hardcoded constants — no user input.
+    let rules: FirewallRule[] = []
+    const parserPaths = [
+      join(__dirname, '../../src/main/monitors/lulu-parser.py'),
+      join(process.cwd(), 'src/main/monitors/lulu-parser.py')
+    ]
+
+    for (const parserPath of parserPaths) {
+      try {
+        const { stdout } = await execFileAsync('python3', [parserPath, LULU_RULES_PATH], {
+          timeout: 10000
+        })
+        rules = parseLuluRulesJson(stdout)
+        if (rules.length > 0) break
+      } catch {
+        continue
+      }
+    }
 
     const totalAllowed = rules.filter((r) => r.action === 'allow').length
     const totalBlocked = rules.filter((r) => r.action === 'block').length
