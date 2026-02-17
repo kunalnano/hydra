@@ -1,6 +1,6 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import type { GitRepoInfo } from '../../shared/types'
+import type { GitRepoInfo, GitCommit } from '../../shared/types'
 
 const execAsync = promisify(exec)
 
@@ -94,4 +94,106 @@ export async function scanForRepos(scanDirs?: string[]): Promise<GitRepoInfo[]> 
   }
 
   return repos
+}
+
+const AI_EMAIL_MAP: Record<string, string> = {
+  'noreply@anthropic.com': 'claude',
+  'copilot@github.com': 'copilot',
+  'noreply@cursor.sh': 'cursor',
+  'aider@aider.chat': 'aider'
+}
+
+const AI_COAUTHOR_PATTERNS: { pattern: RegExp; agent: string }[] = [
+  { pattern: /claude/i, agent: 'claude' },
+  { pattern: /copilot/i, agent: 'copilot' },
+  { pattern: /cursor/i, agent: 'cursor' },
+  { pattern: /aider/i, agent: 'aider' },
+  { pattern: /gemini/i, agent: 'gemini' }
+]
+
+function detectAiAgent(
+  body: string,
+  authorEmail: string
+): { isAiAuthored: boolean; aiAgent?: string } {
+  // Check author email first
+  const emailAgent = AI_EMAIL_MAP[authorEmail.toLowerCase()]
+  if (emailAgent) {
+    return { isAiAuthored: true, aiAgent: emailAgent }
+  }
+
+  // Check Co-Authored-By lines in body
+  const coAuthorRegex = /co-authored-by:\s*(.+)/gi
+  let match: RegExpExecArray | null
+  while ((match = coAuthorRegex.exec(body)) !== null) {
+    const coAuthorLine = match[1]
+    for (const { pattern, agent } of AI_COAUTHOR_PATTERNS) {
+      if (pattern.test(coAuthorLine)) {
+        return { isAiAuthored: true, aiAgent: agent }
+      }
+    }
+  }
+
+  return { isAiAuthored: false }
+}
+
+export function parseGitLog(logOutput: string, repoName: string): GitCommit[] {
+  if (!logOutput.trim()) return []
+
+  const records = logOutput.split('§§§').filter((r) => r.trim().length > 0)
+  const commits: GitCommit[] = []
+
+  for (const record of records) {
+    const lines = record.trim().split('\n')
+    if (lines.length === 0) continue
+
+    // First line has the pipe-delimited fields
+    const firstLine = lines[0]
+    const parts = firstLine.split('|')
+    if (parts.length < 5) continue
+
+    const hash = parts[0]
+    const author = parts[1]
+    const email = parts[2]
+    const timestamp = parseInt(parts[3], 10)
+    const message = parts[4]
+    // Body is everything from parts[5] onwards (message might contain pipes) + remaining lines
+    const bodyParts = parts.slice(5)
+    const bodyFirstLine = bodyParts.join('|')
+    const bodyLines = [bodyFirstLine, ...lines.slice(1)].join('\n')
+
+    if (!hash || isNaN(timestamp)) continue
+
+    const { isAiAuthored, aiAgent } = detectAiAgent(bodyLines, email)
+
+    commits.push({
+      hash,
+      shortHash: hash.substring(0, 7),
+      author,
+      email,
+      timestamp,
+      message,
+      isAiAuthored,
+      aiAgent,
+      repoName
+    })
+  }
+
+  return commits
+}
+
+export async function getRepoCommitHistory(
+  repoPath: string,
+  limit: number = 20
+): Promise<GitCommit[]> {
+  try {
+    const repoName = repoPath.split('/').pop() || repoPath
+    // limit is always a number from the app, repoPath comes from internal repo scanning
+    const { stdout } = await execAsync(
+      `git log --pretty=format:'%H|%an|%ae|%at|%s|%b§§§' -n ${limit}`,
+      { cwd: repoPath, maxBuffer: 1024 * 1024 }
+    )
+    return parseGitLog(stdout, repoName)
+  } catch {
+    return []
+  }
 }

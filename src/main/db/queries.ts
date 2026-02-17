@@ -3,7 +3,9 @@ import type {
   SystemState,
   AutoHealEvent,
   BriefingResult,
-  HydraNotification
+  HydraNotification,
+  SecurityPosture,
+  PostureHistoryEntry
 } from '../../shared/types'
 
 export interface DBSnapshot {
@@ -131,4 +133,26 @@ export function getNotifications(limit: number): HydraNotification[] {
 export function dismissNotification(id: string): void {
   const db = getDb()
   db.prepare('UPDATE notifications SET dismissed = 1 WHERE id = ?').run(id)
+}
+
+export function insertPostureHistory(posture: SecurityPosture): void {
+  const db = getDb()
+  db.prepare(
+    'INSERT INTO posture_history (timestamp, score, grade, verdict) VALUES (?, ?, ?, ?)'
+  ).run(Date.now(), posture.overallScore, posture.grade, posture.verdict)
+}
+
+export function getPostureHistory(limit: number): PostureHistoryEntry[] {
+  const db = getDb()
+  const rows = db
+    .prepare(
+      'SELECT timestamp, score, grade, verdict FROM posture_history ORDER BY timestamp DESC, id DESC LIMIT ?'
+    )
+    .all(limit) as { timestamp: number; score: number; grade: string; verdict: string }[]
+  return rows.map((row) => ({
+    timestamp: row.timestamp,
+    score: row.score,
+    grade: row.grade,
+    verdict: row.verdict
+  }))
 }

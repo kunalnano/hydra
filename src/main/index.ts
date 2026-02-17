@@ -11,12 +11,14 @@ import {
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { startMonitoring, stopMonitoring, onStateUpdate } from './monitors/index'
+import { getRepoCommitHistory } from './monitors/git'
 import { getDb, closeDb } from './db/index'
 import {
   getRecentSnapshots,
   getAlertHistory,
   getRecentBriefings,
-  getNotifications
+  getNotifications,
+  getPostureHistory
 } from './db/queries'
 import { IPC_CHANNELS } from '../shared/types'
 import type { SystemState } from '../shared/types'
@@ -170,6 +172,15 @@ app.whenReady().then(() => {
   )
   ipcMain.handle(IPC_CHANNELS.DB_QUERY_NOTIFICATIONS, (_event, limit: number) =>
     getNotifications(limit)
+  )
+
+  ipcMain.handle(IPC_CHANNELS.DB_QUERY_POSTURE_HISTORY, (_event, limit: number) =>
+    getPostureHistory(limit)
+  )
+
+  // Git commit history IPC handler
+  ipcMain.handle(IPC_CHANNELS.GIT_COMMIT_HISTORY, (_event, repoPath: string, limit: number) =>
+    getRepoCommitHistory(repoPath, limit)
   )
 
   createTray()

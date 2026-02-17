@@ -11,13 +11,16 @@ import {
   getRecentBriefings,
   insertNotification,
   getNotifications,
-  dismissNotification
+  dismissNotification,
+  insertPostureHistory,
+  getPostureHistory
 } from './queries'
 import type {
   SystemState,
   AutoHealEvent,
   BriefingResult,
-  HydraNotification
+  HydraNotification,
+  SecurityPosture
 } from '../../shared/types'
 
 function makeState(overrides: Partial<SystemState> = {}): SystemState {
@@ -46,7 +49,7 @@ describe('SQLite persistence', () => {
   })
 
   describe('schema creation', () => {
-    it('should create all four tables', () => {
+    it('should create all five tables', () => {
       const tables = db
         .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         .all() as { name: string }[]
@@ -55,6 +58,7 @@ describe('SQLite persistence', () => {
       expect(names).toContain('alerts')
       expect(names).toContain('briefings')
       expect(names).toContain('notifications')
+      expect(names).toContain('posture_history')
     })
 
     it('should be idempotent — calling initializeSchema twice does not error', () => {
@@ -187,6 +191,48 @@ describe('SQLite persistence', () => {
       const rows = getNotifications(10)
       expect(rows).toHaveLength(1)
       expect(rows[0].title).toBe('Updated')
+    })
+  })
+
+  describe('posture history', () => {
+    function makePosture(overrides: Partial<SecurityPosture> = {}): SecurityPosture {
+      return {
+        overallScore: 85,
+        grade: 'B+',
+        verdict: 'Good posture — minor issues found',
+        categories: [{ name: 'Firewall', score: 90, weight: 1, summary: 'Well configured' }],
+        ...overrides
+      }
+    }
+
+    it('should insert and retrieve posture history', () => {
+      insertPostureHistory(makePosture({ overallScore: 85, grade: 'B+' }))
+      const rows = getPostureHistory(10)
+      expect(rows).toHaveLength(1)
+      expect(rows[0].score).toBe(85)
+      expect(rows[0].grade).toBe('B+')
+      expect(rows[0].verdict).toBe('Good posture — minor issues found')
+      expect(rows[0].timestamp).toBeGreaterThan(0)
+    })
+
+    it('should return most recent first', () => {
+      insertPostureHistory(makePosture({ overallScore: 70, grade: 'C' }))
+      insertPostureHistory(makePosture({ overallScore: 85, grade: 'B+' }))
+      insertPostureHistory(makePosture({ overallScore: 95, grade: 'A' }))
+      const rows = getPostureHistory(10)
+      expect(rows).toHaveLength(3)
+      // Most recent (last inserted) should be first
+      expect(rows[0].score).toBe(95)
+      expect(rows[1].score).toBe(85)
+      expect(rows[2].score).toBe(70)
+    })
+
+    it('should respect the limit parameter', () => {
+      for (let i = 0; i < 5; i++) {
+        insertPostureHistory(makePosture({ overallScore: 60 + i * 5 }))
+      }
+      const rows = getPostureHistory(3)
+      expect(rows).toHaveLength(3)
     })
   })
 })

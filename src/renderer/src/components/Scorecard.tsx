@@ -4,6 +4,7 @@ export interface ScorecardProps {
   value: string
   label: string
   trend?: 'up' | 'down' | 'flat'
+  trendWidget?: React.ReactNode
   color: 'green' | 'amber' | 'red' | 'blue' | 'gray'
   sparkData?: number[]
   onClick?: () => void
@@ -37,6 +38,7 @@ export function Scorecard({
   value,
   label,
   trend,
+  trendWidget,
   color,
   sparkData,
   onClick
@@ -45,16 +47,16 @@ export function Scorecard({
 
   return (
     <div
-      className={`bg-gray-900/60 border border-gray-800 rounded-lg px-4 py-3 flex flex-col${
-        onClick ? ' cursor-pointer hover:border-gray-700 transition-colors' : ''
+      className={`flex-1 bg-gray-900/60 border border-gray-800/50 rounded-lg px-4 py-3 flex flex-col shadow-lg shadow-black/10 hover:border-gray-700/50 transition-all duration-200${
+        onClick ? ' cursor-pointer' : ''
       }`}
       onClick={onClick}
     >
       <div className="flex items-center gap-1.5">
-        <span className={`text-2xl font-bold ${textColor}`}>{value}</span>
-        {trend && <TrendArrow trend={trend} color={color} />}
+        <span className={`text-2xl font-bold tabular-nums ${textColor}`}>{value}</span>
+        {trendWidget || (trend && <TrendArrow trend={trend} color={color} />)}
       </div>
-      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-xs text-gray-500 uppercase tracking-wider">{label}</span>
       {sparkData && sparkData.length >= 2 && (
         <div className="mt-2" style={{ height: '40px' }}>
           <Sparkline data={sparkData} height={40} color={hex} />

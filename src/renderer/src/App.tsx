@@ -12,6 +12,7 @@ import { NotificationsPanel } from './panels/Notifications'
 import { NetworkPanel } from './panels/Network'
 import { SecurityPanel } from './panels/Security'
 import { ScorecardsStrip } from './panels/ScorecardsStrip'
+import { GitHistoryPanel } from './panels/GitHistory'
 
 const PANEL_DOTS: Record<string, string> = {
   Workspaces: 'bg-blue-400',
@@ -19,10 +20,24 @@ const PANEL_DOTS: Record<string, string> = {
   'Git Status': 'bg-purple-400',
   'AI Briefing': 'bg-cyan-400',
   Network: 'bg-green-400',
-  Security: 'bg-red-400',
+  'Staff of Gandalf': 'bg-red-400',
   Ports: 'bg-teal-400',
   Notifications: 'bg-orange-400',
-  Logs: 'bg-gray-400'
+  Logs: 'bg-gray-400',
+  'Git History': 'bg-indigo-400'
+}
+
+const PANEL_ACCENT_HEX: Record<string, string> = {
+  Workspaces: '#60a5fa',
+  Agents: '#fbbf24',
+  'Git Status': '#c084fc',
+  'AI Briefing': '#22d3ee',
+  Network: '#4ade80',
+  'Staff of Gandalf': '#f87171',
+  Ports: '#2dd4bf',
+  Notifications: '#fb923c',
+  Logs: '#9ca3af',
+  'Git History': '#818cf8'
 }
 
 function Panel({
@@ -34,25 +49,63 @@ function Panel({
   children: React.ReactNode
   className?: string
 }): JSX.Element {
+  const accentColor = PANEL_ACCENT_HEX[title] || '#6b7280'
+
   return (
-    <div className={`bg-gray-900 border border-gray-800 rounded-lg overflow-hidden ${className}`}>
-      <div className="px-4 py-2 border-b border-gray-800 flex items-center justify-between">
+    <div
+      className={`bg-gray-900 border border-gray-800/50 rounded-lg overflow-hidden shadow-lg shadow-black/20 hover:border-gray-700 transition-all duration-200 min-h-0 flex flex-col ${className}`}
+    >
+      <div className="px-4 py-2 border-b border-gray-800 flex items-center justify-between relative">
         <div className="flex items-center gap-2">
           <span className={`w-1.5 h-1.5 rounded-full ${PANEL_DOTS[title] || 'bg-gray-600'}`} />
-          <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{title}</h2>
+          <h2 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">{title}</h2>
         </div>
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[2px]"
+          style={{
+            background: `linear-gradient(to right, transparent, ${accentColor}40, ${accentColor}, ${accentColor}40, transparent)`
+          }}
+        />
       </div>
       <div className="p-4 flex-1 overflow-hidden">{children}</div>
     </div>
   )
 }
 
+function formatBytes(bytesPerSec: number): string {
+  if (bytesPerSec < 1024) return `${Math.round(bytesPerSec)} B/s`
+  if (bytesPerSec < 1024 * 1024) return `${(bytesPerSec / 1024).toFixed(1)} KB/s`
+  return `${(bytesPerSec / (1024 * 1024)).toFixed(1)} MB/s`
+}
+
 function Header(): JSX.Element {
   const { state, refresh } = useSystemStore()
-  const { cpuHistory, memHistory } = useTimeSeriesStore()
+  const { cpuHistory, memHistory, netInHistory, netOutHistory } = useTimeSeriesStore()
+
+  const cpuUsage = state?.cpu.usage ?? 0
+  const memUsage = state?.memory.usagePercent ?? 0
+
+  // Health dot: green < 50% CPU & MEM, yellow < 80%, red >= 80%
+  let healthColor = 'bg-green-400'
+  let healthGlow = 'shadow-green-400/50'
+  if (cpuUsage >= 80 || memUsage >= 80) {
+    healthColor = 'bg-red-400'
+    healthGlow = 'shadow-red-400/50'
+  } else if (cpuUsage >= 50 || memUsage >= 50) {
+    healthColor = 'bg-amber-400'
+    healthGlow = 'shadow-amber-400/50'
+  }
+
+  // Activity indicator: pulse if timestamp is < 5s old
+  const isFresh = state ? Date.now() - state.timestamp < 5000 : false
+
+  const netIn = state?.network?.totalBytesInPerSec ?? 0
+  const netOut = state?.network?.totalBytesOutPerSec ?? 0
+
   return (
-    <header className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
+    <header className="bg-gray-900 px-6 py-3 flex items-center justify-between relative">
       <div className="flex items-center gap-3">
+        <div className={`w-2.5 h-2.5 rounded-full ${healthColor} shadow-md ${healthGlow}`} />
         <h1 className="text-lg font-bold text-white tracking-tight">HYDRA</h1>
         <span className="text-xs text-gray-500">Mission Control</span>
       </div>
@@ -61,37 +114,60 @@ function Header(): JSX.Element {
           <>
             <div className="flex items-center gap-1.5 text-gray-400">
               <span className="text-xs">CPU</span>
-              <div className="w-16 h-4">
+              <div className="w-24 h-6">
                 <Sparkline
                   data={cpuHistory}
                   color="#4ade80"
                   filled={false}
-                  width={64}
-                  height={16}
+                  width={96}
+                  height={24}
                 />
               </div>
-              <span className="text-white font-mono text-xs">{state.cpu.usage.toFixed(0)}%</span>
+              <span className="text-white font-mono text-xs tabular-nums">
+                {cpuUsage.toFixed(0)}%
+              </span>
             </div>
             <div className="flex items-center gap-1.5 text-gray-400">
               <span className="text-xs">MEM</span>
-              <div className="w-16 h-4">
+              <div className="w-24 h-6">
                 <Sparkline
                   data={memHistory}
                   color="#a78bfa"
                   filled={false}
-                  width={64}
-                  height={16}
+                  width={96}
+                  height={24}
                 />
               </div>
-              <span className="text-white font-mono text-xs">
-                {state.memory.usagePercent.toFixed(0)}%
+              <span className="text-white font-mono text-xs tabular-nums">
+                {memUsage.toFixed(0)}%
               </span>
             </div>
-            <div className="text-gray-400 text-xs">
-              <span className="text-white font-mono">{state.agents.length}</span> agents
+            <div className="flex items-center gap-2 text-gray-400">
+              <span className="text-xs">NET</span>
+              <div className="flex flex-col text-[10px] font-mono tabular-nums leading-tight">
+                <span className="text-green-400">
+                  <span className="text-gray-500">&#8593;</span> {formatBytes(netOut)}
+                </span>
+                <span className="text-blue-400">
+                  <span className="text-gray-500">&#8595;</span> {formatBytes(netIn)}
+                </span>
+              </div>
+              <div className="w-12 h-6">
+                <Sparkline
+                  data={netInHistory.map((v, i) => v + (netOutHistory[i] ?? 0))}
+                  color="#60a5fa"
+                  filled={false}
+                  width={48}
+                  height={24}
+                />
+              </div>
             </div>
             <div className="text-gray-400 text-xs">
-              <span className="text-white font-mono">
+              <span className="text-white font-mono tabular-nums">{state.agents.length}</span>{' '}
+              agents
+            </div>
+            <div className="text-gray-400 text-xs">
+              <span className="text-white font-mono tabular-nums">
                 {state.ports.filter((p) => p.state === 'LISTEN').length}
               </span>{' '}
               ports
@@ -105,11 +181,24 @@ function Header(): JSX.Element {
           Refresh
         </button>
         {state && (
-          <span className="text-xs text-gray-600 font-mono">
-            {new Date(state.timestamp).toLocaleTimeString()}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${isFresh ? 'bg-green-400 animate-pulse' : 'bg-gray-600'}`}
+            />
+            <span className="text-xs text-gray-600 font-mono tabular-nums">
+              {new Date(state.timestamp).toLocaleTimeString()}
+            </span>
+          </div>
         )}
       </div>
+      {/* Gradient bottom border */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-[1px]"
+        style={{
+          background:
+            'linear-gradient(to right, transparent, #22d3ee30, #22d3ee, #22d3ee30, transparent)'
+        }}
+      />
     </header>
   )
 }
@@ -135,10 +224,13 @@ function App(): JSX.Element {
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       <Header />
-      <main className="flex-1 p-4 grid grid-cols-2 grid-rows-[auto_1fr_1fr_1fr_1fr_minmax(160px,1fr)] gap-4 overflow-hidden">
-        <div className="col-span-2">
+      <main className="flex-1 p-4 grid grid-cols-3 grid-rows-[auto_1fr_1fr_1fr_1fr_minmax(160px,1fr)] gap-3 overflow-hidden">
+        {/* Row 1: Scorecards strip */}
+        <div className="col-span-3">
           <ScorecardsStrip />
         </div>
+
+        {/* Row 2: Workspaces, Agents, Git Status */}
         <Panel title="Workspaces">
           <WorkspacesPanel />
         </Panel>
@@ -148,22 +240,33 @@ function App(): JSX.Element {
         <Panel title="Git Status">
           <GitStatusPanel />
         </Panel>
-        <Panel title="AI Briefing">
-          <BriefingPanel />
-        </Panel>
+
+        {/* Row 3: Network, Security (spans 2 rows), Ports */}
         <Panel title="Network">
           <NetworkPanel />
         </Panel>
-        <Panel title="Security">
+        <Panel title="Staff of Gandalf" className="row-span-2">
           <SecurityPanel />
         </Panel>
         <Panel title="Ports">
           <PortsPanel />
         </Panel>
+
+        {/* Row 4: Notifications, [Security continues], Briefing */}
         <Panel title="Notifications" className="flex flex-col">
           <NotificationsPanel />
         </Panel>
-        <Panel title="Logs" className="col-span-2 flex flex-col">
+        <Panel title="AI Briefing">
+          <BriefingPanel />
+        </Panel>
+
+        {/* Row 5: Git History (spans 2 cols) + empty */}
+        <Panel title="Git History" className="col-span-3">
+          <GitHistoryPanel />
+        </Panel>
+
+        {/* Row 6: Logs full width */}
+        <Panel title="Logs" className="col-span-3 flex flex-col">
           <LogsPanel />
         </Panel>
       </main>

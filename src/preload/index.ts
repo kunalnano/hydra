@@ -10,7 +10,9 @@ import type {
   FirewallState,
   SecurityScanResult,
   SecurityPosture,
-  HydraConfig
+  HydraConfig,
+  GitCommit,
+  PostureHistoryEntry
 } from '../shared/types'
 
 const api = {
@@ -130,7 +132,13 @@ const api = {
   getConfig: (): Promise<HydraConfig> => ipcRenderer.invoke(IPC_CHANNELS.CONFIG_GET),
 
   saveConfig: (config: HydraConfig): Promise<void> =>
-    ipcRenderer.invoke(IPC_CHANNELS.CONFIG_SAVE, config)
+    ipcRenderer.invoke(IPC_CHANNELS.CONFIG_SAVE, config),
+
+  getCommitHistory: (repoPath: string, limit: number): Promise<GitCommit[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT_HISTORY, repoPath, limit),
+
+  queryPostureHistory: (limit: number): Promise<PostureHistoryEntry[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_POSTURE_HISTORY, limit)
 }
 
 contextBridge.exposeInMainWorld('hydra', api)

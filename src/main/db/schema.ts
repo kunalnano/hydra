@@ -37,9 +37,19 @@ CREATE TABLE IF NOT EXISTS notifications (
   dismissed INTEGER NOT NULL DEFAULT 0
 )`
 
+export const CREATE_POSTURE_HISTORY_TABLE = `
+CREATE TABLE IF NOT EXISTS posture_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  timestamp INTEGER NOT NULL,
+  score INTEGER NOT NULL,
+  grade TEXT NOT NULL,
+  verdict TEXT NOT NULL
+)`
+
 export function initializeSchema(db: Database.Database): void {
   db.exec(CREATE_SNAPSHOTS_TABLE)
   db.exec(CREATE_ALERTS_TABLE)
   db.exec(CREATE_BRIEFINGS_TABLE)
   db.exec(CREATE_NOTIFICATIONS_TABLE)
+  db.exec(CREATE_POSTURE_HISTORY_TABLE)
 }

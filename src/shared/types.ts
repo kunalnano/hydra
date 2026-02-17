@@ -185,8 +185,29 @@ export const IPC_CHANNELS = {
   DB_QUERY_BRIEFINGS: 'db:query-briefings',
   DB_QUERY_NOTIFICATIONS: 'db:query-notifications',
   CONFIG_GET: 'config:get',
-  CONFIG_SAVE: 'config:save'
+  CONFIG_SAVE: 'config:save',
+  GIT_COMMIT_HISTORY: 'git:commit-history',
+  DB_QUERY_POSTURE_HISTORY: 'db:query-posture-history'
 } as const
+
+export interface GitCommit {
+  hash: string
+  shortHash: string
+  author: string
+  email: string
+  timestamp: number
+  message: string
+  isAiAuthored: boolean
+  aiAgent?: string
+  repoName: string
+}
+
+export interface PostureHistoryEntry {
+  timestamp: number
+  score: number
+  grade: string
+  verdict: string
+}
 
 export interface HydraConfig {
   apiKey?: string

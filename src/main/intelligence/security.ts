@@ -215,6 +215,12 @@ export async function runSecurityScan(command: string): Promise<SecurityScanResu
       const posture = parsePostureFromScanOutput(output)
       if (posture) {
         lastPosture = posture
+        try {
+          const { insertPostureHistory } = await import('../db/queries')
+          insertPostureHistory(posture)
+        } catch {
+          // DB module might not be initialized — ignore
+        }
       }
     }
 
