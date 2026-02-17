@@ -7,16 +7,45 @@ const execAsync = promisify(exec)
 
 const SCAN_TIMEOUT_MS = 120_000
 
+import { homedir } from 'os'
+import { join } from 'path'
+import { access } from 'fs/promises'
+
+// Electron apps don't inherit the user's full shell PATH.
+// Ensure common user binary locations are included.
+const EXTRA_PATHS = [join(homedir(), '.local/bin'), '/opt/homebrew/bin', '/usr/local/bin']
+
+function ensureExtraPaths(): void {
+  const currentPath = process.env.PATH || ''
+  const missing = EXTRA_PATHS.filter((p) => !currentPath.includes(p))
+  if (missing.length > 0) {
+    process.env.PATH = [...missing, currentPath].join(':')
+  }
+}
+ensureExtraPaths()
+
 /**
  * Resolve the staff binary path. Priority:
  * 1. Config file staffBinPath
- * 2. `which staff` lookup
- * 3. Bare 'staff' (hope it's in PATH)
+ * 2. Well-known paths (~/.local/bin, /opt/homebrew/bin, /usr/local/bin)
+ * 3. `which staff` lookup
+ * 4. Bare 'staff' (hope it's in PATH)
  */
 async function resolveStaffBin(): Promise<string> {
   const config = loadConfig()
   if (config.staffBinPath) {
     return config.staffBinPath
+  }
+
+  // Check well-known paths first (faster than `which`)
+  for (const dir of EXTRA_PATHS) {
+    const candidate = join(dir, 'staff')
+    try {
+      await access(candidate)
+      return candidate
+    } catch {
+      continue
+    }
   }
 
   try {

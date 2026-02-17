@@ -22,13 +22,12 @@ let previousSnapshot: Snapshot | null = null
 /**
  * Parse nettop output into raw network entries.
  *
- * Expected format (whitespace-separated, first line is header):
- *   bytes_in  bytes_out
- *   Chrome.1234                              1048576    524288
- *   Electron Helper.5678                      262144    131072
+ * nettop outputs CSV format:
+ *   ,bytes_in,bytes_out,
+ *   Chrome.1234,1048576,524288,
+ *   Electron Helper.5678,262144,131072,
  *
  * The PID is the number after the last dot in the process identifier.
- * bytes_in and bytes_out are the last two numeric columns.
  */
 export function parseNettopOutput(
   raw: string
@@ -42,22 +41,15 @@ export function parseNettopOutput(
     const line = lines[i].trim()
     if (!line) continue
 
-    // Skip header lines — they won't have a valid PID.number pattern with trailing numbers
-    // We detect data lines by checking that the last two tokens are numeric
-    const tokens = line.split(/\s+/)
-    if (tokens.length < 3) continue
+    // CSV format: "processName.PID,bytesIn,bytesOut," (trailing comma)
+    const parts = line.replace(/,$/, '').split(',')
+    if (parts.length < 3) continue
 
-    const bytesOutStr = tokens[tokens.length - 1]
-    const bytesInStr = tokens[tokens.length - 2]
+    const processId = parts[0].trim()
+    const bytesIn = parseInt(parts[1], 10)
+    const bytesOut = parseInt(parts[2], 10)
 
-    const bytesOut = parseInt(bytesOutStr, 10)
-    const bytesIn = parseInt(bytesInStr, 10)
-
-    if (isNaN(bytesIn) || isNaN(bytesOut)) continue
-
-    // Everything before the last two tokens is the process identifier (e.g. "Electron Helper.5678")
-    const processId = tokens.slice(0, tokens.length - 2).join(' ')
-    if (!processId) continue
+    if (!processId || isNaN(bytesIn) || isNaN(bytesOut)) continue
 
     // Extract PID from the last dot-separated segment
     const lastDotIndex = processId.lastIndexOf('.')

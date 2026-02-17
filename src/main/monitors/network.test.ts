@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { parseNettopOutput, resetNetworkState, _computeNetworkState } from './network'
 
-const SAMPLE_NETTOP_OUTPUT = `                                       bytes_in  bytes_out
-Chrome.1234                              1048576    524288
-Electron Helper.5678                      262144    131072`
+const SAMPLE_NETTOP_OUTPUT = `,bytes_in,bytes_out,
+Chrome.1234,1048576,524288,
+Electron Helper.5678,262144,131072,`
 
-const SAMPLE_MULTI_INTERFACE = `                                       bytes_in  bytes_out
-Chrome.1234                              1048576    524288
-Chrome.1234                               100000     50000
-Electron Helper.5678                      262144    131072`
+const SAMPLE_MULTI_INTERFACE = `,bytes_in,bytes_out,
+Chrome.1234,1048576,524288,
+Chrome.1234,100000,50000,
+Electron Helper.5678,262144,131072,`
 
 describe('parseNettopOutput', () => {
-  it('parses nettop output into raw entries', () => {
+  it('parses nettop CSV output into raw entries', () => {
     const result = parseNettopOutput(SAMPLE_NETTOP_OUTPUT)
     expect(result).toHaveLength(2)
     expect(result[0]).toEqual({
@@ -33,13 +33,13 @@ describe('parseNettopOutput', () => {
   })
 
   it('returns empty array for header-only output', () => {
-    const headerOnly = '                                       bytes_in  bytes_out'
+    const headerOnly = ',bytes_in,bytes_out,'
     expect(parseNettopOutput(headerOnly)).toEqual([])
   })
 
   it('handles process names with spaces', () => {
-    const output = `                                       bytes_in  bytes_out
-Electron Helper.5678                      262144    131072`
+    const output = `,bytes_in,bytes_out,
+Electron Helper.5678,262144,131072,`
     const result = parseNettopOutput(output)
     expect(result).toHaveLength(1)
     expect(result[0].name).toBe('Electron Helper')
@@ -47,9 +47,9 @@ Electron Helper.5678                      262144    131072`
   })
 
   it('skips lines without a valid PID', () => {
-    const output = `                                       bytes_in  bytes_out
-SomeProcess                              1000    2000
-Chrome.1234                              1048576    524288`
+    const output = `,bytes_in,bytes_out,
+SomeProcess,1000,2000,
+Chrome.1234,1048576,524288,`
     const result = parseNettopOutput(output)
     expect(result).toHaveLength(1)
     expect(result[0].name).toBe('Chrome')
@@ -76,9 +76,9 @@ describe('rate computation', () => {
     _computeNetworkState(SAMPLE_NETTOP_OUTPUT, t1)
 
     // Second call: 2 seconds later with increased bytes
-    const output2 = `                                       bytes_in  bytes_out
-Chrome.1234                              1058576    534288
-Electron Helper.5678                      272144    141072`
+    const output2 = `,bytes_in,bytes_out,
+Chrome.1234,1058576,534288,
+Electron Helper.5678,272144,141072,`
     const t2 = t1 + 2000 // 2 seconds later
 
     const state2 = _computeNetworkState(output2, t2)
@@ -101,14 +101,14 @@ Electron Helper.5678                      272144    141072`
   })
 
   it('handles new processes appearing in second snapshot', () => {
-    const output1 = `                                       bytes_in  bytes_out
-Chrome.1234                              1048576    524288`
+    const output1 = `,bytes_in,bytes_out,
+Chrome.1234,1048576,524288,`
     _computeNetworkState(output1, 1000000)
 
     // Second snapshot has a new process
-    const output2 = `                                       bytes_in  bytes_out
-Chrome.1234                              1058576    534288
-Firefox.9999                              500000    250000`
+    const output2 = `,bytes_in,bytes_out,
+Chrome.1234,1058576,534288,
+Firefox.9999,500000,250000,`
     const state2 = _computeNetworkState(output2, 1002000)
 
     // Firefox is new — no previous data, so rate should be 0
@@ -144,10 +144,10 @@ describe('aggregation by PID', () => {
     _computeNetworkState(SAMPLE_MULTI_INTERFACE, 1000000)
 
     // Second snapshot — Chrome increased on both interfaces
-    const output2 = `                                       bytes_in  bytes_out
-Chrome.1234                              1058576    534288
-Chrome.1234                               110000     60000
-Electron Helper.5678                      272144    141072`
+    const output2 = `,bytes_in,bytes_out,
+Chrome.1234,1058576,534288,
+Chrome.1234,110000,60000,
+Electron Helper.5678,272144,141072,`
     const state2 = _computeNetworkState(output2, 1001000) // 1 second later
 
     // Chrome aggregated: t1 = 1148576 in, 574288 out; t2 = 1168576 in, 594288 out

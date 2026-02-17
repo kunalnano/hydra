@@ -61,7 +61,14 @@ describe('detectAgents', () => {
 
   it('identifies Cursor processes', () => {
     const procs: ProcessInfo[] = [
-      { pid: 9001, user: 'test', cpu: 8, mem: 2, command: '/Applications/Cursor.app/Contents/MacOS/cursor', name: 'cursor' }
+      {
+        pid: 9001,
+        user: 'test',
+        cpu: 8,
+        mem: 2,
+        command: '/Applications/Cursor.app/Contents/MacOS/cursor',
+        name: 'cursor'
+      }
     ]
     const agents = detectAgents(procs)
     expect(agents).toHaveLength(1)
@@ -71,7 +78,14 @@ describe('detectAgents', () => {
 
   it('identifies Aider processes', () => {
     const procs: ProcessInfo[] = [
-      { pid: 9002, user: 'test', cpu: 3, mem: 1, command: '/usr/local/bin/aider --model gpt-4', name: 'aider' }
+      {
+        pid: 9002,
+        user: 'test',
+        cpu: 3,
+        mem: 1,
+        command: '/usr/local/bin/aider --model gpt-4',
+        name: 'aider'
+      }
     ]
     const agents = detectAgents(procs)
     expect(agents).toHaveLength(1)
@@ -81,7 +95,14 @@ describe('detectAgents', () => {
 
   it('identifies Continue processes', () => {
     const procs: ProcessInfo[] = [
-      { pid: 9003, user: 'test', cpu: 2, mem: 0.5, command: '/extensions/continue/server', name: 'continue' }
+      {
+        pid: 9003,
+        user: 'test',
+        cpu: 2,
+        mem: 0.5,
+        command: '/extensions/.continue/server',
+        name: 'continue'
+      }
     ]
     const agents = detectAgents(procs)
     expect(agents).toHaveLength(1)
@@ -89,9 +110,60 @@ describe('detectAgents', () => {
     expect(agents[0].name).toBe('Continue')
   })
 
+  it('identifies Gemini Chrome app', () => {
+    const procs: ProcessInfo[] = [
+      {
+        pid: 9005,
+        user: 'test',
+        cpu: 4,
+        mem: 1,
+        command:
+          '/Users/test/Applications/Chrome Apps.localized/Gemini.app/Contents/MacOS/app_mode_loader',
+        name: 'app_mode_loader'
+      }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents).toHaveLength(1)
+    expect(agents[0].type).toBe('gemini')
+    expect(agents[0].name).toBe('Gemini')
+  })
+
+  it('does not detect Claude Desktop as Claude Code', () => {
+    const procs: ProcessInfo[] = [
+      {
+        pid: 674,
+        user: 'test',
+        cpu: 6,
+        mem: 0.6,
+        command: '/Applications/Claude.app/Contents/MacOS/Claude',
+        name: 'Claude'
+      }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents).toHaveLength(0)
+  })
+
+  it('numbers multiple instances of same agent type', () => {
+    const procs: ProcessInfo[] = [
+      { pid: 100, user: 'test', cpu: 10, mem: 1, command: '/usr/local/bin/claude', name: 'claude' },
+      { pid: 101, user: 'test', cpu: 5, mem: 1, command: 'claude', name: 'claude' }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents).toHaveLength(2)
+    expect(agents[0].name).toBe('Claude Code')
+    expect(agents[1].name).toBe('Claude Code #2')
+  })
+
   it('identifies Copilot processes', () => {
     const procs: ProcessInfo[] = [
-      { pid: 9004, user: 'test', cpu: 6, mem: 1.5, command: '/usr/lib/github-copilot/copilot-agent', name: 'copilot-agent' }
+      {
+        pid: 9004,
+        user: 'test',
+        cpu: 6,
+        mem: 1.5,
+        command: '/usr/lib/github-copilot/copilot-agent',
+        name: 'copilot-agent'
+      }
     ]
     const agents = detectAgents(procs)
     expect(agents).toHaveLength(1)
