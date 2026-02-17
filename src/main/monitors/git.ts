@@ -1,6 +1,6 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import type { GitRepoInfo, GitCommit } from '../../shared/types'
+import type { GitRepoInfo, GitCommit, GitActionResult } from '../../shared/types'
 
 const execAsync = promisify(exec)
 
@@ -195,5 +195,30 @@ export async function getRepoCommitHistory(
     return parseGitLog(stdout, repoName)
   } catch {
     return []
+  }
+}
+
+const SAFE_GIT_ACTIONS = ['pull', 'push', 'stash', 'stash pop', 'fetch'] as const
+
+/**
+ * Execute a safe git action on a repo.
+ * Only whitelisted commands are allowed — no arbitrary shell execution.
+ */
+export async function runGitAction(repoPath: string, action: string): Promise<GitActionResult> {
+  if (!SAFE_GIT_ACTIONS.includes(action as (typeof SAFE_GIT_ACTIONS)[number])) {
+    return { success: false, output: `Unknown action: ${action}` }
+  }
+  try {
+    const { stdout, stderr } = await execAsync(`git ${action}`, {
+      cwd: repoPath,
+      timeout: 30000
+    })
+    return { success: true, output: stdout.trim() || stderr.trim() || 'Done' }
+  } catch (err) {
+    const message =
+      err instanceof Error
+        ? (err as Error & { stderr?: string }).stderr?.trim() || err.message
+        : 'Git action failed'
+    return { success: false, output: message }
   }
 }

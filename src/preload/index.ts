@@ -12,7 +12,8 @@ import type {
   SecurityPosture,
   HydraConfig,
   GitCommit,
-  PostureHistoryEntry
+  PostureHistoryEntry,
+  GitActionResult
 } from '../shared/types'
 
 const api = {
@@ -138,7 +139,10 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT_HISTORY, repoPath, limit),
 
   queryPostureHistory: (limit: number): Promise<PostureHistoryEntry[]> =>
-    ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_POSTURE_HISTORY, limit)
+    ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_POSTURE_HISTORY, limit),
+
+  runGitAction: (repoPath: string, action: string): Promise<GitActionResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_ACTION, repoPath, action)
 }
 
 contextBridge.exposeInMainWorld('hydra', api)

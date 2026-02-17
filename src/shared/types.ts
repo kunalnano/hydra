@@ -187,8 +187,14 @@ export const IPC_CHANNELS = {
   CONFIG_GET: 'config:get',
   CONFIG_SAVE: 'config:save',
   GIT_COMMIT_HISTORY: 'git:commit-history',
-  DB_QUERY_POSTURE_HISTORY: 'db:query-posture-history'
+  DB_QUERY_POSTURE_HISTORY: 'db:query-posture-history',
+  GIT_ACTION: 'git:action'
 } as const
+
+export interface GitActionResult {
+  success: boolean
+  output: string
+}
 
 export interface GitCommit {
   hash: string

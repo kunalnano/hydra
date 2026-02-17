@@ -2,9 +2,14 @@ import { ipcMain, type BrowserWindow } from 'electron'
 import { getProcesses, groupProcesses } from './processes'
 import { getPorts } from './ports'
 import { detectAgents } from './agents'
-import { scanForRepos } from './git'
+import { scanForRepos, runGitAction } from './git'
 import { startLogMonitoring, stopLogMonitoring, getLogSources } from './logs'
 import { cpus, freemem, totalmem } from 'os'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+import { isMacOS } from '../platform'
+
+const execAsync = promisify(exec)
 import { evaluateRules } from '../intelligence/auto-heal'
 import type { PreviousState } from '../intelligence/auto-heal'
 import { generateBriefing } from '../intelligence/briefing'
@@ -29,6 +34,39 @@ import type {
   SecurityScanResult
 } from '../../shared/types'
 import { IPC_CHANNELS } from '../../shared/types'
+
+/**
+ * Get real available memory on macOS using vm_stat.
+ * os.freemem() only reports truly free pages, ignoring purgeable/cached memory
+ * that macOS would release under pressure — leading to misleading 99% usage.
+ */
+async function getAvailableMemory(): Promise<number> {
+  const totalMemory = totalmem()
+  if (!isMacOS()) {
+    return freemem()
+  }
+  try {
+    const { stdout } = await execAsync('vm_stat', { timeout: 3000 })
+    // vm_stat reports in pages (usually 16384 bytes on Apple Silicon, 4096 on Intel)
+    const pageSizeMatch = stdout.match(/page size of (\d+) bytes/)
+    const pageSize = pageSizeMatch ? parseInt(pageSizeMatch[1], 10) : 16384
+
+    const free = stdout.match(/Pages free:\s+(\d+)/)
+    const inactive = stdout.match(/Pages inactive:\s+(\d+)/)
+    const purgeable = stdout.match(/Pages purgeable:\s+(\d+)/)
+    const speculative = stdout.match(/Pages speculative:\s+(\d+)/)
+
+    const freePages =
+      (free ? parseInt(free[1], 10) : 0) +
+      (inactive ? parseInt(inactive[1], 10) : 0) +
+      (purgeable ? parseInt(purgeable[1], 10) : 0) +
+      (speculative ? parseInt(speculative[1], 10) : 0)
+
+    return Math.min(freePages * pageSize, totalMemory)
+  } catch {
+    return freemem()
+  }
+}
 
 let monitorInterval: ReturnType<typeof setInterval> | null = null
 let latestState: SystemState | null = null
@@ -60,7 +98,7 @@ async function collectSystemState(): Promise<SystemState> {
 
   const cpuInfo = cpus()
   const totalMemory = totalmem()
-  const freeMemory = freemem()
+  const availableMemory = await getAvailableMemory()
 
   return {
     timestamp: Date.now(),
@@ -79,9 +117,9 @@ async function collectSystemState(): Promise<SystemState> {
     },
     memory: {
       total: totalMemory,
-      used: totalMemory - freeMemory,
-      free: freeMemory,
-      usagePercent: ((totalMemory - freeMemory) / totalMemory) * 100
+      used: totalMemory - availableMemory,
+      free: availableMemory,
+      usagePercent: ((totalMemory - availableMemory) / totalMemory) * 100
     }
   }
 }
@@ -227,6 +265,10 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 2000): v
     return latestFirewall
   })
 
+  ipcMain.handle(IPC_CHANNELS.GIT_ACTION, async (_event, repoPath: string, action: string) => {
+    return runGitAction(repoPath, action)
+  })
+
   ipcMain.handle(IPC_CHANNELS.SECURITY_SCAN_REQUEST, async (_event, command: string) => {
     const result = await runSecurityScan(command)
     if (!mainWindow.isDestroyed()) {
@@ -257,6 +299,7 @@ export function stopMonitoring(): void {
   ipcMain.removeHandler(IPC_CHANNELS.GET_HEAL_HISTORY)
   ipcMain.removeAllListeners(IPC_CHANNELS.DISMISS_NOTIFICATION)
   ipcMain.removeHandler(IPC_CHANNELS.GET_FIREWALL_RULES)
+  ipcMain.removeHandler(IPC_CHANNELS.GIT_ACTION)
   ipcMain.removeHandler(IPC_CHANNELS.SECURITY_SCAN_REQUEST)
   previousState = null
   healHistory = []
