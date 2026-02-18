@@ -13,8 +13,10 @@ import { NetworkPanel } from './panels/Network'
 import { SecurityPanel } from './panels/Security'
 import { ScorecardsStrip } from './panels/ScorecardsStrip'
 import { GitHistoryPanel } from './panels/GitHistory'
+import { CommandCenterPanel } from './panels/CommandCenter'
 
 const PANEL_DOTS: Record<string, string> = {
+  'Command Center': 'bg-emerald-400',
   Workspaces: 'bg-blue-400',
   Agents: 'bg-amber-400',
   'Git Status': 'bg-purple-400',
@@ -28,6 +30,7 @@ const PANEL_DOTS: Record<string, string> = {
 }
 
 const PANEL_ACCENT_HEX: Record<string, string> = {
+  'Command Center': '#34d399',
   Workspaces: '#60a5fa',
   Agents: '#fbbf24',
   'Git Status': '#c084fc',
@@ -230,15 +233,17 @@ function App(): JSX.Element {
           <ScorecardsStrip />
         </div>
 
-        {/* Row 2: Workspaces, Agents, Git Status */}
-        <Panel title="Workspaces">
-          <WorkspacesPanel />
-        </Panel>
-        <Panel title="Agents">
-          <AgentsPanel />
+        {/* Row 2-3: Command Center (spans 2 cols, 2 rows), Git Status + Agents */}
+        <Panel title="Command Center" className="col-span-2 row-span-2">
+          <CommandCenterPanel />
         </Panel>
         <Panel title="Git Status">
           <GitStatusPanel />
+        </Panel>
+
+        {/* Row 3 (right column): Agents */}
+        <Panel title="Agents">
+          <AgentsPanel />
         </Panel>
 
         {/* Row 3: Network, Security (spans 2 rows), Ports */}
