@@ -156,3 +156,61 @@ export function getPostureHistory(limit: number): PostureHistoryEntry[] {
     verdict: row.verdict
   }))
 }
+
+export interface SessionSnapshot {
+  id: number
+  timestamp: number
+  data: {
+    workspaces: { name: string; type: string; ports: number[]; processCount: number }[]
+    gitBranches: { repo: string; branch: string }[]
+    frozenPids: number[]
+  }
+}
+
+export interface TimelineEvent {
+  id?: number
+  timestamp: number
+  type: 'process_start' | 'process_stop' | 'user_action' | 'auto_heal' | 'system'
+  source: string
+  message: string
+  metadata?: string
+}
+
+export function insertSession(snapshot: SessionSnapshot['data']): void {
+  const db = getDb()
+  db.prepare('INSERT INTO sessions (timestamp, data) VALUES (?, ?)').run(
+    Date.now(),
+    JSON.stringify(snapshot)
+  )
+}
+
+export function getLatestSession(): SessionSnapshot | null {
+  const db = getDb()
+  const row = db
+    .prepare('SELECT id, timestamp, data FROM sessions ORDER BY timestamp DESC LIMIT 1')
+    .get() as { id: number; timestamp: number; data: string } | undefined
+  if (!row) return null
+  return { id: row.id, timestamp: row.timestamp, data: JSON.parse(row.data) }
+}
+
+export function insertTimelineEvent(event: Omit<TimelineEvent, 'id'>): void {
+  const db = getDb()
+  db.prepare(
+    'INSERT INTO timeline_events (timestamp, type, source, message, metadata) VALUES (?, ?, ?, ?, ?)'
+  ).run(event.timestamp, event.type, event.source, event.message, event.metadata ?? null)
+}
+
+export function getTimelineEvents(limit: number): TimelineEvent[] {
+  const db = getDb()
+  return db
+    .prepare(
+      'SELECT id, timestamp, type, source, message, metadata FROM timeline_events ORDER BY timestamp DESC LIMIT ?'
+    )
+    .all(limit) as TimelineEvent[]
+}
+
+export function pruneOldTimelineEvents(maxAgeDays = 7): void {
+  const db = getDb()
+  const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000
+  db.prepare('DELETE FROM timeline_events WHERE timestamp < ?').run(cutoff)
+}
