@@ -14,6 +14,7 @@ import { SecurityPanel } from './panels/Security'
 import { ScorecardsStrip } from './panels/ScorecardsStrip'
 import { GitHistoryPanel } from './panels/GitHistory'
 import { CommandCenterPanel } from './panels/CommandCenter'
+import { TimelinePanel, SessionDeltaBanner } from './panels/Timeline'
 
 const PANEL_DOTS: Record<string, string> = {
   'Command Center': 'bg-emerald-400',
@@ -26,7 +27,8 @@ const PANEL_DOTS: Record<string, string> = {
   Ports: 'bg-teal-400',
   Notifications: 'bg-orange-400',
   Logs: 'bg-gray-400',
-  'Git History': 'bg-indigo-400'
+  'Git History': 'bg-indigo-400',
+  Timeline: 'bg-lime-400'
 }
 
 const PANEL_ACCENT_HEX: Record<string, string> = {
@@ -40,7 +42,8 @@ const PANEL_ACCENT_HEX: Record<string, string> = {
   Ports: '#2dd4bf',
   Notifications: '#fb923c',
   Logs: '#9ca3af',
-  'Git History': '#818cf8'
+  'Git History': '#818cf8',
+  Timeline: '#a3e635'
 }
 
 function Panel({
@@ -233,6 +236,10 @@ function App(): JSX.Element {
           <ScorecardsStrip />
         </div>
 
+        <div className="col-span-3">
+          <SessionDeltaBanner />
+        </div>
+
         {/* Row 2-3: Command Center (spans 2 cols, 2 rows), Git Status + Agents */}
         <Panel title="Command Center" className="col-span-2 row-span-2">
           <CommandCenterPanel />
@@ -265,9 +272,12 @@ function App(): JSX.Element {
           <BriefingPanel />
         </Panel>
 
-        {/* Row 5: Git History (spans 2 cols) + empty */}
-        <Panel title="Git History" className="col-span-3">
+        {/* Row 5: Git History (2 cols) + Timeline */}
+        <Panel title="Git History" className="col-span-2">
           <GitHistoryPanel />
+        </Panel>
+        <Panel title="Timeline">
+          <TimelinePanel />
         </Panel>
 
         {/* Row 6: Logs full width */}
