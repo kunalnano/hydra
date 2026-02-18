@@ -8,6 +8,7 @@ import { cpus, freemem, totalmem } from 'os'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import { isMacOS } from '../platform'
+import { killProcess, sendProcessSignal, killGroup } from '../actions'
 
 const execAsync = promisify(exec)
 import { evaluateRules } from '../intelligence/auto-heal'
@@ -31,7 +32,8 @@ import type {
   HydraNotification,
   NetworkState,
   FirewallState,
-  SecurityScanResult
+  SecurityScanResult,
+  ProcessSignalType
 } from '../../shared/types'
 import { IPC_CHANNELS } from '../../shared/types'
 
@@ -284,6 +286,27 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 2000): v
     }
     return result
   })
+
+  ipcMain.handle(IPC_CHANNELS.PROCESS_KILL, async (_event, pid: number, expectedName?: string) => {
+    return killProcess(pid, expectedName)
+  })
+
+  ipcMain.handle(
+    IPC_CHANNELS.PROCESS_SIGNAL,
+    async (_event, pid: number, signal: ProcessSignalType) => {
+      return sendProcessSignal(pid, signal)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.PROCESS_KILL_GROUP,
+    async (_event, processes: { pid: number; name: string }[], groupName: string) => {
+      return killGroup(
+        processes.map((p) => ({ ...p, user: '', cpu: 0, mem: 0, command: '' })),
+        groupName
+      )
+    }
+  )
 }
 
 export function stopMonitoring(): void {
@@ -301,6 +324,9 @@ export function stopMonitoring(): void {
   ipcMain.removeHandler(IPC_CHANNELS.GET_FIREWALL_RULES)
   ipcMain.removeHandler(IPC_CHANNELS.GIT_ACTION)
   ipcMain.removeHandler(IPC_CHANNELS.SECURITY_SCAN_REQUEST)
+  ipcMain.removeHandler(IPC_CHANNELS.PROCESS_KILL)
+  ipcMain.removeHandler(IPC_CHANNELS.PROCESS_SIGNAL)
+  ipcMain.removeHandler(IPC_CHANNELS.PROCESS_KILL_GROUP)
   previousState = null
   healHistory = []
   notifications = []

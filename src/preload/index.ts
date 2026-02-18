@@ -13,7 +13,10 @@ import type {
   HydraConfig,
   GitCommit,
   PostureHistoryEntry,
-  GitActionResult
+  GitActionResult,
+  ProcessSignalType,
+  ProcessActionResult,
+  GroupActionResult
 } from '../shared/types'
 
 const api = {
@@ -142,7 +145,19 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_POSTURE_HISTORY, limit),
 
   runGitAction: (repoPath: string, action: string): Promise<GitActionResult> =>
-    ipcRenderer.invoke(IPC_CHANNELS.GIT_ACTION, repoPath, action)
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_ACTION, repoPath, action),
+
+  killProcess: (pid: number, expectedName?: string): Promise<ProcessActionResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.PROCESS_KILL, pid, expectedName),
+
+  signalProcess: (pid: number, signal: ProcessSignalType): Promise<ProcessActionResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.PROCESS_SIGNAL, pid, signal),
+
+  killGroup: (
+    pids: { pid: number; name: string }[],
+    groupName: string
+  ): Promise<GroupActionResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.PROCESS_KILL_GROUP, pids, groupName)
 }
 
 contextBridge.exposeInMainWorld('hydra', api)
