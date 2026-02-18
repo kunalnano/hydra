@@ -24,7 +24,12 @@ import {
   insertAlert,
   insertBriefing,
   insertNotification as dbInsertNotification,
-  dismissNotification as dbDismissNotification
+  dismissNotification as dbDismissNotification,
+  insertSession,
+  getLatestSession,
+  insertTimelineEvent,
+  getTimelineEvents,
+  pruneOldTimelineEvents
 } from '../db/queries'
 import type {
   SystemState,
@@ -80,6 +85,8 @@ let latestNetwork: NetworkState | null = null
 let latestFirewall: FirewallState | null = null
 let firewallPollCount = 14 // Start at 14 so first cycle (14+1=15) triggers immediately
 let snapshotPollCount = 0
+let sessionPollCount = 0
+let previousWorkspaceNames = new Set<string>()
 
 async function collectSystemState(): Promise<SystemState> {
   const [processes, ports, gitRepos] = await Promise.all([
@@ -223,6 +230,77 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 2000): v
           console.error('Snapshot DB write failed:', err)
         }
       }
+
+      // Session snapshot (every 150th cycle = ~5 min)
+      sessionPollCount++
+      if (sessionPollCount >= 150) {
+        sessionPollCount = 0
+        try {
+          const sessionData = {
+            workspaces: latestState.processes
+              .filter((g) => g.type !== 'other')
+              .map((g) => ({
+                name: g.name,
+                type: g.type,
+                ports: g.ports,
+                processCount: g.processes.length
+              })),
+            gitBranches: latestState.gitRepos.map((r) => ({
+              repo: r.name,
+              branch: r.branch
+            })),
+            frozenPids: [] as number[]
+          }
+          insertSession(sessionData)
+        } catch (err) {
+          console.error('Session snapshot failed:', err)
+        }
+
+        // Prune old timeline events
+        try {
+          pruneOldTimelineEvents(7)
+        } catch {
+          /* ignore */
+        }
+      }
+
+      // Timeline: detect workspace appear/disappear
+      const currentNames = new Set(
+        latestState.processes.filter((g) => g.type !== 'other').map((g) => g.name)
+      )
+      if (previousWorkspaceNames.size > 0) {
+        for (const name of currentNames) {
+          if (!previousWorkspaceNames.has(name)) {
+            const group = latestState.processes.find((g) => g.name === name)
+            const ports = group?.ports.map((p) => `:${p}`).join(', ') || ''
+            try {
+              insertTimelineEvent({
+                timestamp: Date.now(),
+                type: 'process_start',
+                source: name,
+                message: `${name} started${ports ? ` on ${ports}` : ''}`
+              })
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+        for (const name of previousWorkspaceNames) {
+          if (!currentNames.has(name)) {
+            try {
+              insertTimelineEvent({
+                timestamp: Date.now(),
+                type: 'process_stop',
+                source: name,
+                message: `${name} stopped`
+              })
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+      }
+      previousWorkspaceNames = currentNames
     } catch (err) {
       console.error('Monitor cycle failed:', err)
     }
@@ -307,6 +385,26 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 2000): v
       )
     }
   )
+
+  ipcMain.handle(IPC_CHANNELS.TIMELINE_EVENTS, async (_event, limit: number) => {
+    return getTimelineEvents(limit)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SESSION_DELTA, async () => {
+    const lastSession = getLatestSession()
+    if (!lastSession || !latestState) return null
+
+    const currentNames = new Set(
+      latestState.processes.filter((g) => g.type !== 'other').map((g) => g.name)
+    )
+    const missing = lastSession.data.workspaces.filter((w) => !currentNames.has(w.name))
+    if (missing.length === 0) return null
+
+    return {
+      lastSessionTimestamp: lastSession.timestamp,
+      missingWorkspaces: missing
+    }
+  })
 }
 
 export function stopMonitoring(): void {
@@ -327,6 +425,8 @@ export function stopMonitoring(): void {
   ipcMain.removeHandler(IPC_CHANNELS.PROCESS_KILL)
   ipcMain.removeHandler(IPC_CHANNELS.PROCESS_SIGNAL)
   ipcMain.removeHandler(IPC_CHANNELS.PROCESS_KILL_GROUP)
+  ipcMain.removeHandler(IPC_CHANNELS.TIMELINE_EVENTS)
+  ipcMain.removeHandler(IPC_CHANNELS.SESSION_DELTA)
   previousState = null
   healHistory = []
   notifications = []
@@ -335,4 +435,6 @@ export function stopMonitoring(): void {
   latestFirewall = null
   firewallPollCount = 14
   snapshotPollCount = 0
+  sessionPollCount = 0
+  previousWorkspaceNames = new Set()
 }

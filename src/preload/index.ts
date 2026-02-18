@@ -157,7 +157,15 @@ const api = {
     pids: { pid: number; name: string }[],
     groupName: string
   ): Promise<GroupActionResult> =>
-    ipcRenderer.invoke(IPC_CHANNELS.PROCESS_KILL_GROUP, pids, groupName)
+    ipcRenderer.invoke(IPC_CHANNELS.PROCESS_KILL_GROUP, pids, groupName),
+
+  getTimelineEvents: (limit: number): Promise<unknown[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.TIMELINE_EVENTS, limit),
+
+  getSessionDelta: (): Promise<{
+    lastSessionTimestamp: number
+    missingWorkspaces: { name: string; type: string; ports: number[] }[]
+  } | null> => ipcRenderer.invoke(IPC_CHANNELS.SESSION_DELTA)
 }
 
 contextBridge.exposeInMainWorld('hydra', api)

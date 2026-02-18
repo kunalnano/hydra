@@ -207,7 +207,9 @@ export const IPC_CHANNELS = {
   GIT_ACTION: 'git:action',
   PROCESS_KILL: 'process:kill',
   PROCESS_SIGNAL: 'process:signal',
-  PROCESS_KILL_GROUP: 'process:kill-group'
+  PROCESS_KILL_GROUP: 'process:kill-group',
+  TIMELINE_EVENTS: 'timeline:events',
+  SESSION_DELTA: 'session:delta'
 } as const
 
 export interface GitActionResult {
