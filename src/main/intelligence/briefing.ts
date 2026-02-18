@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { SystemState, BriefingResult } from '../../shared/types'
+import { scoreSystem } from '../health'
 
 let client: Anthropic | null = null
 
@@ -50,6 +51,16 @@ export function buildBriefingPrompt(state: SystemState): string {
     sections.push(`## Listening Ports\n${portLines.join('\n')}`)
   }
 
+  // Health scoring
+  const healthResult = scoreSystem(state.processes, state.gitRepos, new Set())
+  const unhealthy = healthResult.workspaces.filter((w) => w.level !== 'green')
+  if (unhealthy.length > 0) {
+    const healthLines = unhealthy.map(
+      (w) => `- ${w.name}: ${w.level.toUpperCase()} \u2014 ${w.reasons.join(', ')}`
+    )
+    sections.push(`## Health Alerts\n${healthLines.join('\n')}`)
+  }
+
   return sections.join('\n\n')
 }
 
@@ -96,7 +107,7 @@ export async function generateBriefing(state: SystemState): Promise<BriefingResu
   try {
     const anthropic = getClient()
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 512,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: prompt }]
