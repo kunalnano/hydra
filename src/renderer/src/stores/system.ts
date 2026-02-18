@@ -1,17 +1,30 @@
 import { create } from 'zustand'
-import type { SystemState } from '../../../shared/types'
+import type {
+  SystemState,
+  ProcessSignalType,
+  ProcessActionResult,
+  GroupActionResult
+} from '../../../shared/types'
 import { useTimeSeriesStore } from './timeseries'
 
 interface SystemStore {
   state: SystemState | null
   isConnected: boolean
+  frozenPids: Set<number>
   initialize: () => Promise<void>
   refresh: () => void
+  killProcess: (pid: number, expectedName?: string) => Promise<ProcessActionResult>
+  signalProcess: (pid: number, signal: ProcessSignalType) => Promise<ProcessActionResult>
+  killGroup: (
+    processes: { pid: number; name: string }[],
+    groupName: string
+  ) => Promise<GroupActionResult>
 }
 
-export const useSystemStore = create<SystemStore>((set) => ({
+export const useSystemStore = create<SystemStore>((set, get) => ({
   state: null,
   isConnected: false,
+  frozenPids: new Set<number>(),
 
   initialize: async () => {
     try {
@@ -35,5 +48,42 @@ export const useSystemStore = create<SystemStore>((set) => ({
 
   refresh: () => {
     window.hydra.requestRefresh()
+  },
+
+  killProcess: async (pid, expectedName) => {
+    const result = await window.hydra.killProcess(pid, expectedName)
+    if (result.success) {
+      set((s) => {
+        const next = new Set(s.frozenPids)
+        next.delete(pid)
+        return { frozenPids: next }
+      })
+    }
+    return result
+  },
+
+  signalProcess: async (pid, signal) => {
+    const result = await window.hydra.signalProcess(pid, signal)
+    if (result.success) {
+      set((s) => {
+        const next = new Set(s.frozenPids)
+        if (signal === 'SIGSTOP') next.add(pid)
+        if (signal === 'SIGCONT') next.delete(pid)
+        return { frozenPids: next }
+      })
+    }
+    return result
+  },
+
+  killGroup: async (processes, groupName) => {
+    const result = await window.hydra.killGroup(processes, groupName)
+    set((s) => {
+      const next = new Set(s.frozenPids)
+      for (const r of result.results) {
+        if (r.success) next.delete(r.pid)
+      }
+      return { frozenPids: next }
+    })
+    return result
   }
 }))
