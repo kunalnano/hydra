@@ -162,6 +162,22 @@ export interface HydraNotification {
   dismissed: boolean
 }
 
+export type ProcessSignalType = 'SIGTERM' | 'SIGKILL' | 'SIGSTOP' | 'SIGCONT'
+
+export interface ProcessActionResult {
+  success: boolean
+  pid: number
+  signal: ProcessSignalType
+  error?: string
+}
+
+export interface GroupActionResult {
+  results: ProcessActionResult[]
+  groupName: string
+  totalKilled: number
+  totalFailed: number
+}
+
 export const IPC_CHANNELS = {
   SYSTEM_STATE_UPDATE: 'system:state-update',
   REQUEST_REFRESH: 'system:request-refresh',
@@ -188,7 +204,10 @@ export const IPC_CHANNELS = {
   CONFIG_SAVE: 'config:save',
   GIT_COMMIT_HISTORY: 'git:commit-history',
   DB_QUERY_POSTURE_HISTORY: 'db:query-posture-history',
-  GIT_ACTION: 'git:action'
+  GIT_ACTION: 'git:action',
+  PROCESS_KILL: 'process:kill',
+  PROCESS_SIGNAL: 'process:signal',
+  PROCESS_KILL_GROUP: 'process:kill-group'
 } as const
 
 export interface GitActionResult {
