@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSystemStore } from './stores/system'
 import { useTimeSeriesStore } from './stores/timeseries'
 import { Sparkline } from './components/Sparkline'
@@ -15,6 +15,7 @@ import { ScorecardsStrip } from './panels/ScorecardsStrip'
 import { GitHistoryPanel } from './panels/GitHistory'
 import { CommandCenterPanel } from './panels/CommandCenter'
 import { TimelinePanel, SessionDeltaBanner } from './panels/Timeline'
+import { CommandPalette } from './panels/CommandPalette'
 
 const PANEL_DOTS: Record<string, string> = {
   'Command Center': 'bg-emerald-400',
@@ -211,10 +212,22 @@ function Header(): JSX.Element {
 
 function App(): JSX.Element {
   const { state, initialize } = useSystemStore()
+  const [paletteOpen, setPaletteOpen] = useState(false)
 
   useEffect(() => {
     initialize()
   }, [initialize])
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent): void => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setPaletteOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   if (!state) {
     return (
@@ -285,6 +298,7 @@ function App(): JSX.Element {
           <LogsPanel />
         </Panel>
       </main>
+      <CommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   )
 }

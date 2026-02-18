@@ -37,7 +37,6 @@ import type {
   HydraNotification,
   NetworkState,
   FirewallState,
-  SecurityScanResult,
   ProcessSignalType
 } from '../../shared/types'
 import { IPC_CHANNELS } from '../../shared/types'
