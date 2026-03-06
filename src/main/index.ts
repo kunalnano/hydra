@@ -21,6 +21,7 @@ import {
   getPostureHistory
 } from './db/queries'
 import { IPC_CHANNELS } from '../shared/types'
+import { loadConfig } from './config'
 import type { SystemState } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -181,6 +182,9 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC_CHANNELS.DB_QUERY_POSTURE_HISTORY, (_event, limit: number) =>
     getPostureHistory(limit)
   )
+
+  // Config IPC handler
+  ipcMain.handle(IPC_CHANNELS.CONFIG_GET, () => loadConfig())
 
   // Git commit history IPC handler
   ipcMain.handle(IPC_CHANNELS.GIT_COMMIT_HISTORY, (_event, repoPath: string, limit: number) =>
