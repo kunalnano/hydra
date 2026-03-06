@@ -1,0 +1,131 @@
+{
+  "target": "192.168.7.0/24",
+  "timestamp": "2026-02-16T20:49:11.271960",
+  "timing_mode": "default",
+  "illuminate_results": [
+    {
+      "ip_address": "192.168.7.15",
+      "hostname": null,
+      "status": "up",
+      "mac_address": null
+    },
+    {
+      "ip_address": "192.168.7.199",
+      "hostname": null,
+      "status": "up",
+      "mac_address": null
+    },
+    {
+      "ip_address": "192.168.7.225",
+      "hostname": null,
+      "status": "up",
+      "mac_address": null
+    }
+  ],
+  "shadowfax_results": {
+    "192.168.7.199": [
+      {
+        "port": 53,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "domain",
+        "version": ""
+      },
+      {
+        "port": 5000,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "upnp",
+        "version": ""
+      },
+      {
+        "port": 49152,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "",
+        "version": ""
+      }
+    ],
+    "192.168.7.225": [
+      {
+        "port": 53,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "domain",
+        "version": ""
+      },
+      {
+        "port": 5000,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "upnp",
+        "version": ""
+      },
+      {
+        "port": 49152,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "",
+        "version": ""
+      }
+    ]
+  },
+  "delve_results": {
+    "192.168.7.15": {
+      "hostname": null,
+      "ports": [
+        {
+          "port": 53,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "domain",
+          "product": "",
+          "version": "",
+          "extrainfo": "unknown banner: not currently available",
+          "scripts": {
+            "fingerprint-strings": "\n  DNSVersionBindReqTCP: \n    version\n    bind\n    currently available",
+            "dns-nsid": "\n  bind.version: not currently available"
+          }
+        }
+      ],
+      "os": [],
+      "scripts": {}
+    },
+    "192.168.7.199": {
+      "hostname": null,
+      "ports": [
+        {
+          "port": 53,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "domain",
+          "product": "",
+          "version": "",
+          "extrainfo": "",
+          "scripts": {}
+        }
+      ],
+      "os": [],
+      "scripts": {}
+    },
+    "192.168.7.225": {
+      "hostname": null,
+      "ports": [
+        {
+          "port": 53,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "domain",
+          "product": "",
+          "version": "",
+          "extrainfo": "",
+          "scripts": {}
+        }
+      ],
+      "os": [],
+      "scripts": {}
+    }
+  },
+  "scry_results": null,
+  "findings": []
+}
