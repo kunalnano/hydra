@@ -1,3 +1,9 @@
+import { config as dotenvConfig } from 'dotenv'
+import { join } from 'path'
+
+// Load .env before anything else reads process.env
+dotenvConfig({ path: join(process.cwd(), '.env') })
+
 import {
   app,
   BrowserWindow,
@@ -8,7 +14,6 @@ import {
   globalShortcut,
   ipcMain
 } from 'electron'
-import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { startMonitoring, stopMonitoring, onStateUpdate } from './monitors/index'
 import { getRepoCommitHistory } from './monitors/git'
@@ -163,6 +168,10 @@ app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
+
+  // Log active config
+  const config = loadConfig()
+  console.log('[config] LM Studio URL:', config.lmStudioUrl || process.env.LM_STUDIO_URL || 'http://localhost:1234')
 
   // Initialize SQLite database
   getDb()

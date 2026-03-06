@@ -31,6 +31,7 @@
     "@electron-toolkit/utils": "^3.0.0",
     "@tailwindcss/vite": "^4.1.18",
     "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.3.1",
     "react-resizable-panels": "^4.7.1",
     "tailwindcss": "^4.1.18",
     "zustand": "^5.0.11"

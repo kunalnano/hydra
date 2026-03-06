@@ -23,17 +23,24 @@ export function ensureConfigDir(): void {
 }
 
 export function loadConfig(): HydraConfig {
+  let config: HydraConfig
   try {
     const configPath = getConfigPath()
     if (!existsSync(configPath)) {
-      return { ...DEFAULT_CONFIG }
+      config = { ...DEFAULT_CONFIG }
+    } else {
+      const raw = readFileSync(configPath, 'utf-8')
+      const parsed = JSON.parse(raw)
+      config = { ...DEFAULT_CONFIG, ...parsed }
     }
-    const raw = readFileSync(configPath, 'utf-8')
-    const parsed = JSON.parse(raw)
-    return { ...DEFAULT_CONFIG, ...parsed }
   } catch {
-    return { ...DEFAULT_CONFIG }
+    config = { ...DEFAULT_CONFIG }
   }
+  // .env overrides config file for lmStudioUrl
+  if (process.env.LM_STUDIO_URL && !config.lmStudioUrl) {
+    config.lmStudioUrl = process.env.LM_STUDIO_URL
+  }
+  return config
 }
 
 export function saveConfig(config: HydraConfig): void {
