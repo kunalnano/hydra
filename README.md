@@ -4,6 +4,8 @@ Real-time ops dashboard for developers running AI agents and local services. Ele
 
 Monitors processes, AI agents, git repos, network traffic, disk/battery health, and security posture — with local AI briefings via LM Studio and an auto-heal engine.
 
+![Hydra Mission Control Dashboard](docs/screenshots/dashboard.png)
+
 ## Panels
 
 HYDRA's dashboard has 12 integrated panels:
