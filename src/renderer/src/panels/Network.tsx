@@ -75,6 +75,8 @@ export function NetworkPanel(): JSX.Element {
     (a, b) => b.bytesInPerSec + b.bytesOutPerSec - (a.bytesInPerSec + a.bytesOutPerSec)
   )
 
+  // Negative PIDs = netstat interface-level fallback
+  const isInterfaceMode = sortedProcesses.some((p) => p.pid < 0)
   const firewallRules = firewallState?.rules ?? []
 
   return (
@@ -101,6 +103,12 @@ export function NetworkPanel(): JSX.Element {
         </div>
       </div>
 
+      {isInterfaceMode && (
+        <div className="text-[10px] text-gray-600 px-1">
+          Interface mode (netstat) — nettop unavailable
+        </div>
+      )}
+
       {/* Process list */}
       <div className="space-y-px">
         {sortedProcesses.map((proc) => (
@@ -109,6 +117,7 @@ export function NetworkPanel(): JSX.Element {
             proc={proc}
             firewallMatch={getFirewallStatus(proc.name, firewallRules)}
             history={processHistory[proc.pid] || []}
+            isInterface={proc.pid < 0}
           />
         ))}
         {sortedProcesses.length === 0 && (
@@ -122,23 +131,27 @@ export function NetworkPanel(): JSX.Element {
 function ProcessRow({
   proc,
   firewallMatch,
-  history
+  history,
+  isInterface = false
 }: {
   proc: NetworkProcess
   firewallMatch: FirewallMatch
   history: number[]
+  isInterface?: boolean
 }): JSX.Element {
   return (
     <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-800/50 border border-transparent transition-colors">
       <div className="flex items-center gap-2 min-w-0">
         <span
-          className={`w-2 h-2 rounded-full ${FIREWALL_DOT[firewallMatch]} shrink-0`}
-          title={`Firewall: ${firewallMatch}`}
+          className={`w-2 h-2 rounded-full ${isInterface ? 'bg-cyan-400' : FIREWALL_DOT[firewallMatch]} shrink-0`}
+          title={isInterface ? `Interface: ${proc.name}` : `Firewall: ${firewallMatch}`}
         />
         <span className="text-white truncate max-w-[140px]" title={proc.name}>
           {proc.name}
         </span>
-        <span className="text-gray-700 text-xs font-mono shrink-0">PID {proc.pid}</span>
+        {!isInterface && (
+          <span className="text-gray-700 text-xs font-mono shrink-0">PID {proc.pid}</span>
+        )}
       </div>
       <div className="flex items-center gap-3 shrink-0 ml-2">
         {history.length > 1 && (

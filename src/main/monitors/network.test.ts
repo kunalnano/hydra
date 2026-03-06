@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { parseNettopOutput, resetNetworkState, _computeNetworkState } from './network'
+import {
+  parseNettopOutput,
+  parseNetstatOutput,
+  resetNetworkState,
+  _computeNetworkState
+} from './network'
 
 const SAMPLE_NETTOP_OUTPUT = `,bytes_in,bytes_out,
 Chrome.1234,1048576,524288,
@@ -119,6 +124,37 @@ Firefox.9999,500000,250000,`
     // Chrome should still have computed rates
     const chrome = state2.processes.find((p) => p.pid === 1234)!
     expect(chrome.bytesInPerSec).toBe(5000)
+  })
+})
+
+describe('parseNetstatOutput', () => {
+  const SAMPLE_NETSTAT = `Name       Mtu   Network       Address            Ipkts Ierrs     Ibytes    Opkts Oerrs     Obytes  Coll
+lo0        16384 <Link#1>                       1281901     0  349772063  1281901     0  349772063     0
+en0        1500  <Link#14>   0a:cd:f8:ab:e7:42  1377177     0 1428632542   497465     0  186614454     0
+en0        1500  192.168.4/22  192.168.7.225    1377177     - 1428632542   497465     -  186614454     -
+awdl0      1500  <Link#16>   ea:3e:5f:ef:c9:a9     6989     0    6467975     4276     0    1252756     0
+gif0*      1280  <Link#2>                             0     0          0        0     0          0     0`
+
+  it('parses active interfaces from netstat -ibn', () => {
+    const result = parseNetstatOutput(SAMPLE_NETSTAT)
+    expect(result.length).toBe(2) // en0 and awdl0 (lo0 skipped, gif0* skipped, duplicate en0 skipped)
+    expect(result[0]).toEqual({ name: 'en0', bytesIn: 1428632542, bytesOut: 186614454 })
+    expect(result[1]).toEqual({ name: 'awdl0', bytesIn: 6467975, bytesOut: 1252756 })
+  })
+
+  it('skips loopback and inactive interfaces', () => {
+    const result = parseNetstatOutput(SAMPLE_NETSTAT)
+    expect(result.every((r) => !r.name.startsWith('lo'))).toBe(true)
+    expect(result.every((r) => !r.name.endsWith('*'))).toBe(true)
+  })
+
+  it('returns empty for empty output', () => {
+    expect(parseNetstatOutput('')).toEqual([])
+  })
+
+  it('returns empty for header-only', () => {
+    const header = 'Name       Mtu   Network       Address            Ipkts Ierrs     Ibytes    Opkts Oerrs     Obytes  Coll'
+    expect(parseNetstatOutput(header)).toEqual([])
   })
 })
 

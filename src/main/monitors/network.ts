@@ -19,6 +19,9 @@ interface Snapshot {
 
 let previousSnapshot: Snapshot | null = null
 
+// Track which source is working so we don't retry failed ones every poll
+let nettopFailed = false
+
 /**
  * Parse nettop output into raw network entries.
  *
@@ -69,6 +72,47 @@ export function parseNettopOutput(
 }
 
 /**
+ * Parse netstat -ibn output into interface-level byte counts.
+ * Returns one entry per active interface (en0, en1, etc.) with cumulative bytes.
+ *
+ * Format:
+ * Name  Mtu  Network  Address  Ipkts  Ierrs  Ibytes  Opkts  Oerrs  Obytes  Coll
+ * en0   1500 <Link#14> ...     1377177  0    1428632542 497465  0   186614454  0
+ */
+export function parseNetstatOutput(
+  raw: string
+): { name: string; bytesIn: number; bytesOut: number }[] {
+  const lines = raw.trim().split('\n')
+  if (lines.length <= 1) return []
+
+  const results: { name: string; bytesIn: number; bytesOut: number }[] = []
+  const seen = new Set<string>()
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].trim().split(/\s+/)
+    if (cols.length < 11) continue
+
+    const iface = cols[0]
+    // Only real interfaces (en*, bridge*, utun*), skip loopback and inactive (*-suffix)
+    if (iface.startsWith('lo') || iface.endsWith('*')) continue
+    // Only <Link#N> rows (raw byte counts), not per-address duplicates
+    if (!cols[2].startsWith('<Link#')) continue
+    if (seen.has(iface)) continue
+    seen.add(iface)
+
+    const bytesIn = parseInt(cols[6], 10)
+    const bytesOut = parseInt(cols[9], 10)
+    if (isNaN(bytesIn) || isNaN(bytesOut)) continue
+    // Skip interfaces with zero traffic
+    if (bytesIn === 0 && bytesOut === 0) continue
+
+    results.push({ name: iface, bytesIn, bytesOut })
+  }
+
+  return results
+}
+
+/**
  * Aggregate multiple entries for the same PID (e.g. multiple interfaces)
  * by summing their bytesIn and bytesOut.
  */
@@ -89,108 +133,15 @@ function aggregateByPid(entries: RawNetworkEntry[]): RawNetworkEntry[] {
 }
 
 /**
- * Get current network activity by running nettop and computing per-second rates.
+ * Build NetworkState from raw entries + snapshot diffing for rate computation.
  */
-export async function getNetworkActivity(): Promise<NetworkState> {
-  const now = Date.now()
-
-  if (!isMacOS()) {
-    return { processes: [], totalBytesInPerSec: 0, totalBytesOutPerSec: 0, timestamp: now }
-  }
-
-  try {
-    const { stdout } = await execAsync('nettop -P -L 1 -J bytes_in,bytes_out', {
-      timeout: 5000
-    })
-
-    const rawEntries = parseNettopOutput(stdout)
-    const aggregated = aggregateByPid(rawEntries)
-
-    // Build current snapshot
-    const currentSnapshot: Snapshot = {
-      entries: new Map(),
-      timestamp: now
-    }
-    for (const entry of aggregated) {
-      currentSnapshot.entries.set(entry.pid, {
-        bytesIn: entry.bytesIn,
-        bytesOut: entry.bytesOut
-      })
-    }
-
-    // Compute per-second rates by diffing against previous snapshot
-    const elapsedSec = previousSnapshot !== null ? (now - previousSnapshot.timestamp) / 1000 : 0
-
-    const processes: NetworkProcess[] = aggregated.map((entry) => {
-      let bytesInPerSec = 0
-      let bytesOutPerSec = 0
-
-      if (previousSnapshot && elapsedSec > 0) {
-        const prev = previousSnapshot.entries.get(entry.pid)
-        if (prev) {
-          const deltaIn = Math.max(0, entry.bytesIn - prev.bytesIn)
-          const deltaOut = Math.max(0, entry.bytesOut - prev.bytesOut)
-          bytesInPerSec = deltaIn / elapsedSec
-          bytesOutPerSec = deltaOut / elapsedSec
-        }
-      }
-
-      return {
-        name: entry.name,
-        pid: entry.pid,
-        bytesIn: entry.bytesIn,
-        bytesOut: entry.bytesOut,
-        bytesInPerSec,
-        bytesOutPerSec
-      }
-    })
-
-    // Update previous snapshot for next call
-    previousSnapshot = currentSnapshot
-
-    const totalBytesInPerSec = processes.reduce((sum, p) => sum + p.bytesInPerSec, 0)
-    const totalBytesOutPerSec = processes.reduce((sum, p) => sum + p.bytesOutPerSec, 0)
-
-    return {
-      processes,
-      totalBytesInPerSec,
-      totalBytesOutPerSec,
-      timestamp: now
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    const isPermission = message.includes('EPERM') || message.includes('Operation not permitted')
-    return {
-      processes: [],
-      totalBytesInPerSec: 0,
-      totalBytesOutPerSec: 0,
-      timestamp: now,
-      error: isPermission
-        ? 'nettop requires elevated permissions — run Hydra with sudo or grant Full Disk Access'
-        : `nettop failed: ${message}`
-    }
-  }
-}
-
-/**
- * Reset module-level state. Used for test cleanup.
- */
-export function resetNetworkState(): void {
-  previousSnapshot = null
-}
-
-/**
- * Exposed for testing: allows injecting raw output + timestamp
- * to test rate computation without actually calling nettop.
- */
-export function _computeNetworkState(rawOutput: string, timestamp: number): NetworkState {
-  const rawEntries = parseNettopOutput(rawOutput)
-  const aggregated = aggregateByPid(rawEntries)
-
-  // Build current snapshot
+function buildNetworkState(
+  aggregated: { name: string; pid: number; bytesIn: number; bytesOut: number }[],
+  now: number
+): NetworkState {
   const currentSnapshot: Snapshot = {
     entries: new Map(),
-    timestamp
+    timestamp: now
   }
   for (const entry of aggregated) {
     currentSnapshot.entries.set(entry.pid, {
@@ -199,8 +150,7 @@ export function _computeNetworkState(rawOutput: string, timestamp: number): Netw
     })
   }
 
-  // Compute per-second rates
-  const elapsedSec = previousSnapshot !== null ? (timestamp - previousSnapshot.timestamp) / 1000 : 0
+  const elapsedSec = previousSnapshot !== null ? (now - previousSnapshot.timestamp) / 1000 : 0
 
   const processes: NetworkProcess[] = aggregated.map((entry) => {
     let bytesInPerSec = 0
@@ -226,16 +176,103 @@ export function _computeNetworkState(rawOutput: string, timestamp: number): Netw
     }
   })
 
-  // Update previous snapshot
   previousSnapshot = currentSnapshot
 
   const totalBytesInPerSec = processes.reduce((sum, p) => sum + p.bytesInPerSec, 0)
   const totalBytesOutPerSec = processes.reduce((sum, p) => sum + p.bytesOutPerSec, 0)
 
-  return {
-    processes,
-    totalBytesInPerSec,
-    totalBytesOutPerSec,
-    timestamp
+  return { processes, totalBytesInPerSec, totalBytesOutPerSec, timestamp: now }
+}
+
+/**
+ * Try nettop with -x flag (extended, works better from non-interactive contexts).
+ */
+async function tryNettop(): Promise<RawNetworkEntry[] | null> {
+  try {
+    const { stdout } = await execAsync('nettop -P -x -L 1 -J bytes_in,bytes_out', {
+      timeout: 8000
+    })
+    const entries = parseNettopOutput(stdout)
+    if (entries.length > 0) return entries
+    return null
+  } catch {
+    return null
   }
+}
+
+/**
+ * Fallback: netstat -ibn gives interface-level cumulative byte counts.
+ * No per-process granularity, but shows real network throughput.
+ * Uses negative PIDs as synthetic identifiers for interfaces.
+ */
+async function tryNetstat(): Promise<RawNetworkEntry[] | null> {
+  try {
+    const { stdout } = await execAsync('netstat -ibn', { timeout: 3000 })
+    const ifaces = parseNetstatOutput(stdout)
+    if (ifaces.length === 0) return null
+    // Use negative PIDs as synthetic identifiers for interfaces
+    return ifaces.map((iface, i) => ({
+      name: iface.name,
+      pid: -(i + 1),
+      bytesIn: iface.bytesIn,
+      bytesOut: iface.bytesOut
+    }))
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Get current network activity. Tries nettop first (per-process),
+ * falls back to netstat (per-interface) if nettop is unavailable.
+ */
+export async function getNetworkActivity(): Promise<NetworkState> {
+  const now = Date.now()
+
+  if (!isMacOS()) {
+    return { processes: [], totalBytesInPerSec: 0, totalBytesOutPerSec: 0, timestamp: now }
+  }
+
+  // Try nettop first (unless it previously failed)
+  if (!nettopFailed) {
+    const nettopEntries = await tryNettop()
+    if (nettopEntries) {
+      const aggregated = aggregateByPid(nettopEntries)
+      return buildNetworkState(aggregated, now)
+    }
+    // nettop failed — remember so we skip it on future polls
+    nettopFailed = true
+  }
+
+  // Fallback: netstat for interface-level stats
+  const netstatEntries = await tryNetstat()
+  if (netstatEntries) {
+    return buildNetworkState(netstatEntries, now)
+  }
+
+  return {
+    processes: [],
+    totalBytesInPerSec: 0,
+    totalBytesOutPerSec: 0,
+    timestamp: now,
+    error: 'Network monitoring unavailable — nettop and netstat both failed'
+  }
+}
+
+/**
+ * Reset module-level state. Used for test cleanup.
+ */
+export function resetNetworkState(): void {
+  previousSnapshot = null
+  nettopFailed = false
+}
+
+/**
+ * Exposed for testing: allows injecting raw output + timestamp
+ * to test rate computation without actually calling nettop.
+ */
+export function _computeNetworkState(rawOutput: string, timestamp: number): NetworkState {
+  const rawEntries = parseNettopOutput(rawOutput)
+  const aggregated = aggregateByPid(rawEntries)
+  return buildNetworkState(aggregated, timestamp)
 }
