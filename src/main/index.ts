@@ -43,7 +43,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: true
     }
   })
 
@@ -52,7 +52,14 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    try {
+      const parsed = new URL(details.url)
+      if (['https:', 'http:'].includes(parsed.protocol)) {
+        shell.openExternal(details.url)
+      }
+    } catch {
+      // Malformed URL — ignore
+    }
     return { action: 'deny' }
   })
 

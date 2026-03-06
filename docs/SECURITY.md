@@ -6,9 +6,17 @@
 
 ---
 
-## Overall Rating: B+
+## Overall Rating: A-
 
-HYDRA demonstrates strong security fundamentals — proper context isolation, a well-scoped preload bridge, command allowlisting, and process-kill safeguards. The main areas for improvement are sandbox mode, URL validation on `shell.openExternal`, and a hardcoded network range in the security scanner.
+HYDRA demonstrates strong security fundamentals — proper context isolation, sandboxed renderer, a well-scoped preload bridge, command allowlisting, URL protocol validation, and process-kill safeguards.
+
+**Update (2026-03-06):** All four findings from the initial B+ audit have been resolved:
+- Sandbox mode enabled in webPreferences
+- `shell.openExternal` now validates URL protocol (http/https only)
+- Hardcoded `192.168.1.0/24` removed — network target is now detected dynamically or configured
+- `.gitignore` updated with `*.sqlite`, `*.db`, `*.sqlite-wal`, `*.sqlite-shm` patterns
+
+Remaining gap to A: no CSP (Content-Security-Policy) header configured for the renderer.
 
 ---
 
@@ -78,38 +86,35 @@ The `.gitignore` correctly covers:
 
 ### 4c. Sandbox Mode
 
-**Status: FAIL**
+**Status: PASS (fixed)**
 
 ```typescript
 // src/main/index.ts:46
-sandbox: false
+sandbox: true
 ```
 
-Sandbox is explicitly disabled. This allows the preload script to use full Node.js APIs (which HYDRA needs for `ipcRenderer`), but it weakens the renderer's isolation. In a compromised renderer scenario, the attack surface is larger.
-
-**Recommendation:** Evaluate whether `sandbox: true` is feasible. Electron 28+ supports sandboxed preload scripts with `contextBridge` — the current preload only uses `ipcRenderer`, which works in sandbox mode. Switching to `sandbox: true` would be a meaningful hardening step.
+Sandbox is enabled. The preload script runs in a sandboxed context with only `contextBridge` and `ipcRenderer` available — no full Node.js access from the renderer.
 
 ### 4d. shell.openExternal
 
-**Status: WARNING**
+**Status: PASS (fixed)**
 
 ```typescript
-// src/main/index.ts:54-57
+// src/main/index.ts:54-61
 mainWindow.webContents.setWindowOpenHandler((details) => {
-  shell.openExternal(details.url)
+  try {
+    const parsed = new URL(details.url)
+    if (['https:', 'http:'].includes(parsed.protocol)) {
+      shell.openExternal(details.url)
+    }
+  } catch {
+    // Malformed URL — ignore
+  }
   return { action: 'deny' }
 })
 ```
 
-This opens any URL the renderer requests in the system browser without validation. A compromised renderer or XSS could trigger opening of `file://`, `smb://`, or other dangerous protocol URLs.
-
-**Recommendation:** Validate the URL scheme before opening:
-```typescript
-const url = new URL(details.url)
-if (['http:', 'https:'].includes(url.protocol)) {
-  shell.openExternal(details.url)
-}
-```
+URLs are validated before opening. Only `http:` and `https:` protocols are allowed. Malformed URLs are silently rejected.
 
 ### 4e. Other Electron Settings
 
@@ -181,21 +186,16 @@ HYDRA's main process makes extensive use of `child_process.exec()` for system mo
 - **Security scan allowlisting** — renderer cannot execute arbitrary shell commands
 - **No dangerous Electron flags** — `webSecurity`, `nodeIntegration`, `allowRunningInsecureContent` all at safe defaults
 
-### What Needs Attention
+### Resolved Findings
 
-| Priority | Finding | Location |
-|----------|---------|----------|
-| **Medium** | `sandbox: false` — preload runs unsandboxed | `src/main/index.ts:46` |
-| **Medium** | `shell.openExternal` accepts any URL protocol | `src/main/index.ts:54-57` |
-| **Low** | Hardcoded `192.168.1.0/24` default | `src/main/intelligence/security.ts:63` |
-| **Low** | `.gitignore` missing `*.sqlite`/`*.db` patterns | `.gitignore` |
+| Priority | Finding | Status |
+|----------|---------|--------|
+| **Medium** | `sandbox: false` — preload runs unsandboxed | FIXED — `sandbox: true` |
+| **Medium** | `shell.openExternal` accepts any URL protocol | FIXED — http/https allowlist |
+| **Low** | Hardcoded `192.168.1.0/24` default | FIXED — dynamic detection only |
+| **Low** | `.gitignore` missing `*.sqlite`/`*.db` patterns | FIXED — patterns added |
 
-### Recommended Fixes
+### Remaining Recommendations
 
-1. **Enable sandbox mode** — Change `sandbox: false` to `sandbox: true` in `webPreferences`. Test that IPC still works (it should — `contextBridge` + `ipcRenderer` work in sandbox mode).
-
-2. **Validate URLs before opening externally** — Add protocol allowlist (`http:`, `https:`) in the `setWindowOpenHandler` callback.
-
-3. **Add database file patterns to .gitignore** — Append `*.sqlite` and `*.db` to prevent accidental commits.
-
-4. **Minor:** The `192.168.1.0/24` default is harmless (overridden at runtime) but could be replaced with a placeholder or removed in favor of pure runtime detection.
+1. **Add Content-Security-Policy** — Configure a strict CSP header for the renderer to prevent XSS if arbitrary content is ever loaded.
+2. **Code-sign the .dmg** — Required for macOS Gatekeeper. Not a source-level issue but needed for distribution.

@@ -306,5 +306,6 @@ export interface HydraConfig {
   snapshotInterval: number
   staffBinPath?: string
   lmStudioUrl?: string
+  networkTarget?: string
   agentPatterns?: { type: string; displayName: string; patterns: string[] }[]
 }

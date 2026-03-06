@@ -59,10 +59,17 @@ async function resolveStaffBin(): Promise<string> {
   return 'staff'
 }
 
-// Default local network CIDR — derived from gateway at startup
-let localNetworkTarget = '192.168.1.0/24'
+// Local network CIDR — must be detected dynamically or configured by user
+let localNetworkTarget = ''
 
 async function detectLocalNetwork(): Promise<void> {
+  // Check config first
+  const config = loadConfig()
+  if (config.networkTarget) {
+    localNetworkTarget = config.networkTarget
+    return
+  }
+
   try {
     const { stdout } = await execAsync('ipconfig getifaddr en0', { timeout: 5000 })
     const ip = stdout.trim()
@@ -73,7 +80,7 @@ async function detectLocalNetwork(): Promise<void> {
       localNetworkTarget = parts.join('.')
     }
   } catch {
-    // Fall back to default
+    // No network target available — security scans requiring a target will fail gracefully
   }
 }
 

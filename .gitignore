@@ -9,3 +9,7 @@ docs/plans/
 tasks/
 .env*
 *.local
+*.sqlite
+*.db
+*.sqlite-wal
+*.sqlite-shm
