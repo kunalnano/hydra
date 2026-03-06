@@ -58,6 +58,19 @@ export function NetworkPanel(): JSX.Element {
     return <div className="text-gray-600 text-sm">Monitoring network activity...</div>
   }
 
+  if (networkState.error) {
+    return (
+      <div className="text-sm space-y-2">
+        <div className="text-amber-400 text-xs px-2 py-1.5 rounded bg-amber-950/30 border border-amber-900">
+          {networkState.error}
+        </div>
+        <div className="text-gray-600 text-xs px-2">
+          Network monitoring requires nettop access on macOS.
+        </div>
+      </div>
+    )
+  }
+
   const sortedProcesses = [...networkState.processes].sort(
     (a, b) => b.bytesInPerSec + b.bytesOutPerSec - (a.bytesInPerSec + a.bytesOutPerSec)
   )

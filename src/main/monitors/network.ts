@@ -99,8 +99,8 @@ export async function getNetworkActivity(): Promise<NetworkState> {
   }
 
   try {
-    const { stdout } = await execAsync('nettop -P -L 1 -t external -J bytes_in,bytes_out', {
-      timeout: 3000
+    const { stdout } = await execAsync('nettop -P -L 1 -J bytes_in,bytes_out', {
+      timeout: 5000
     })
 
     const rawEntries = parseNettopOutput(stdout)
@@ -157,13 +157,17 @@ export async function getNetworkActivity(): Promise<NetworkState> {
       totalBytesOutPerSec,
       timestamp: now
     }
-  } catch {
-    // On failure, return empty state
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    const isPermission = message.includes('EPERM') || message.includes('Operation not permitted')
     return {
       processes: [],
       totalBytesInPerSec: 0,
       totalBytesOutPerSec: 0,
-      timestamp: now
+      timestamp: now,
+      error: isPermission
+        ? 'nettop requires elevated permissions — run Hydra with sudo or grant Full Disk Access'
+        : `nettop failed: ${message}`
     }
   }
 }

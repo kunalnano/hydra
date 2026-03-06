@@ -66,6 +66,7 @@ export interface NetworkState {
   totalBytesInPerSec: number
   totalBytesOutPerSec: number
   timestamp: number
+  error?: string
 }
 
 export interface FirewallRule {
