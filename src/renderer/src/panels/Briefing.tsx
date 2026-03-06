@@ -21,6 +21,13 @@ export function BriefingPanel(): JSX.Element {
   const [briefing, setBriefing] = useState<BriefingResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lmStudioUrl, setLmStudioUrl] = useState<string>('http://localhost:1234')
+
+  useEffect(() => {
+    window.hydra.getConfig().then((cfg) => {
+      if (cfg.lmStudioUrl) setLmStudioUrl(cfg.lmStudioUrl)
+    }).catch(() => {})
+  }, [])
 
   const requestBriefing = useCallback(async (): Promise<void> => {
     setLoading(true)
@@ -61,6 +68,9 @@ export function BriefingPanel(): JSX.Element {
             {new Date(briefing.timestamp).toLocaleTimeString()}
           </span>
         )}
+      </div>
+      <div className="text-[10px] text-gray-600 font-mono pb-2 truncate" title={lmStudioUrl}>
+        → {lmStudioUrl}
       </div>
 
       {error && <div className="text-red-400 text-xs mb-2">{error}</div>}

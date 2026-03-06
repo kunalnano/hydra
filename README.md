@@ -62,12 +62,26 @@ Config file: `~/.config/hydra/config.json`
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `lmStudioUrl` | `http://192.168.7.200:1234` | LM Studio server URL for AI briefings |
+| `lmStudioUrl` | `http://localhost:1234` | LM Studio server URL for AI briefings |
 | `gitRepoPaths` | `[]` | Paths to monitor for git status |
 | `monitorInterval` | `2000` | Monitor polling interval (ms) |
 | `staffBinPath` | auto-detected | Path to `staff` binary for security scans |
 
 No API keys required — AI briefings use a local LM Studio server. If `lmStudioUrl` is wrong or the server moves to a different IP, briefings will fail silently with "LM Studio offline." Update the config file or check `http://<your-ip>:1234/v1/models` to verify.
+
+## Local Configuration
+
+Override defaults with a `.env` file (gitignored, never committed):
+
+```bash
+cp .env.example .env
+# Edit .env with your values:
+LM_STUDIO_URL=http://192.168.1.100:1234
+```
+
+The `.env` file sets `LM_STUDIO_URL` for the AI briefing engine. The default (`http://localhost:1234`) works when LM Studio runs on the same machine. If your LM Studio server is on another host, set the URL in `.env`.
+
+The active URL is shown in the briefing panel (below the Request Briefing button) so you can verify the connection target at a glance.
 
 ## Testing
 
