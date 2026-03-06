@@ -131,7 +131,7 @@ describe('parseNetstatOutput', () => {
   const SAMPLE_NETSTAT = `Name       Mtu   Network       Address            Ipkts Ierrs     Ibytes    Opkts Oerrs     Obytes  Coll
 lo0        16384 <Link#1>                       1281901     0  349772063  1281901     0  349772063     0
 en0        1500  <Link#14>   0a:cd:f8:ab:e7:42  1377177     0 1428632542   497465     0  186614454     0
-en0        1500  192.168.4/22  192.168.7.225    1377177     - 1428632542   497465     -  186614454     -
+en0        1500  10.0.0/24  10.0.0.1    1377177     - 1428632542   497465     -  186614454     -
 awdl0      1500  <Link#16>   ea:3e:5f:ef:c9:a9     6989     0    6467975     4276     0    1252756     0
 gif0*      1280  <Link#2>                             0     0          0        0     0          0     0`
 

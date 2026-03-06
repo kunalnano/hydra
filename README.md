@@ -78,7 +78,7 @@ Override defaults with a `.env` file (gitignored, never committed):
 ```bash
 cp .env.example .env
 # Edit .env with your values:
-LM_STUDIO_URL=http://192.168.1.100:1234
+LM_STUDIO_URL=http://[your-lm-studio-host]:1234
 ```
 
 The `.env` file sets `LM_STUDIO_URL` for the AI briefing engine. The default (`http://localhost:1234`) works when LM Studio runs on the same machine. If your LM Studio server is on another host, set the URL in `.env`.
