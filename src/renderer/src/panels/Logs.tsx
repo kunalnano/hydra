@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import type { LogLine } from '../../../../shared/types'
+import type { LogLine } from '../../../shared/types'
 
 const MAX_LINES = 500
 

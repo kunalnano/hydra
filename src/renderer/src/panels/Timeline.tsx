@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react'
+import type { TimelineEventRecord } from '../../../shared/types'
 
-interface TimelineEvent {
+interface TimelineEvent extends TimelineEventRecord {
   id: number
-  timestamp: number
-  type: 'process_start' | 'process_stop' | 'user_action' | 'auto_heal' | 'system'
-  source: string
-  message: string
 }
 
 const TYPE_ICONS: Record<TimelineEvent['type'], string> = {
@@ -13,7 +10,10 @@ const TYPE_ICONS: Record<TimelineEvent['type'], string> = {
   process_stop: 'x',
   user_action: '!',
   auto_heal: '~',
-  system: 'o'
+  system: 'o',
+  agent_action: '@',
+  agent_update: '*',
+  agent_error: '!'
 }
 
 const TYPE_COLORS: Record<TimelineEvent['type'], string> = {
@@ -21,7 +21,10 @@ const TYPE_COLORS: Record<TimelineEvent['type'], string> = {
   process_stop: 'text-red-400',
   user_action: 'text-cyan-400',
   auto_heal: 'text-amber-400',
-  system: 'text-gray-400'
+  system: 'text-gray-400',
+  agent_action: 'text-violet-400',
+  agent_update: 'text-sky-400',
+  agent_error: 'text-rose-400'
 }
 
 function formatTime(ts: number): string {

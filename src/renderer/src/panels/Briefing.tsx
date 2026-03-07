@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { BriefingResult, BriefingAlert } from '../../../../shared/types'
+import type { BriefingResult, BriefingAlert } from '../../../shared/types'
 
 const SEVERITY_STYLES: Record<BriefingAlert['severity'], string> = {
   info: 'text-blue-400 bg-blue-950/30 border-blue-900',

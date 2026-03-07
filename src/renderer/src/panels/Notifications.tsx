@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import type { HydraNotification } from '../../../../shared/types'
+import type { HydraNotification } from '../../../shared/types'
 
 const LEVEL_STYLES: Record<HydraNotification['level'], string> = {
   critical: 'border-l-red-500 bg-red-500/10',

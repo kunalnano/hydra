@@ -32,9 +32,11 @@ const mockState: SystemState = {
   ],
   agents: [
     {
+      id: 'pid:9999',
       name: 'claude-code',
       type: 'claude-code',
       status: 'active',
+      source: 'process',
       pid: 9999,
       workingDir: '/home/user/project'
     }

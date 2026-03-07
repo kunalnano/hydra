@@ -7,7 +7,6 @@ import {
 import { useSystemStore } from './stores/system'
 import { useTimeSeriesStore } from './stores/timeseries'
 import { Sparkline } from './components/Sparkline'
-import { WorkspacesPanel } from './panels/Workspaces'
 import { AgentsPanel } from './panels/Agents'
 import { PortsPanel } from './panels/Ports'
 import { GitStatusPanel } from './panels/GitStatus'

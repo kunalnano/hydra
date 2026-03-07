@@ -2,6 +2,7 @@ import { ipcMain, type BrowserWindow } from 'electron'
 import { getProcesses, groupProcesses } from './processes'
 import { getPorts } from './ports'
 import { detectAgents } from './agents'
+import { loadExternalAgents, loadExternalAgentTimelineEvents } from './agent-feeds'
 import { scanForRepos, runGitAction } from './git'
 import { startLogMonitoring, stopLogMonitoring, getLogSources } from './logs'
 import { cpus, freemem, totalmem } from 'os'
@@ -9,6 +10,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { isMacOS } from '../platform'
 import { killProcess, sendProcessSignal, killGroup } from '../actions'
+import { loadConfig } from '../config'
 
 const execAsync = promisify(exec)
 import { evaluateRules } from '../intelligence/auto-heal'
@@ -107,6 +109,7 @@ let ccusagePollCount = 11
 let snapshotPollCount = 0
 let sessionPollCount = 0
 let previousWorkspaceNames = new Set<string>()
+let monitorConfig = loadConfig()
 
 let latestGitRepos: SystemState['gitRepos'] = []
 
@@ -117,7 +120,8 @@ async function collectSystemState(): Promise<SystemState> {
   ])
 
   const processGroups = groupProcesses(processes)
-  const agents = detectAgents(processes)
+  const processAgents = detectAgents(processes)
+  const fileAgents = loadExternalAgents(monitorConfig)
 
   for (const group of processGroups) {
     const groupPids = new Set(group.processes.map((p) => p.pid))
@@ -134,7 +138,7 @@ async function collectSystemState(): Promise<SystemState> {
     timestamp: Date.now(),
     processes: processGroups,
     ports,
-    agents,
+    agents: [...processAgents, ...fileAgents],
     gitRepos: latestGitRepos,
     cpu: {
       usage:
@@ -160,11 +164,24 @@ async function collectSystemState(): Promise<SystemState> {
   return state
 }
 
+function ingestExternalAgentTimelineEvents(): void {
+  const events = loadExternalAgentTimelineEvents(monitorConfig)
+  for (const event of events) {
+    try {
+      insertTimelineEvent(event)
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 export function onStateUpdate(callback: (state: SystemState) => void): void {
   trayCallback = callback
 }
 
 export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): void {
+  monitorConfig = loadConfig()
+
   ipcMain.handle(IPC_CHANNELS.GET_INITIAL_STATE, async () => {
     if (!latestState) {
       latestState = await collectSystemState()
@@ -180,6 +197,7 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
   monitorInterval = setInterval(async () => {
     try {
       latestState = await collectSystemState()
+      ingestExternalAgentTimelineEvents()
 
       // Auto-heal evaluation
       const events = evaluateRules(latestState, previousState, DEFAULT_RULES)

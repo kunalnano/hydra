@@ -68,9 +68,11 @@ export function detectAgents(processes: ProcessInfo[]): AgentInfo[] {
         seenTypes.set(pattern.type, count)
 
         agents.push({
+          id: `pid:${proc.pid}`,
           name: count > 1 ? `${pattern.displayName} #${count}` : pattern.displayName,
           type: pattern.type,
           status: inferStatus(proc),
+          source: 'process',
           pid: proc.pid,
           workingDir: proc.cwd
         })

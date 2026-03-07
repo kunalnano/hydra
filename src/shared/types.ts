@@ -29,15 +29,41 @@ export interface PortInfo {
 }
 
 export type AgentStatus = 'active' | 'busy' | 'idle' | 'waiting' | 'unknown'
+export type AgentType =
+  | 'claude-code'
+  | 'codex'
+  | 'gemini'
+  | 'cursor'
+  | 'aider'
+  | 'continue'
+  | 'copilot'
+  | 'other'
+
+export interface AgentGoal {
+  name: string
+  progress: number
+  priority: number
+}
 
 export interface AgentInfo {
+  id: string
   name: string
-  type: 'claude-code' | 'codex' | 'gemini' | 'cursor' | 'aider' | 'continue' | 'copilot' | 'other'
+  type: AgentType
   status: AgentStatus
-  pid: number
+  source: 'process' | 'state-file'
+  pid?: number
   workingDir?: string
   tmuxSession?: string
   uptime?: number
+  agentId?: string
+  sessionId?: string
+  currentTick?: number
+  totalTicks?: number
+  totalActions?: number
+  memoryCount?: number
+  currentAction?: string
+  lastHeartbeat?: number
+  goals?: AgentGoal[]
 }
 
 export interface GitRepoInfo {
@@ -226,6 +252,25 @@ export interface HydraNotification {
 
 export type ProcessSignalType = 'SIGTERM' | 'SIGKILL' | 'SIGSTOP' | 'SIGCONT'
 
+export type TimelineEventType =
+  | 'process_start'
+  | 'process_stop'
+  | 'user_action'
+  | 'auto_heal'
+  | 'system'
+  | 'agent_action'
+  | 'agent_update'
+  | 'agent_error'
+
+export interface TimelineEventRecord {
+  id?: number
+  timestamp: number
+  type: TimelineEventType
+  source: string
+  message: string
+  metadata?: string
+}
+
 export interface ProcessActionResult {
   success: boolean
   pid: number
@@ -308,4 +353,5 @@ export interface HydraConfig {
   lmStudioUrl?: string
   networkTarget?: string
   agentPatterns?: { type: string; displayName: string; patterns: string[] }[]
+  agentFeedPaths?: string[]
 }

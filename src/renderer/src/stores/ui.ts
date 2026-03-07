@@ -4,24 +4,24 @@ interface UIStore {
   // Cross-panel selection
   selectedWorkspace: string | null
   expandedWorkspace: string | null
-  selectedAgentPid: number | null
+  selectedAgentId: string | null
 
   selectWorkspace: (name: string | null) => void
   toggleExpandWorkspace: (name: string) => void
-  selectAgent: (pid: number | null, workspaceName?: string) => void
+  selectAgent: (agentId: string | null, workspaceName?: string) => void
   clearSelection: () => void
 }
 
 export const useUIStore = create<UIStore>((set, get) => ({
   selectedWorkspace: null,
   expandedWorkspace: null,
-  selectedAgentPid: null,
+  selectedAgentId: null,
 
   selectWorkspace: (name) => {
     const current = get().selectedWorkspace
     set({
       selectedWorkspace: current === name ? null : name,
-      selectedAgentPid: null
+      selectedAgentId: null
     })
   },
 
@@ -30,13 +30,13 @@ export const useUIStore = create<UIStore>((set, get) => ({
     set({ expandedWorkspace: current === name ? null : name })
   },
 
-  selectAgent: (pid, workspaceName) => {
-    const current = get().selectedAgentPid
-    if (current === pid) {
-      set({ selectedAgentPid: null, selectedWorkspace: null, expandedWorkspace: null })
+  selectAgent: (agentId, workspaceName) => {
+    const current = get().selectedAgentId
+    if (current === agentId) {
+      set({ selectedAgentId: null, selectedWorkspace: null, expandedWorkspace: null })
     } else {
       set({
-        selectedAgentPid: pid,
+        selectedAgentId: agentId,
         selectedWorkspace: workspaceName || null,
         expandedWorkspace: workspaceName || null
       })
@@ -44,6 +44,6 @@ export const useUIStore = create<UIStore>((set, get) => ({
   },
 
   clearSelection: () => {
-    set({ selectedWorkspace: null, expandedWorkspace: null, selectedAgentPid: null })
+    set({ selectedWorkspace: null, expandedWorkspace: null, selectedAgentId: null })
   }
 }))

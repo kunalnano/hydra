@@ -6,7 +6,7 @@ interface PaletteCommand {
   label: string
   aliases: string[]
   description: string
-  action: () => Promise<void> | void
+  action: () => Promise<unknown> | void
 }
 
 function fuzzyMatch(query: string, target: string): boolean {

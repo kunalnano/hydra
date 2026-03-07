@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Sparkline } from '../components/Sparkline'
-import type { CCUsageState } from '../../../../shared/types'
+import type { CCUsageState } from '../../../shared/types'
 
 function formatTokens(n: number): string {
   if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`

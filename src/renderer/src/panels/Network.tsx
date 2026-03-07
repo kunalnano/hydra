@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { NetworkState, NetworkProcess, FirewallState } from '../../../../shared/types'
+import type { NetworkState, NetworkProcess, FirewallState } from '../../../shared/types'
 import { useTimeSeriesStore } from '../stores/timeseries'
 import { Sparkline } from '../components/Sparkline'
 

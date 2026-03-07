@@ -5,7 +5,8 @@ import type {
   BriefingResult,
   HydraNotification,
   SecurityPosture,
-  PostureHistoryEntry
+  PostureHistoryEntry,
+  TimelineEventRecord
 } from '../../shared/types'
 
 export interface DBSnapshot {
@@ -167,13 +168,8 @@ export interface SessionSnapshot {
   }
 }
 
-export interface TimelineEvent {
-  id?: number
-  timestamp: number
-  type: 'process_start' | 'process_stop' | 'user_action' | 'auto_heal' | 'system'
-  source: string
-  message: string
-  metadata?: string
+export interface TimelineEvent extends TimelineEventRecord {
+  ingestKey?: string
 }
 
 export function insertSession(snapshot: SessionSnapshot['data']): void {
@@ -196,15 +192,22 @@ export function getLatestSession(): SessionSnapshot | null {
 export function insertTimelineEvent(event: Omit<TimelineEvent, 'id'>): void {
   const db = getDb()
   db.prepare(
-    'INSERT INTO timeline_events (timestamp, type, source, message, metadata) VALUES (?, ?, ?, ?, ?)'
-  ).run(event.timestamp, event.type, event.source, event.message, event.metadata ?? null)
+    'INSERT OR IGNORE INTO timeline_events (timestamp, type, source, message, metadata, ingest_key) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(
+    event.timestamp,
+    event.type,
+    event.source,
+    event.message,
+    event.metadata ?? null,
+    event.ingestKey ?? null
+  )
 }
 
 export function getTimelineEvents(limit: number): TimelineEvent[] {
   const db = getDb()
   return db
     .prepare(
-      'SELECT id, timestamp, type, source, message, metadata FROM timeline_events ORDER BY timestamp DESC LIMIT ?'
+      'SELECT id, timestamp, type, source, message, metadata FROM timeline_events ORDER BY timestamp DESC, id DESC LIMIT ?'
     )
     .all(limit) as TimelineEvent[]
 }

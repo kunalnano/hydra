@@ -4,7 +4,7 @@ import type {
   SecurityScanResult,
   SecurityPosture,
   PostureHistoryEntry
-} from '../../../../shared/types'
+} from '../../../shared/types'
 import { GaugeArc } from '../components/GaugeArc'
 import { DonutChart } from '../components/DonutChart'
 import { Sparkline } from '../components/Sparkline'

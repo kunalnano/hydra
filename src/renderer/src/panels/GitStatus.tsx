@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useSystemStore } from '../stores/system'
-import type { GitRepoInfo } from '../../../../shared/types'
+import type { GitRepoInfo } from '../../../shared/types'
 
 const STATUS_STYLES: Record<GitRepoInfo['status'], { color: string; label: string }> = {
   clean: { color: 'text-green-400', label: 'clean' },

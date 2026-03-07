@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSystemStore } from '../stores/system'
-import type { GitCommit } from '../../../../shared/types'
+import type { GitCommit } from '../../../shared/types'
 
 function relativeTime(timestamp: number): string {
   const now = Math.floor(Date.now() / 1000)

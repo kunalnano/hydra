@@ -1,6 +1,6 @@
 import { useSystemStore } from '../stores/system'
 import { useUIStore } from '../stores/ui'
-import type { AgentInfo } from '../../../../shared/types'
+import type { AgentInfo } from '../../../shared/types'
 
 const STATUS_STYLES: Record<AgentInfo['status'], { dot: string; label: string }> = {
   active: { dot: 'bg-green-400', label: 'active' },
@@ -58,6 +58,13 @@ function formatUptime(ms: number): string {
   return `${hrs}h ${mins % 60}m`
 }
 
+function formatRelativeAge(ts: number): string {
+  const diff = Math.max(0, Date.now() - ts)
+  if (diff < 60000) return 'now'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m`
+  return `${Math.floor(diff / 3600000)}h`
+}
+
 export function AgentsPanel(): JSX.Element {
   const state = useSystemStore((s) => s.state)
   if (!state) return <></>
@@ -72,13 +79,13 @@ export function AgentsPanel(): JSX.Element {
       <div className="flex items-center text-[10px] text-gray-600 uppercase tracking-wider px-2 pb-1.5 mb-1 border-b border-gray-800/50">
         <span className="flex-1">Agent</span>
         <span className="w-20 text-center">Status</span>
-        <span className="w-24 text-right">Workspace</span>
-        <span className="w-16 text-right">PID</span>
+        <span className="w-24 text-right">Context</span>
+        <span className="w-28 text-right">Handle</span>
       </div>
 
       <div className="space-y-1">
         {state.agents.map((agent) => (
-          <AgentRow key={agent.pid} agent={agent} />
+          <AgentRow key={agent.id} agent={agent} />
         ))}
       </div>
     </div>
@@ -87,11 +94,11 @@ export function AgentsPanel(): JSX.Element {
 
 function AgentRow({ agent }: { agent: AgentInfo }): JSX.Element {
   const state = useSystemStore((s) => s.state)
-  const selectedAgentPid = useUIStore((s) => s.selectedAgentPid)
+  const selectedAgentId = useUIStore((s) => s.selectedAgentId)
   const selectAgent = useUIStore((s) => s.selectAgent)
 
   const style = STATUS_STYLES[agent.status]
-  const isSelected = selectedAgentPid === agent.pid
+  const isSelected = selectedAgentId === agent.id
 
   // Find the workspace this agent belongs to by matching the agent's working dir
   // to a process group name, or by finding a process group that contains this agent's PID
@@ -100,13 +107,21 @@ function AgentRow({ agent }: { agent: AgentInfo }): JSX.Element {
       const dirName = agent.workingDir.split('/').pop()
       if (g.name === dirName || g.name === agent.workingDir) return true
     }
-    return g.processes.some((p) => p.pid === agent.pid)
+    return agent.pid != null && g.processes.some((p) => p.pid === agent.pid)
   })
 
   const workspaceName = matchedWorkspace?.name
+  const contextLabel =
+    workspaceName ??
+    (agent.currentTick != null ? `Tick ${agent.currentTick}` : agent.lastHeartbeat != null ? `HB ${formatRelativeAge(agent.lastHeartbeat)}` : '-')
+  const handleLabel = agent.pid != null ? `PID ${agent.pid}` : agent.agentId ?? '-'
+  const secondaryLabel =
+    agent.currentAction ??
+    (agent.source === 'state-file' && agent.sessionId ? `Session ${agent.sessionId}` : undefined)
+  const kindLabel = TYPE_LABELS[agent.type]
 
   const handleClick = (): void => {
-    selectAgent(agent.pid, workspaceName)
+    selectAgent(agent.id, workspaceName)
   }
 
   return (
@@ -119,13 +134,23 @@ function AgentRow({ agent }: { agent: AgentInfo }): JSX.Element {
       }`}
     >
       {/* Agent name + type icon + uptime (flex-1 to fill remaining space) */}
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span className={`${TYPE_COLORS[agent.type]} text-xs shrink-0`}>
-          {TYPE_ICONS[agent.type]}
-        </span>
-        <span className="text-white font-medium truncate">{TYPE_LABELS[agent.type]}</span>
-        {agent.uptime != null && (
-          <span className="text-gray-600 text-[10px]">{formatUptime(agent.uptime)}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`${TYPE_COLORS[agent.type]} text-xs shrink-0`}>
+            {TYPE_ICONS[agent.type]}
+          </span>
+          <span className="text-white font-medium truncate">{agent.name}</span>
+          {agent.uptime != null && (
+            <span className="text-gray-600 text-[10px] shrink-0">{formatUptime(agent.uptime)}</span>
+          )}
+          {agent.name !== kindLabel && (
+            <span className="text-[10px] uppercase tracking-wider text-gray-600 shrink-0">
+              {kindLabel}
+            </span>
+          )}
+        </div>
+        {secondaryLabel && (
+          <div className="text-[10px] text-gray-500 truncate pl-5 mt-0.5">{secondaryLabel}</div>
         )}
       </div>
 
@@ -136,23 +161,25 @@ function AgentRow({ agent }: { agent: AgentInfo }): JSX.Element {
         </span>
       </div>
 
-      {/* Workspace — right-aligned in w-24 */}
+      {/* Context — right-aligned in w-24 */}
       <div className="w-24 text-right shrink-0">
-        {workspaceName ? (
+        {contextLabel !== '-' ? (
           <span
             className="text-blue-400/60 text-[10px] truncate inline-block max-w-full"
-            title="Click to jump to workspace"
+            title={contextLabel}
           >
-            {workspaceName}
+            {contextLabel}
           </span>
         ) : (
           <span className="text-gray-700 text-[10px]">-</span>
         )}
       </div>
 
-      {/* PID — right-aligned in w-16 */}
-      <div className="w-16 text-right shrink-0">
-        <span className="text-gray-700 text-xs font-mono">{agent.pid}</span>
+      {/* Handle — right-aligned in w-28 */}
+      <div className="w-28 text-right shrink-0">
+        <span className="text-gray-700 text-xs font-mono truncate inline-block max-w-full" title={handleLabel}>
+          {handleLabel}
+        </span>
       </div>
     </div>
   )

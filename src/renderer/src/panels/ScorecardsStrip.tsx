@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSystemStore } from '../stores/system'
 import { useTimeSeriesStore } from '../stores/timeseries'
 import { Scorecard, type ScorecardProps } from '../components/Scorecard'
-import type { CCUsageState } from '../../../../shared/types'
+import type { CCUsageState } from '../../../shared/types'
 
 function getAverage(history: number[]): number {
   if (history.length === 0) return 0

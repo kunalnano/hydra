@@ -13,7 +13,9 @@ import {
   getNotifications,
   dismissNotification,
   insertPostureHistory,
-  getPostureHistory
+  getPostureHistory,
+  insertTimelineEvent,
+  getTimelineEvents
 } from './queries'
 import type {
   SystemState,
@@ -49,7 +51,7 @@ describe('SQLite persistence', () => {
   })
 
   describe('schema creation', () => {
-    it('should create all five tables', () => {
+    it('should create all persistence tables', () => {
       const tables = db
         .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         .all() as { name: string }[]
@@ -59,6 +61,8 @@ describe('SQLite persistence', () => {
       expect(names).toContain('briefings')
       expect(names).toContain('notifications')
       expect(names).toContain('posture_history')
+      expect(names).toContain('sessions')
+      expect(names).toContain('timeline_events')
     })
 
     it('should be idempotent — calling initializeSchema twice does not error', () => {
@@ -233,6 +237,41 @@ describe('SQLite persistence', () => {
       }
       const rows = getPostureHistory(3)
       expect(rows).toHaveLength(3)
+    })
+  })
+
+  describe('timeline events', () => {
+    it('stores and retrieves timeline events', () => {
+      insertTimelineEvent({
+        timestamp: 1700000000000,
+        type: 'agent_action',
+        source: 'botbotfromuk-v1',
+        message: 'botbotfromuk-v1 [t17] post comment via github_api -> kunalnano/hydra#11',
+        metadata: JSON.stringify({ tick: 17, eventType: 'external_action' })
+      })
+
+      const rows = getTimelineEvents(10)
+      expect(rows).toHaveLength(1)
+      expect(rows[0].type).toBe('agent_action')
+      expect(rows[0].source).toBe('botbotfromuk-v1')
+    })
+
+    it('ignores duplicate ingested timeline events with the same ingest key', () => {
+      const event = {
+        timestamp: 1700000000000,
+        type: 'agent_action' as const,
+        source: 'botbotfromuk-v1',
+        message: 'duplicate-safe event',
+        metadata: JSON.stringify({ tick: 17 }),
+        ingestKey: 'same-event'
+      }
+
+      insertTimelineEvent(event)
+      insertTimelineEvent(event)
+
+      const rows = getTimelineEvents(10)
+      expect(rows).toHaveLength(1)
+      expect(rows[0].message).toBe('duplicate-safe event')
     })
   })
 })

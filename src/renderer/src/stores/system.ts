@@ -21,7 +21,7 @@ interface SystemStore {
   ) => Promise<GroupActionResult>
 }
 
-export const useSystemStore = create<SystemStore>((set, get) => ({
+export const useSystemStore = create<SystemStore>((set) => ({
   state: null,
   isConnected: false,
   frozenPids: new Set<number>(),

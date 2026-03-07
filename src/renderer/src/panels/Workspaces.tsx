@@ -1,6 +1,6 @@
 import { useSystemStore } from '../stores/system'
 import { useUIStore } from '../stores/ui'
-import type { ProcessGroup, ProcessInfo } from '../../../../shared/types'
+import type { ProcessGroup, ProcessInfo } from '../../../shared/types'
 
 const TYPE_LABELS: Record<ProcessGroup['type'], string> = {
   project: 'PRJ',
