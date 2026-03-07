@@ -3,6 +3,7 @@ import {
   parseNettopOutput,
   parseNetstatOutput,
   hasUsableNettopData,
+  selectNetworkSource,
   resetNetworkState,
   _computeNetworkState
 } from './network'
@@ -74,6 +75,37 @@ Chrome.2222,0,0,`
   it('returns true when at least one entry has traffic counters', () => {
     const entries = parseNettopOutput(SAMPLE_NETTOP_OUTPUT)
     expect(hasUsableNettopData(entries)).toBe(true)
+  })
+})
+
+describe('selectNetworkSource', () => {
+  it('falls back to netstat when nettop only reports zero counters', () => {
+    const zeroNettop = parseNettopOutput(`,bytes_in,bytes_out,
+Slack.1111,0,0,
+Chrome.2222,0,0,`)
+    const netstatEntries = [
+      { name: 'en0', pid: -1, bytesIn: 1428632542, bytesOut: 186614454 }
+    ]
+
+    const selected = selectNetworkSource(zeroNettop, netstatEntries)
+
+    expect(selected.mode).toBe('netstat')
+    expect(selected.entries).toEqual(netstatEntries)
+  })
+
+  it('prefers aggregated nettop data when counters are usable', () => {
+    const nettopEntries = parseNettopOutput(SAMPLE_MULTI_INTERFACE)
+    const netstatEntries = [
+      { name: 'en0', pid: -1, bytesIn: 1428632542, bytesOut: 186614454 }
+    ]
+
+    const selected = selectNetworkSource(nettopEntries, netstatEntries)
+
+    expect(selected.mode).toBe('nettop')
+    expect(selected.entries).toEqual([
+      { name: 'Chrome', pid: 1234, bytesIn: 1148576, bytesOut: 574288 },
+      { name: 'Electron Helper', pid: 5678, bytesIn: 262144, bytesOut: 131072 }
+    ])
   })
 })
 

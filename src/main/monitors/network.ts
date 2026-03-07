@@ -17,6 +17,13 @@ interface Snapshot {
   timestamp: number
 }
 
+type NetworkSourceMode = 'nettop' | 'netstat' | 'unavailable'
+
+interface NetworkSourceSelection {
+  mode: NetworkSourceMode
+  entries: RawNetworkEntry[] | null
+}
+
 let previousSnapshot: Snapshot | null = null
 
 // Track which source is working so we don't retry failed ones every poll
@@ -77,6 +84,30 @@ export function parseNettopOutput(
  */
 export function hasUsableNettopData(entries: RawNetworkEntry[]): boolean {
   return entries.some((entry) => entry.bytesIn > 0 || entry.bytesOut > 0)
+}
+
+export function selectNetworkSource(
+  nettopEntries: RawNetworkEntry[] | null,
+  netstatEntries: RawNetworkEntry[] | null
+): NetworkSourceSelection {
+  if (nettopEntries && hasUsableNettopData(nettopEntries)) {
+    return {
+      mode: 'nettop',
+      entries: aggregateByPid(nettopEntries)
+    }
+  }
+
+  if (netstatEntries && netstatEntries.length > 0) {
+    return {
+      mode: 'netstat',
+      entries: netstatEntries
+    }
+  }
+
+  return {
+    mode: 'unavailable',
+    entries: null
+  }
 }
 
 /**
@@ -201,7 +232,7 @@ async function tryNettop(): Promise<RawNetworkEntry[] | null> {
       timeout: 8000
     })
     const entries = parseNettopOutput(stdout)
-    if (entries.length > 0 && hasUsableNettopData(entries)) return entries
+    if (entries.length > 0) return entries
     return null
   } catch {
     return null
@@ -242,20 +273,20 @@ export async function getNetworkActivity(): Promise<NetworkState> {
   }
 
   // Try nettop first (unless it previously failed)
+  let nettopEntries: RawNetworkEntry[] | null = null
   if (!nettopFailed) {
-    const nettopEntries = await tryNettop()
-    if (nettopEntries) {
-      const aggregated = aggregateByPid(nettopEntries)
-      return buildNetworkState(aggregated, now)
-    }
-    // nettop failed — remember so we skip it on future polls
-    nettopFailed = true
+    nettopEntries = await tryNettop()
   }
 
-  // Fallback: netstat for interface-level stats
-  const netstatEntries = await tryNetstat()
-  if (netstatEntries) {
-    return buildNetworkState(netstatEntries, now)
+  let netstatEntries: RawNetworkEntry[] | null = null
+  if (!nettopEntries || !hasUsableNettopData(nettopEntries)) {
+    nettopFailed = true
+    netstatEntries = await tryNetstat()
+  }
+
+  const selected = selectNetworkSource(nettopEntries, netstatEntries)
+  if (selected.entries) {
+    return buildNetworkState(selected.entries, now)
   }
 
   return {
