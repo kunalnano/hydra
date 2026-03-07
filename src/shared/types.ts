@@ -355,5 +355,6 @@ export interface HydraConfig {
   networkTarget?: string
   agentPatterns?: { type: string; displayName: string; patterns: string[] }[]
   agentFeedPaths?: string[]
+  logFilePaths?: string[]
   yenneferEnabled?: boolean
 }

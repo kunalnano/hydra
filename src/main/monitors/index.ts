@@ -408,7 +408,7 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
     if (!mainWindow.isDestroyed()) {
       mainWindow.webContents.send(IPC_CHANNELS.LOG_LINES, lines)
     }
-  })
+  }, monitorConfig)
 
   ipcMain.handle(IPC_CHANNELS.LOG_SOURCES, () => getLogSources())
 

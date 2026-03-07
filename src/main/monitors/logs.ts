@@ -3,7 +3,7 @@ import { readFile, stat } from 'fs/promises'
 import { basename, join } from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import type { LogLine } from '../../shared/types'
+import type { HydraConfig, LogLine } from '../../shared/types'
 
 const execAsync = promisify(exec)
 
@@ -108,13 +108,23 @@ async function watchLogFile(filePath: string): Promise<void> {
   watchedFiles.set(filePath, watched)
 }
 
-async function discoverLogFiles(): Promise<string[]> {
+async function discoverLogFiles(config?: HydraConfig): Promise<string[]> {
   const home = process.env.HOME || ''
-  const patterns = [join(home, '.claude', 'projects', '*', 'logs', '*.log'), '/tmp/hydra-*.log']
+  const defaultPatterns = [
+    join(home, '.claude', 'projects', '*', 'logs', '*.log'),
+    '/tmp/hydra-*.log'
+  ]
 
   const files: string[] = []
 
-  for (const pattern of patterns) {
+  // Add explicitly configured log file paths (literal paths, not globs)
+  if (config?.logFilePaths) {
+    for (const filePath of config.logFilePaths) {
+      if (filePath) files.push(filePath)
+    }
+  }
+
+  for (const pattern of defaultPatterns) {
     try {
       const { stdout } = await execAsync(`ls ${pattern} 2>/dev/null || true`)
       const found = stdout
@@ -127,13 +137,16 @@ async function discoverLogFiles(): Promise<string[]> {
     }
   }
 
-  return files
+  return [...new Set(files)]
 }
 
-export async function startLogMonitoring(callback: LogCallback): Promise<string[]> {
+export async function startLogMonitoring(
+  callback: LogCallback,
+  config?: HydraConfig
+): Promise<string[]> {
   logCallback = callback
 
-  const files = await discoverLogFiles()
+  const files = await discoverLogFiles(config)
   for (const file of files) {
     await watchLogFile(file)
   }

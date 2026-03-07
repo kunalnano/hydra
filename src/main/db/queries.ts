@@ -217,3 +217,10 @@ export function pruneOldTimelineEvents(maxAgeDays = 7): void {
   const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000
   db.prepare('DELETE FROM timeline_events WHERE timestamp < ?').run(cutoff)
 }
+
+export function pruneOldSnapshots(maxRows = 1000): void {
+  const db = getDb()
+  db.prepare(
+    'DELETE FROM snapshots WHERE id NOT IN (SELECT id FROM snapshots ORDER BY timestamp DESC LIMIT ?)'
+  ).run(maxRows)
+}

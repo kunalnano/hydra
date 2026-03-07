@@ -3,6 +3,7 @@ import { mkdirSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 import { initializeSchema } from './schema'
+import { pruneOldSnapshots } from './queries'
 
 let db: Database.Database | null = null
 
@@ -14,6 +15,11 @@ export function getDb(): Database.Database {
     db = new Database(dbPath)
     db.pragma('journal_mode = WAL')
     initializeSchema(db)
+    try {
+      pruneOldSnapshots(1000)
+    } catch {
+      /* first-run: table may be empty */
+    }
   }
   return db
 }
