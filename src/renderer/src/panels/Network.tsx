@@ -105,7 +105,7 @@ export function NetworkPanel(): JSX.Element {
 
       {isInterfaceMode && (
         <div className="text-[10px] text-gray-600 px-1">
-          Interface mode (netstat) — nettop unavailable
+          Interface mode (netstat) — nettop unavailable or permission-restricted
         </div>
       )}
 

@@ -16,6 +16,7 @@ const execAsync = promisify(exec)
 import { evaluateRules } from '../intelligence/auto-heal'
 import type { PreviousState } from '../intelligence/auto-heal'
 import { generateBriefing } from '../intelligence/briefing'
+import { invokeYennefer } from '../intelligence/yennefer'
 import { DEFAULT_RULES } from '../intelligence/rules'
 import { getNetworkActivity } from './network'
 import { getFirewallRules } from './firewall'
@@ -422,6 +423,11 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
     return result
   })
 
+  ipcMain.handle(IPC_CHANNELS.YENNEFER_REQUEST, async () => {
+    if (!latestState) return null
+    return invokeYennefer(latestState)
+  })
+
   ipcMain.handle(IPC_CHANNELS.GET_HEAL_HISTORY, () => healHistory)
 
   ipcMain.on(IPC_CHANNELS.DISMISS_NOTIFICATION, (_event, id: string) => {
@@ -520,6 +526,7 @@ export function stopMonitoring(): void {
   ipcMain.removeHandler(IPC_CHANNELS.LOG_SOURCES)
   ipcMain.removeAllListeners(IPC_CHANNELS.REQUEST_REFRESH)
   ipcMain.removeHandler(IPC_CHANNELS.BRIEFING_REQUEST)
+  ipcMain.removeHandler(IPC_CHANNELS.YENNEFER_REQUEST)
   ipcMain.removeHandler(IPC_CHANNELS.GET_HEAL_HISTORY)
   ipcMain.removeAllListeners(IPC_CHANNELS.DISMISS_NOTIFICATION)
   ipcMain.removeHandler(IPC_CHANNELS.GET_FIREWALL_RULES)

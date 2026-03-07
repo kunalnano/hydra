@@ -218,6 +218,14 @@ app.whenReady().then(() => {
     }
   })
 
+  globalShortcut.register('CommandOrControl+Y', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show()
+      mainWindow.focus()
+      mainWindow.webContents.send('shortcut:invoke-yennefer')
+    }
+  })
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

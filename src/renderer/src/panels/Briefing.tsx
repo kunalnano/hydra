@@ -20,12 +20,15 @@ const SOURCE_TAG_STYLES: Record<string, string> = {
 export function BriefingPanel(): JSX.Element {
   const [briefing, setBriefing] = useState<BriefingResult | null>(null)
   const [loading, setLoading] = useState(false)
+  const [yenneferLoading, setYenneferLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lmStudioUrl, setLmStudioUrl] = useState<string>('http://localhost:1234')
+  const [yenneferEnabled, setYenneferEnabled] = useState(true)
 
   useEffect(() => {
     window.hydra.getConfig().then((cfg) => {
       if (cfg.lmStudioUrl) setLmStudioUrl(cfg.lmStudioUrl)
+      if (cfg.yenneferEnabled === false) setYenneferEnabled(false)
     }).catch(() => {})
   }, [])
 
@@ -46,6 +49,23 @@ export function BriefingPanel(): JSX.Element {
     }
   }, [])
 
+  const invokeYennefer = useCallback(async (): Promise<void> => {
+    setYenneferLoading(true)
+    setError(null)
+    try {
+      const result = await window.hydra.requestYennefer()
+      if (result) {
+        setBriefing(result)
+      } else {
+        setError('No system state available yet')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Yennefer invocation failed')
+    } finally {
+      setYenneferLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     const unsub = window.hydra.onBriefingShortcut(() => {
       requestBriefing()
@@ -53,16 +73,34 @@ export function BriefingPanel(): JSX.Element {
     return unsub
   }, [requestBriefing])
 
+  useEffect(() => {
+    const unsub = window.hydra.onYenneferShortcut(() => {
+      invokeYennefer()
+    })
+    return unsub
+  }, [invokeYennefer])
+
   return (
     <div className="h-full flex flex-col text-sm">
       <div className="flex items-center justify-between pb-3">
-        <button
-          onClick={requestBriefing}
-          disabled={loading}
-          className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors font-medium"
-        >
-          {loading ? 'Generating...' : 'Request Briefing'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={requestBriefing}
+            disabled={loading || yenneferLoading}
+            className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors font-medium"
+          >
+            {loading ? 'Generating...' : 'Request Briefing'}
+          </button>
+          {yenneferEnabled && (
+            <button
+              onClick={invokeYennefer}
+              disabled={loading || yenneferLoading}
+              className="px-3 py-1.5 text-xs bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors font-medium"
+            >
+              {yenneferLoading ? 'Channeling...' : '\u2694\uFE0F Invoke Yennefer'}
+            </button>
+          )}
+        </div>
         {briefing && (
           <span className="text-xs text-gray-600 font-mono">
             {new Date(briefing.timestamp).toLocaleTimeString()}

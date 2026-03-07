@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   parseNettopOutput,
   parseNetstatOutput,
+  hasUsableNettopData,
   resetNetworkState,
   _computeNetworkState
 } from './network'
@@ -58,6 +59,21 @@ Chrome.1234,1048576,524288,`
     const result = parseNettopOutput(output)
     expect(result).toHaveLength(1)
     expect(result[0].name).toBe('Chrome')
+  })
+})
+
+describe('hasUsableNettopData', () => {
+  it('returns false when nettop only reports zero counters', () => {
+    const output = `,bytes_in,bytes_out,
+Slack.1111,0,0,
+Chrome.2222,0,0,`
+    const entries = parseNettopOutput(output)
+    expect(hasUsableNettopData(entries)).toBe(false)
+  })
+
+  it('returns true when at least one entry has traffic counters', () => {
+    const entries = parseNettopOutput(SAMPLE_NETTOP_OUTPUT)
+    expect(hasUsableNettopData(entries)).toBe(true)
   })
 })
 

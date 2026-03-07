@@ -48,6 +48,17 @@ const api = {
   requestBriefing: (): Promise<BriefingResult | null> =>
     ipcRenderer.invoke(IPC_CHANNELS.BRIEFING_REQUEST),
 
+  requestYennefer: (): Promise<BriefingResult | null> =>
+    ipcRenderer.invoke(IPC_CHANNELS.YENNEFER_REQUEST),
+
+  onYenneferShortcut: (callback: () => void): (() => void) => {
+    const handler = (): void => callback()
+    ipcRenderer.on('shortcut:invoke-yennefer', handler)
+    return (): void => {
+      ipcRenderer.removeListener('shortcut:invoke-yennefer', handler)
+    }
+  },
+
   onAutoHealEvent: (callback: (event: AutoHealEvent) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, healEvent: AutoHealEvent): void =>
       callback(healEvent)

@@ -72,6 +72,14 @@ export function parseNettopOutput(
 }
 
 /**
+ * Non-privileged nettop can emit process rows with every counter stuck at zero.
+ * Treat that as unusable so we fall back to interface-level netstat data.
+ */
+export function hasUsableNettopData(entries: RawNetworkEntry[]): boolean {
+  return entries.some((entry) => entry.bytesIn > 0 || entry.bytesOut > 0)
+}
+
+/**
  * Parse netstat -ibn output into interface-level byte counts.
  * Returns one entry per active interface (en0, en1, etc.) with cumulative bytes.
  *
@@ -193,7 +201,7 @@ async function tryNettop(): Promise<RawNetworkEntry[] | null> {
       timeout: 8000
     })
     const entries = parseNettopOutput(stdout)
-    if (entries.length > 0) return entries
+    if (entries.length > 0 && hasUsableNettopData(entries)) return entries
     return null
   } catch {
     return null

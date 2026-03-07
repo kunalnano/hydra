@@ -317,7 +317,8 @@ export const IPC_CHANNELS = {
   PROCESS_KILL_GROUP: 'process:kill-group',
   TIMELINE_EVENTS: 'timeline:events',
   SESSION_DELTA: 'session:delta',
-  CCUSAGE_STATE: 'ccusage:state'
+  CCUSAGE_STATE: 'ccusage:state',
+  YENNEFER_REQUEST: 'intelligence:yennefer-request'
 } as const
 
 export interface GitActionResult {
@@ -354,4 +355,5 @@ export interface HydraConfig {
   networkTarget?: string
   agentPatterns?: { type: string; displayName: string; patterns: string[] }[]
   agentFeedPaths?: string[]
+  yenneferEnabled?: boolean
 }
