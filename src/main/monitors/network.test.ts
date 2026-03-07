@@ -5,7 +5,8 @@ import {
   hasUsableNettopData,
   selectNetworkSource,
   resetNetworkState,
-  _computeNetworkState
+  _computeNetworkState,
+  _computeNetworkStateFromEntries
 } from './network'
 
 const SAMPLE_NETTOP_OUTPUT = `,bytes_in,bytes_out,
@@ -178,15 +179,15 @@ Firefox.9999,500000,250000,`
 describe('parseNetstatOutput', () => {
   const SAMPLE_NETSTAT = `Name       Mtu   Network       Address            Ipkts Ierrs     Ibytes    Opkts Oerrs     Obytes  Coll
 lo0        16384 <Link#1>                       1281901     0  349772063  1281901     0  349772063     0
-en0        1500  <Link#14>   0a:cd:f8:ab:e7:42  1377177     0 1428632542   497465     0  186614454     0
-en0        1500  10.0.0/24  10.0.0.1    1377177     - 1428632542   497465     -  186614454     -
+en0        1500  <Link#14>   0a:cd:f8:ab:e7:42  1429100     0 1446262099   511318     0  191414496     0
+en0        1500  10.0.0/24  10.0.0.1    1429100     - 1446262099   511318     -  191414496     -
 awdl0      1500  <Link#16>   ea:3e:5f:ef:c9:a9     6989     0    6467975     4276     0    1252756     0
 gif0*      1280  <Link#2>                             0     0          0        0     0          0     0`
 
-  it('parses active interfaces from netstat -ibn', () => {
+  it('parses active interfaces from netstat -ib', () => {
     const result = parseNetstatOutput(SAMPLE_NETSTAT)
     expect(result.length).toBe(2) // en0 and awdl0 (lo0 skipped, gif0* skipped, duplicate en0 skipped)
-    expect(result[0]).toEqual({ name: 'en0', bytesIn: 1428632542, bytesOut: 186614454 })
+    expect(result[0]).toEqual({ name: 'en0', bytesIn: 1446262099, bytesOut: 191414496 })
     expect(result[1]).toEqual({ name: 'awdl0', bytesIn: 6467975, bytesOut: 1252756 })
   })
 
@@ -203,6 +204,21 @@ gif0*      1280  <Link#2>                             0     0          0        
   it('returns empty for header-only', () => {
     const header = 'Name       Mtu   Network       Address            Ipkts Ierrs     Ibytes    Opkts Oerrs     Obytes  Coll'
     expect(parseNetstatOutput(header)).toEqual([])
+  })
+})
+
+describe('netstat fallback rate computation', () => {
+  it('computes rates from two interface snapshots 2 seconds apart', () => {
+    const previousEntries = [{ name: 'en0', pid: -1, bytesIn: 1446262099, bytesOut: 191414496 }]
+    const currentEntries = [{ name: 'en0', pid: -1, bytesIn: 1446266099, bytesOut: 191416496 }]
+
+    const state = _computeNetworkStateFromEntries(previousEntries, currentEntries, 2000, 1002000)
+
+    expect(state.processes).toHaveLength(1)
+    expect(state.processes[0].bytesInPerSec).toBe(2000)
+    expect(state.processes[0].bytesOutPerSec).toBe(1000)
+    expect(state.totalBytesInPerSec).toBe(2000)
+    expect(state.totalBytesOutPerSec).toBe(1000)
   })
 })
 

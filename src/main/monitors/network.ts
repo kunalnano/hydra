@@ -1,4 +1,5 @@
 import { exec } from 'child_process'
+import { setTimeout as delay } from 'timers/promises'
 import { promisify } from 'util'
 import type { NetworkProcess, NetworkState } from '../../shared/types'
 import { isMacOS } from '../platform'
@@ -111,7 +112,7 @@ export function selectNetworkSource(
 }
 
 /**
- * Parse netstat -ibn output into interface-level byte counts.
+ * Parse netstat -ib output into interface-level byte counts.
  * Returns one entry per active interface (en0, en1, etc.) with cumulative bytes.
  *
  * Format:
@@ -151,6 +152,25 @@ export function parseNetstatOutput(
   return results
 }
 
+function interfacePid(name: string): number {
+  let hash = 0
+  for (const char of name) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 1000000
+  }
+  return -(hash + 1)
+}
+
+function mapNetstatEntries(
+  interfaces: { name: string; bytesIn: number; bytesOut: number }[]
+): RawNetworkEntry[] {
+  return interfaces.map((iface) => ({
+    name: iface.name,
+    pid: interfacePid(iface.name),
+    bytesIn: iface.bytesIn,
+    bytesOut: iface.bytesOut
+  }))
+}
+
 /**
  * Aggregate multiple entries for the same PID (e.g. multiple interfaces)
  * by summing their bytesIn and bytesOut.
@@ -178,6 +198,16 @@ function buildNetworkState(
   aggregated: { name: string; pid: number; bytesIn: number; bytesOut: number }[],
   now: number
 ): NetworkState {
+  const { state, snapshot } = buildNetworkStateFromSnapshot(previousSnapshot, aggregated, now)
+  previousSnapshot = snapshot
+  return state
+}
+
+function buildNetworkStateFromSnapshot(
+  baseline: Snapshot | null,
+  aggregated: { name: string; pid: number; bytesIn: number; bytesOut: number }[],
+  now: number
+): { state: NetworkState; snapshot: Snapshot } {
   const currentSnapshot: Snapshot = {
     entries: new Map(),
     timestamp: now
@@ -189,14 +219,14 @@ function buildNetworkState(
     })
   }
 
-  const elapsedSec = previousSnapshot !== null ? (now - previousSnapshot.timestamp) / 1000 : 0
+  const elapsedSec = baseline !== null ? (now - baseline.timestamp) / 1000 : 0
 
   const processes: NetworkProcess[] = aggregated.map((entry) => {
     let bytesInPerSec = 0
     let bytesOutPerSec = 0
 
-    if (previousSnapshot && elapsedSec > 0) {
-      const prev = previousSnapshot.entries.get(entry.pid)
+    if (baseline && elapsedSec > 0) {
+      const prev = baseline.entries.get(entry.pid)
       if (prev) {
         const deltaIn = Math.max(0, entry.bytesIn - prev.bytesIn)
         const deltaOut = Math.max(0, entry.bytesOut - prev.bytesOut)
@@ -220,7 +250,10 @@ function buildNetworkState(
   const totalBytesInPerSec = processes.reduce((sum, p) => sum + p.bytesInPerSec, 0)
   const totalBytesOutPerSec = processes.reduce((sum, p) => sum + p.bytesOutPerSec, 0)
 
-  return { processes, totalBytesInPerSec, totalBytesOutPerSec, timestamp: now }
+  return {
+    state: { processes, totalBytesInPerSec, totalBytesOutPerSec, timestamp: now },
+    snapshot: currentSnapshot
+  }
 }
 
 /**
@@ -240,25 +273,48 @@ async function tryNettop(): Promise<RawNetworkEntry[] | null> {
 }
 
 /**
- * Fallback: netstat -ibn gives interface-level cumulative byte counts.
+ * Fallback: netstat -ib gives interface-level cumulative byte counts.
  * No per-process granularity, but shows real network throughput.
  * Uses negative PIDs as synthetic identifiers for interfaces.
  */
 async function tryNetstat(): Promise<RawNetworkEntry[] | null> {
   try {
-    const { stdout } = await execAsync('netstat -ibn', { timeout: 3000 })
+    const { stdout } = await execAsync('netstat -ib', { timeout: 3000 })
     const ifaces = parseNetstatOutput(stdout)
     if (ifaces.length === 0) return null
-    // Use negative PIDs as synthetic identifiers for interfaces
-    return ifaces.map((iface, i) => ({
-      name: iface.name,
-      pid: -(i + 1),
-      bytesIn: iface.bytesIn,
-      bytesOut: iface.bytesOut
-    }))
+    return mapNetstatEntries(ifaces)
   } catch {
     return null
   }
+}
+
+async function buildNetstatFallbackState(initialEntries: RawNetworkEntry[]): Promise<NetworkState> {
+  const firstTimestamp = Date.now()
+  const firstSnapshot: Snapshot = {
+    entries: new Map(
+      initialEntries.map((entry) => [
+        entry.pid,
+        {
+          bytesIn: entry.bytesIn,
+          bytesOut: entry.bytesOut
+        }
+      ])
+    ),
+    timestamp: firstTimestamp
+  }
+
+  await delay(2000)
+
+  const secondEntries = await tryNetstat()
+  if (!secondEntries) {
+    previousSnapshot = firstSnapshot
+    return buildNetworkState(initialEntries, firstTimestamp)
+  }
+
+  const secondTimestamp = Date.now()
+  const { state, snapshot } = buildNetworkStateFromSnapshot(firstSnapshot, secondEntries, secondTimestamp)
+  previousSnapshot = snapshot
+  return state
 }
 
 /**
@@ -286,6 +342,9 @@ export async function getNetworkActivity(): Promise<NetworkState> {
 
   const selected = selectNetworkSource(nettopEntries, netstatEntries)
   if (selected.entries) {
+    if (selected.mode === 'netstat') {
+      return buildNetstatFallbackState(selected.entries)
+    }
     return buildNetworkState(selected.entries, now)
   }
 
@@ -314,4 +373,26 @@ export function _computeNetworkState(rawOutput: string, timestamp: number): Netw
   const rawEntries = parseNettopOutput(rawOutput)
   const aggregated = aggregateByPid(rawEntries)
   return buildNetworkState(aggregated, timestamp)
+}
+
+export function _computeNetworkStateFromEntries(
+  previousEntries: RawNetworkEntry[],
+  currentEntries: RawNetworkEntry[],
+  elapsedMs: number,
+  now: number
+): NetworkState {
+  const baseline: Snapshot = {
+    entries: new Map(
+      previousEntries.map((entry) => [
+        entry.pid,
+        {
+          bytesIn: entry.bytesIn,
+          bytesOut: entry.bytesOut
+        }
+      ])
+    ),
+    timestamp: now - elapsedMs
+  }
+
+  return buildNetworkStateFromSnapshot(baseline, currentEntries, now).state
 }

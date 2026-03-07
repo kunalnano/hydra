@@ -1,6 +1,6 @@
 {
   "name": "hydra",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "HYDRA — Mission control dashboard for system processes, ports, AI agents, and git repos",
   "main": "./out/main/index.js",
   "author": "kunalnano",
