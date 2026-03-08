@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SystemState } from '../../shared/types'
 import { IPC_CHANNELS } from '../../shared/types'
 
@@ -70,9 +70,19 @@ describe('loadElevenLabsConfig', () => {
 })
 
 describe('invokeYennefer', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('returns a BriefingResult with summary when LM Studio is offline', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('connect ECONNREFUSED 127.0.0.1:1234')
+      })
+    )
+
     const { invokeYennefer } = await import('./yennefer')
-    // This will fail to connect to LM Studio in test environment
     const result = await invokeYennefer(mockState)
     expect(result).toHaveProperty('summary')
     expect(result).toHaveProperty('timestamp')
