@@ -1,13 +1,6 @@
 import type { SystemState, BriefingResult } from '../../shared/types'
 import { scoreSystem } from '../health'
-import { loadConfig } from '../config'
-
-const LM_STUDIO_DEFAULT_URL = process.env.LM_STUDIO_URL || 'http://localhost:1234'
-
-function getLmStudioUrl(): string {
-  const config = loadConfig()
-  return config.lmStudioUrl || LM_STUDIO_DEFAULT_URL
-}
+import { healLmStudioConnection, isLmStudioConnectivityError } from './lmstudio'
 
 export function buildBriefingPrompt(state: SystemState): string {
   const sections: string[] = []
@@ -115,17 +108,32 @@ Rules:
 
 export async function generateBriefing(state: SystemState): Promise<BriefingResult> {
   const prompt = buildBriefingPrompt(state)
-  const baseUrl = getLmStudioUrl()
+  const connection = await healLmStudioConnection({ persist: true })
+
+  if (!connection.success || !connection.url) {
+    return {
+      summary: connection.message,
+      alerts: [
+        {
+          severity: 'warning',
+          message: connection.message,
+          source: 'briefing'
+        }
+      ],
+      suggestions: ['Start LM Studio local server or repair the configured endpoint'],
+      timestamp: Date.now()
+    }
+  }
 
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 120000)
 
-    const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+    const response = await fetch(`${connection.url}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer lm-studio' },
       body: JSON.stringify({
-        model: 'local-model',
+        model: connection.model || 'local-model',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: prompt }
@@ -145,26 +153,43 @@ export async function generateBriefing(state: SystemState): Promise<BriefingResu
 
     const data = await response.json()
     const text = data.choices?.[0]?.message?.content || 'No response generated.'
-    return parseBriefingResponse(text)
+    const result = parseBriefingResponse(text)
+
+    if (connection.repaired && connection.previousUrl) {
+      result.alerts = [
+        {
+          severity: 'info',
+          message: `LM Studio endpoint auto-repaired to ${connection.url}`,
+          source: 'briefing'
+        },
+        ...result.alerts
+      ]
+      result.suggestions = [
+        `Hydra switched from ${connection.previousUrl} to ${connection.url}.`,
+        ...result.suggestions
+      ]
+    }
+
+    return result
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
-    const isOffline = message.includes('ECONNREFUSED') || message.includes('abort')
+    const isOffline = isLmStudioConnectivityError(message)
 
     return {
       summary: isOffline
-        ? 'LM Studio offline \u2014 start server at port 1234'
+        ? `LM Studio offline \u2014 unable to reach ${connection.url}`
         : `Briefing failed: ${message}`,
       alerts: [
         {
           severity: 'warning',
           message: isOffline
-            ? 'LM Studio is not running. Start it and load a model.'
+            ? 'LM Studio is not reachable. Start the local server or repair the endpoint.'
             : `LM Studio error: ${message}`,
           source: 'briefing'
         }
       ],
       suggestions: isOffline
-        ? ['Start LM Studio and load a model, then retry']
+        ? ['Retry after LM Studio is serving the OpenAI-compatible API']
         : ['Check LM Studio server logs'],
       timestamp: Date.now()
     }

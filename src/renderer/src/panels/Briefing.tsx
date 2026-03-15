@@ -21,20 +21,26 @@ export function BriefingPanel(): JSX.Element {
   const [briefing, setBriefing] = useState<BriefingResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [yenneferLoading, setYenneferLoading] = useState(false)
+  const [healing, setHealing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [lmStudioUrl, setLmStudioUrl] = useState<string>('http://localhost:1234')
   const [yenneferEnabled, setYenneferEnabled] = useState(true)
 
-  useEffect(() => {
-    window.hydra.getConfig().then((cfg) => {
-      if (cfg.lmStudioUrl) setLmStudioUrl(cfg.lmStudioUrl)
-      if (cfg.yenneferEnabled === false) setYenneferEnabled(false)
-    }).catch(() => {})
+  const refreshConfig = useCallback(async (): Promise<void> => {
+    const cfg = await window.hydra.getConfig()
+    if (cfg.lmStudioUrl) setLmStudioUrl(cfg.lmStudioUrl)
+    if (cfg.yenneferEnabled === false) setYenneferEnabled(false)
   }, [])
+
+  useEffect(() => {
+    refreshConfig().catch(() => {})
+  }, [refreshConfig])
 
   const requestBriefing = useCallback(async (): Promise<void> => {
     setLoading(true)
     setError(null)
+    setNotice(null)
     try {
       const result = await window.hydra.requestBriefing()
       if (result) {
@@ -46,12 +52,34 @@ export function BriefingPanel(): JSX.Element {
       setError(err instanceof Error ? err.message : 'Briefing failed')
     } finally {
       setLoading(false)
+      refreshConfig().catch(() => {})
     }
-  }, [])
+  }, [refreshConfig])
+
+  const healLmStudio = useCallback(async (): Promise<void> => {
+    setHealing(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const result = await window.hydra.healLmStudio()
+      if (result.url) setLmStudioUrl(result.url)
+      if (result.success) {
+        setNotice(result.message)
+      } else {
+        setError(result.message)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'LM Studio repair failed')
+    } finally {
+      setHealing(false)
+      refreshConfig().catch(() => {})
+    }
+  }, [refreshConfig])
 
   const invokeYennefer = useCallback(async (): Promise<void> => {
     setYenneferLoading(true)
     setError(null)
+    setNotice(null)
     try {
       const result = await window.hydra.requestYennefer()
       if (result) {
@@ -63,8 +91,9 @@ export function BriefingPanel(): JSX.Element {
       setError(err instanceof Error ? err.message : 'Yennefer invocation failed')
     } finally {
       setYenneferLoading(false)
+      refreshConfig().catch(() => {})
     }
-  }, [])
+  }, [refreshConfig])
 
   useEffect(() => {
     const unsub = window.hydra.onBriefingShortcut(() => {
@@ -86,15 +115,22 @@ export function BriefingPanel(): JSX.Element {
         <div className="flex items-center gap-2">
           <button
             onClick={requestBriefing}
-            disabled={loading || yenneferLoading}
+            disabled={loading || yenneferLoading || healing}
             className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors font-medium"
           >
             {loading ? 'Generating...' : 'Request Briefing'}
           </button>
+          <button
+            onClick={healLmStudio}
+            disabled={loading || yenneferLoading || healing}
+            className="px-3 py-1.5 text-xs bg-emerald-700 hover:bg-emerald-600 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors font-medium"
+          >
+            {healing ? 'Repairing...' : 'Invoke Repair'}
+          </button>
           {yenneferEnabled && (
             <button
               onClick={invokeYennefer}
-              disabled={loading || yenneferLoading}
+              disabled={loading || yenneferLoading || healing}
               className="px-3 py-1.5 text-xs bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors font-medium"
             >
               {yenneferLoading ? 'Channeling...' : '\u2694\uFE0F Invoke Yennefer'}
@@ -112,6 +148,7 @@ export function BriefingPanel(): JSX.Element {
       </div>
 
       {error && <div className="text-red-400 text-xs mb-2">{error}</div>}
+      {notice && <div className="text-emerald-400 text-xs mb-2">{notice}</div>}
 
       {!briefing && !loading && !error && (
         <div className="text-gray-600 text-xs flex-1 flex items-center justify-center">

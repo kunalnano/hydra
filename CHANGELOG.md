@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.1.0 — 2026-03-15
+
+### Features
+- LM Studio endpoint discovery and automatic failover across configured, localhost, and local network addresses
+- Manual `Invoke Repair` action in the Local AI panel for one-click LM Studio recovery
+- Briefing and Yennefer flows now persist repaired LM Studio endpoints back into Hydra config
+
+### Reliability
+- Added the missing `CONFIG_SAVE` IPC handler so renderer-side config writes can actually be persisted
+- Improved LM Studio failure messaging to report the checked endpoints instead of a generic fetch failure
+
+### Tests
+- Added LM Studio repair-path coverage for stale endpoint recovery, healthy endpoint passthrough, and unreachable endpoint reporting
+
 ## v1.0.0 — 2026-03-07
 
 ### Features

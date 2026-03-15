@@ -16,6 +16,7 @@ const execAsync = promisify(exec)
 import { evaluateRules } from '../intelligence/auto-heal'
 import type { PreviousState } from '../intelligence/auto-heal'
 import { generateBriefing } from '../intelligence/briefing'
+import { healLmStudioConnection } from '../intelligence/lmstudio'
 import { invokeYennefer } from '../intelligence/yennefer'
 import { DEFAULT_RULES } from '../intelligence/rules'
 import { getNetworkActivity } from './network'
@@ -423,6 +424,10 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
     return result
   })
 
+  ipcMain.handle(IPC_CHANNELS.LM_STUDIO_HEAL, async () => {
+    return healLmStudioConnection({ persist: true })
+  })
+
   ipcMain.handle(IPC_CHANNELS.YENNEFER_REQUEST, async () => {
     if (!latestState) return null
     return invokeYennefer(latestState)
@@ -526,6 +531,7 @@ export function stopMonitoring(): void {
   ipcMain.removeHandler(IPC_CHANNELS.LOG_SOURCES)
   ipcMain.removeAllListeners(IPC_CHANNELS.REQUEST_REFRESH)
   ipcMain.removeHandler(IPC_CHANNELS.BRIEFING_REQUEST)
+  ipcMain.removeHandler(IPC_CHANNELS.LM_STUDIO_HEAL)
   ipcMain.removeHandler(IPC_CHANNELS.YENNEFER_REQUEST)
   ipcMain.removeHandler(IPC_CHANNELS.GET_HEAL_HISTORY)
   ipcMain.removeAllListeners(IPC_CHANNELS.DISMISS_NOTIFICATION)

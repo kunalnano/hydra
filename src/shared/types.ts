@@ -232,6 +232,23 @@ export interface CCUsageState {
 
 export type AutoHealAction = 'restart_process' | 'notify_only'
 
+export interface LmStudioProbeAttempt {
+  url: string
+  ok: boolean
+  model?: string
+  error?: string
+}
+
+export interface LmStudioHealResult {
+  success: boolean
+  repaired: boolean
+  message: string
+  url?: string
+  model?: string
+  previousUrl?: string
+  attempts: LmStudioProbeAttempt[]
+}
+
 export interface AutoHealEvent {
   timestamp: number
   rule: string
@@ -293,6 +310,7 @@ export const IPC_CHANNELS = {
   LOG_SOURCES: 'logs:sources',
   BRIEFING_REQUEST: 'intelligence:briefing-request',
   BRIEFING_RESULT: 'intelligence:briefing-result',
+  LM_STUDIO_HEAL: 'intelligence:lm-studio-heal',
   AUTO_HEAL_EVENT: 'intelligence:auto-heal-event',
   NOTIFICATION: 'intelligence:notification',
   DISMISS_NOTIFICATION: 'intelligence:dismiss-notification',

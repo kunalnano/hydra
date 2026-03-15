@@ -6,6 +6,7 @@ import type {
   BriefingResult,
   AutoHealEvent,
   HydraNotification,
+  LmStudioHealResult,
   NetworkState,
   FirewallState,
   SecurityScanResult,
@@ -47,6 +48,9 @@ const api = {
 
   requestBriefing: (): Promise<BriefingResult | null> =>
     ipcRenderer.invoke(IPC_CHANNELS.BRIEFING_REQUEST),
+
+  healLmStudio: (): Promise<LmStudioHealResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.LM_STUDIO_HEAL),
 
   requestYennefer: (): Promise<BriefingResult | null> =>
     ipcRenderer.invoke(IPC_CHANNELS.YENNEFER_REQUEST),

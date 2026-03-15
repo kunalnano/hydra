@@ -26,8 +26,8 @@ import {
   getPostureHistory
 } from './db/queries'
 import { IPC_CHANNELS } from '../shared/types'
-import { loadConfig } from './config'
-import type { SystemState } from '../shared/types'
+import { loadConfig, saveConfig } from './config'
+import type { HydraConfig, SystemState } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -201,6 +201,7 @@ app.whenReady().then(() => {
 
   // Config IPC handler
   ipcMain.handle(IPC_CHANNELS.CONFIG_GET, () => loadConfig())
+  ipcMain.handle(IPC_CHANNELS.CONFIG_SAVE, (_event, config: HydraConfig) => saveConfig(config))
 
   // Git commit history IPC handler
   ipcMain.handle(IPC_CHANNELS.GIT_COMMIT_HISTORY, (_event, repoPath: string, limit: number) =>

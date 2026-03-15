@@ -5,9 +5,7 @@ import { writeFileSync, unlinkSync } from 'fs'
 import { spawn } from 'child_process'
 import type { SystemState, BriefingResult } from '../../shared/types'
 import { buildBriefingPrompt } from './briefing'
-import { loadConfig } from '../config'
-
-const LM_STUDIO_DEFAULT_URL = process.env.LM_STUDIO_URL || 'http://localhost:1234'
+import { healLmStudioConnection, isLmStudioConnectivityError } from './lmstudio'
 
 const YENNEFER_SYSTEM_PROMPT =
   'You are Yennefer of Vengerberg. Brilliant, sardonic, and intolerant of ' +
@@ -15,11 +13,6 @@ const YENNEFER_SYSTEM_PROMPT =
   'withering when warranted, and deliver your assessment like you\'re doing ' +
   'them a favor by bothering at all. Two to three sentences maximum. No ' +
   'markdown. No bullet points. Speak in plain sentences.'
-
-function getLmStudioUrl(): string {
-  const config = loadConfig()
-  return config.lmStudioUrl || LM_STUDIO_DEFAULT_URL
-}
 
 interface ElevenLabsConfig {
   apiKey: string
@@ -99,18 +92,33 @@ async function speakWithElevenLabs(text: string, config: ElevenLabsConfig): Prom
 
 export async function invokeYennefer(state: SystemState): Promise<BriefingResult> {
   const prompt = buildBriefingPrompt(state)
-  const baseUrl = getLmStudioUrl()
+  const connection = await healLmStudioConnection({ persist: true })
+
+  if (!connection.success || !connection.url) {
+    return {
+      summary: connection.message,
+      alerts: [
+        {
+          severity: 'warning',
+          message: connection.message,
+          source: 'briefing'
+        }
+      ],
+      suggestions: ['Start LM Studio local server or repair the configured endpoint'],
+      timestamp: Date.now()
+    }
+  }
 
   let text: string
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 120000)
 
-    const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+    const response = await fetch(`${connection.url}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer lm-studio' },
       body: JSON.stringify({
-        model: 'local-model',
+        model: connection.model || 'local-model',
         messages: [
           { role: 'system', content: YENNEFER_SYSTEM_PROMPT },
           { role: 'user', content: prompt }
@@ -132,22 +140,22 @@ export async function invokeYennefer(state: SystemState): Promise<BriefingResult
     text = data.choices?.[0]?.message?.content || 'Yennefer has nothing to say to you.'
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
-    const isOffline = message.includes('ECONNREFUSED') || message.includes('abort')
+    const isOffline = isLmStudioConnectivityError(message)
     return {
       summary: isOffline
-        ? 'LM Studio offline — Yennefer cannot be reached.'
+        ? `LM Studio offline — Yennefer cannot reach ${connection.url}.`
         : `Yennefer invocation failed: ${message}`,
       alerts: [
         {
           severity: 'warning',
           message: isOffline
-            ? 'LM Studio is not running.'
+            ? 'LM Studio is not reachable.'
             : `LM Studio error: ${message}`,
           source: 'briefing'
         }
       ],
       suggestions: isOffline
-        ? ['Start LM Studio and load a model, then retry']
+        ? ['Retry after LM Studio is serving the OpenAI-compatible API']
         : ['Check LM Studio server logs'],
       timestamp: Date.now()
     }
@@ -163,8 +171,20 @@ export async function invokeYennefer(state: SystemState): Promise<BriefingResult
 
   return {
     summary: text.trim(),
-    alerts: [],
-    suggestions: [],
+    alerts:
+      connection.repaired && connection.previousUrl
+        ? [
+            {
+              severity: 'info',
+              message: `LM Studio endpoint auto-repaired to ${connection.url}`,
+              source: 'briefing'
+            }
+          ]
+        : [],
+    suggestions:
+      connection.repaired && connection.previousUrl
+        ? [`Hydra switched from ${connection.previousUrl} to ${connection.url}.`]
+        : [],
     raw: text,
     timestamp: Date.now()
   }
