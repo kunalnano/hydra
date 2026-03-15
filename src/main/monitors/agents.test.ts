@@ -48,6 +48,23 @@ describe('detectAgents', () => {
     expect(codex!.pid).toBe(5678)
   })
 
+  it('identifies Codex desktop app-server processes', () => {
+    const procs: ProcessInfo[] = [
+      {
+        pid: 88081,
+        user: 'test',
+        cpu: 12.9,
+        mem: 0.4,
+        command: '/Applications/Codex.app/Contents/Resources/codex app-server --analytics-default-enabled',
+        name: 'codex'
+      }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents).toHaveLength(1)
+    expect(agents[0].type).toBe('codex')
+    expect(agents[0].name).toBe('Codex')
+  })
+
   it('does not flag non-agent processes', () => {
     const agents = detectAgents(mockProcesses)
     expect(agents.length).toBe(2)
@@ -137,6 +154,21 @@ describe('detectAgents', () => {
         mem: 0.6,
         command: '/Applications/Claude.app/Contents/MacOS/Claude',
         name: 'Claude'
+      }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents).toHaveLength(0)
+  })
+
+  it('does not detect codex helper tooling as the main Codex agent', () => {
+    const procs: ProcessInfo[] = [
+      {
+        pid: 68259,
+        user: 'test',
+        cpu: 0,
+        mem: 0,
+        command: 'node /opt/homebrew/bin/codex-cli-mcp-tool',
+        name: 'node'
       }
     ]
     const agents = detectAgents(procs)

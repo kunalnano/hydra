@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSystemStore } from '../stores/system'
 import { useTimeSeriesStore } from '../stores/timeseries'
+import { useNavigationStore } from '../stores/navigation'
 import { Scorecard, type ScorecardProps } from '../components/Scorecard'
 import type { CCUsageState } from '../../../shared/types'
 
@@ -69,6 +70,7 @@ function SmartTrendArrow({
 export function ScorecardsStrip(): JSX.Element {
   const state = useSystemStore((s) => s.state)
   const { cpuHistory, memHistory, netInHistory, netOutHistory } = useTimeSeriesStore()
+  const setCurrentPage = useNavigationStore((s) => s.setCurrentPage)
   const [ccUsage, setCCUsage] = useState<CCUsageState | null>(null)
 
   useEffect(() => {
@@ -85,7 +87,9 @@ export function ScorecardsStrip(): JSX.Element {
 
   const netCombinedHistory = netInHistory.map((v, i) => v + (netOutHistory[i] ?? 0))
 
-  const activeAgents = state?.agents.filter((a) => a.status === 'active').length ?? 0
+  const totalAgents = state?.agents.length ?? 0
+  const engagedAgents =
+    state?.agents.filter((a) => a.status === 'active' || a.status === 'busy').length ?? 0
   const listenPorts = state?.ports.filter((p) => p.state === 'LISTEN').length ?? 0
   const dirtyRepos = state?.gitRepos.filter((r) => r.dirty).length ?? 0
   const totalRepos = state?.gitRepos.length ?? 0
@@ -127,15 +131,22 @@ export function ScorecardsStrip(): JSX.Element {
         }
       />
       <Scorecard
-        value={`${activeAgents}`}
-        label="Agents"
-        color={activeAgents > 0 ? 'green' : 'gray'}
+        value={`${totalAgents}`}
+        label={
+          totalAgents > 0
+            ? engagedAgents > 0
+              ? `Agents • ${engagedAgents} hot`
+              : 'Agents • idle'
+            : 'Agents'
+        }
+        color={engagedAgents > 0 ? 'green' : totalAgents > 0 ? 'blue' : 'gray'}
       />
       <Scorecard value={`${listenPorts}`} label="Ports" color="blue" />
       <Scorecard
         value={dirtyRepos > 0 ? `${dirtyRepos}/${totalRepos}` : `${totalRepos}`}
         label={dirtyRepos > 0 ? 'Dirty Repos' : 'Git Repos'}
         color={dirtyRepos > 0 ? 'amber' : 'green'}
+        onClick={() => setCurrentPage('workspaces')}
       />
       {state?.disk && (
         <Scorecard
@@ -162,6 +173,7 @@ export function ScorecardsStrip(): JSX.Element {
           value={ccUsage.totalCostUSD >= 1 ? `$${Math.round(ccUsage.totalCostUSD)}` : `$${ccUsage.totalCostUSD.toFixed(2)}`}
           label="CC Cost"
           color="blue"
+          onClick={() => setCurrentPage('systems')}
         />
       )}
     </div>

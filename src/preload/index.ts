@@ -180,6 +180,8 @@ const api = {
 
   getCCUsage: (): Promise<CCUsageState> => ipcRenderer.invoke(IPC_CHANNELS.CCUSAGE_STATE),
 
+  refreshCCUsage: (): Promise<CCUsageState> => ipcRenderer.invoke(IPC_CHANNELS.CCUSAGE_REFRESH),
+
   onCCUsageUpdate: (callback: (state: CCUsageState) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, state: CCUsageState): void =>
       callback(state)

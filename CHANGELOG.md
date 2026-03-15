@@ -1,5 +1,22 @@
 # Changelog
 
+## v2.1.0 — 2026-03-15
+
+### Product
+- Added the interactive Hydra AI core with a contained lattice visualization, globe sweep, mono/color controls, and the preserved `Ever-Seeing Eye` concept note for future variants
+- Expanded the Workspaces page into a real action surface with command-center sort controls, repo triage filters, bulk git actions, and dashboard shortcuts into the pages that need attention
+
+### Intelligence
+- Made Claude Code usage much more reactive by overlaying stale cache data with fresh session-log totals and exposing a `Refresh Live` action in the UI
+- Improved agent awareness so Codex desktop and Claude CLI sessions are detected more reliably, and clarified CPU usage as per-core consumption instead of pretending `144%` is black magic
+
+### Operations
+- Added a GitHub Actions `CI` workflow that runs Vitest on pushes and pull requests to `main`
+- Updated scorecards and overview summaries so total agents, engaged agents, repo drift, and CC spend route into the right operational views
+
+### Tests
+- Added coverage for live Claude usage aggregation and the expanded agent-detection process matching paths
+
 ## v2.0.0 — 2026-03-15
 
 ### Product

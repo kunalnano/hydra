@@ -45,6 +45,7 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
   const [yenneferEnabled, setYenneferEnabled] = useState(true)
   const [yenneferStyle, setYenneferStyle] = useState<YenneferStyle>('adaptive')
   const [recentCoreMode, setRecentCoreMode] = useState<AICoreMode | null>(null)
+  const [monoLattice, setMonoLattice] = useState(false)
   const coreTimerRef = useRef<number | null>(null)
 
   const activeAgents =
@@ -205,6 +206,7 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
         <div className="pb-4">
           <AICoreNode
             mode={coreMode}
+            mono={monoLattice}
             activeAgents={activeAgents}
             totalAgents={totalAgents}
             cpuUsage={cpuUsage}
@@ -213,9 +215,14 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
             yenneferStyle={yenneferStyle}
             lmStudioUrl={lmStudioUrl}
             disabled={loading || yenneferLoading || healing}
+            processes={systemState?.processes}
+            agents={systemState?.agents}
+            ports={systemState?.ports}
+            gitRepos={systemState?.gitRepos}
             onRequestBriefing={requestBriefing}
             onRepair={healLmStudio}
             onInvokeYennefer={invokeYennefer}
+            onToggleMono={() => setMonoLattice((m) => !m)}
           />
         </div>
       ) : (

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useSystemStore } from './stores/system'
 import { useTimeSeriesStore } from './stores/timeseries'
+import { useNavigationStore, type HydraPageId } from './stores/navigation'
 import { Sparkline } from './components/Sparkline'
 import { AgentsPanel } from './panels/Agents'
 import { PortsPanel } from './panels/Ports'
@@ -19,10 +20,8 @@ import { CCUsagePanel } from './panels/CCUsage'
 import { WorkspacesPanel } from './panels/Workspaces'
 import type { SystemState } from '../../shared/types'
 
-type PageId = 'overview' | 'workspaces' | 'agents' | 'systems' | 'ai' | 'activity'
-
 interface PageMeta {
-  id: PageId
+  id: HydraPageId
   label: string
   kicker: string
   description: string
@@ -279,13 +278,15 @@ function InsightCard({
   value,
   title,
   detail,
-  tone
+  tone,
+  onClick
 }: {
   eyebrow: string
   value: string
   title: string
   detail: string
   tone: 'green' | 'amber' | 'red' | 'blue'
+  onClick?: () => void
 }): JSX.Element {
   const tones: Record<typeof tone, string> = {
     green: 'border-green-800/40 bg-green-950/20 text-green-300',
@@ -295,7 +296,11 @@ function InsightCard({
   }
 
   return (
-    <div className={`rounded-xl border px-4 py-3 ${tones[tone]}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full rounded-xl border px-4 py-3 text-left ${tones[tone]} ${onClick ? 'cursor-pointer transition-colors hover:border-cyan-700/40 hover:bg-cyan-950/10' : ''}`}
+    >
       <div className="text-[10px] uppercase tracking-[0.2em] text-gray-500">{eyebrow}</div>
       <div className="pt-2 flex items-end justify-between gap-3">
         <div>
@@ -304,7 +309,7 @@ function InsightCard({
         </div>
         <div className="max-w-[18rem] text-right text-xs text-gray-500">{detail}</div>
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -339,10 +344,13 @@ function PageHeader({ meta }: { meta: PageMeta }): JSX.Element {
 
 function OverviewPage(): JSX.Element {
   const state = useSystemStore((s) => s.state)
+  const setCurrentPage = useNavigationStore((s) => s.setCurrentPage)
   if (!state) return <></>
 
   const dirtyRepos = state.gitRepos.filter((repo) => repo.dirty).length
-  const activeAgents = state.agents.filter((agent) => agent.status === 'active').length
+  const engagedAgents = state.agents.filter(
+    (agent) => agent.status === 'active' || agent.status === 'busy'
+  ).length
   const waitingAgents = state.agents.filter((agent) => agent.status === 'waiting').length
   const memoryTone = getUsageTone(state.memory.usagePercent)
   const repoTone = dirtyRepos > 0 ? 'amber' : 'green'
@@ -359,7 +367,7 @@ function OverviewPage(): JSX.Element {
         />
         <InsightCard
           eyebrow="Agent load"
-          value={`${activeAgents}/${state.agents.length}`}
+          value={`${engagedAgents}/${state.agents.length}`}
           title={waitingAgents > 0 ? 'Swarm is active with some queueing' : 'Swarm is active and flowing'}
           detail={
             waitingAgents > 0
@@ -374,10 +382,11 @@ function OverviewPage(): JSX.Element {
           title={dirtyRepos > 0 ? 'Dirty repos need sequencing' : 'Repos are stable'}
           detail={
             dirtyRepos > 0
-              ? 'Use Workspaces for branch and process cleanup without drowning in unrelated panels.'
+              ? 'Git Status now surfaces an action queue with stash and fetch controls instead of just wagging a finger.'
               : 'Use Overview for status, then drill down only when needed.'
           }
           tone={repoTone}
+          onClick={() => setCurrentPage('workspaces')}
         />
       </div>
 
@@ -412,7 +421,7 @@ function WorkspacesPage(): JSX.Element {
     <div className="space-y-4">
       <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.4fr)_minmax(360px,0.85fr)]">
         <DashPanel title="Command Center" className="min-h-[520px]">
-          <CommandCenterPanel />
+          <CommandCenterPanel initialSortMode="workspace" showSortControls />
         </DashPanel>
         <div className="grid gap-4 auto-rows-fr">
           <DashPanel title="Workspaces" className="min-h-[260px]">
@@ -550,7 +559,7 @@ function ActivityPage(): JSX.Element {
   )
 }
 
-function NavBadge({ pageId }: { pageId: PageId }): JSX.Element {
+function NavBadge({ pageId }: { pageId: HydraPageId }): JSX.Element {
   const state = useSystemStore((s) => s.state)
   if (!state) return <span className="text-[10px] text-gray-600">-</span>
 
@@ -587,8 +596,8 @@ function ShellNav({
   currentPage,
   setCurrentPage
 }: {
-  currentPage: PageId
-  setCurrentPage: (page: PageId) => void
+  currentPage: HydraPageId
+  setCurrentPage: (page: HydraPageId) => void
 }): JSX.Element {
   return (
     <>
@@ -647,7 +656,7 @@ function ShellNav({
   )
 }
 
-function PageContent({ currentPage }: { currentPage: PageId }): JSX.Element {
+function PageContent({ currentPage }: { currentPage: HydraPageId }): JSX.Element {
   switch (currentPage) {
     case 'overview':
       return <OverviewPage />
@@ -667,8 +676,9 @@ function PageContent({ currentPage }: { currentPage: PageId }): JSX.Element {
 function App(): JSX.Element {
   const state = useSystemStore((s) => s.state)
   const initialize = useSystemStore((s) => s.initialize)
+  const currentPage = useNavigationStore((s) => s.currentPage)
+  const setCurrentPage = useNavigationStore((s) => s.setCurrentPage)
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const [currentPage, setCurrentPage] = useState<PageId>('overview')
 
   useEffect(() => {
     initialize()

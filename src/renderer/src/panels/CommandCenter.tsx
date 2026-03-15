@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useSystemStore } from '../stores/system'
+import { useUIStore } from '../stores/ui'
 import type { ProcessGroup, ProcessInfo } from '../../../shared/types'
+
+export type CommandCenterSortMode = 'health' | 'workspace' | 'cpu' | 'memory'
 
 const TYPE_LABELS: Record<ProcessGroup['type'], string> = {
   project: 'PRJ',
@@ -22,6 +25,13 @@ const HEALTH_DOT: Record<string, string> = {
   red: 'bg-red-400 shadow-red-400/50'
 }
 
+const TYPE_ORDER: Record<ProcessGroup['type'], number> = {
+  project: 0,
+  service: 1,
+  agent: 2,
+  other: 3
+}
+
 function getGroupHealth(group: ProcessGroup): 'green' | 'yellow' | 'red' {
   if (group.totalCpu > 95) return 'red'
   if (group.totalCpu > 80) return 'yellow'
@@ -30,21 +40,79 @@ function getGroupHealth(group: ProcessGroup): 'green' | 'yellow' | 'red' {
   return 'green'
 }
 
-export function CommandCenterPanel(): JSX.Element {
+function compareGroupsByHealth(a: ProcessGroup, b: ProcessGroup): number {
+  const healthOrder = { red: 0, yellow: 1, green: 2 }
+  const ha = healthOrder[getGroupHealth(a)]
+  const hb = healthOrder[getGroupHealth(b)]
+  if (ha !== hb) return ha - hb
+  if (b.totalCpu !== a.totalCpu) return b.totalCpu - a.totalCpu
+  if (b.totalMem !== a.totalMem) return b.totalMem - a.totalMem
+  return a.name.localeCompare(b.name)
+}
+
+function compareGroupsByWorkspaceFocus(
+  a: ProcessGroup,
+  b: ProcessGroup,
+  selectedWorkspace: string | null
+): number {
+  const aSelected = selectedWorkspace === a.name ? 0 : 1
+  const bSelected = selectedWorkspace === b.name ? 0 : 1
+  if (aSelected !== bSelected) return aSelected - bSelected
+
+  const typeDiff = TYPE_ORDER[a.type] - TYPE_ORDER[b.type]
+  if (typeDiff !== 0) return typeDiff
+  if (b.totalCpu !== a.totalCpu) return b.totalCpu - a.totalCpu
+  if (b.totalMem !== a.totalMem) return b.totalMem - a.totalMem
+  return a.name.localeCompare(b.name)
+}
+
+function compareGroupsByCpu(a: ProcessGroup, b: ProcessGroup): number {
+  if (b.totalCpu !== a.totalCpu) return b.totalCpu - a.totalCpu
+  if (b.totalMem !== a.totalMem) return b.totalMem - a.totalMem
+  return a.name.localeCompare(b.name)
+}
+
+function compareGroupsByMemory(a: ProcessGroup, b: ProcessGroup): number {
+  if (b.totalMem !== a.totalMem) return b.totalMem - a.totalMem
+  if (b.totalCpu !== a.totalCpu) return b.totalCpu - a.totalCpu
+  return a.name.localeCompare(b.name)
+}
+
+function compareGroups(
+  a: ProcessGroup,
+  b: ProcessGroup,
+  sortMode: CommandCenterSortMode,
+  selectedWorkspace: string | null
+): number {
+  switch (sortMode) {
+    case 'workspace':
+      return compareGroupsByWorkspaceFocus(a, b, selectedWorkspace)
+    case 'cpu':
+      return compareGroupsByCpu(a, b)
+    case 'memory':
+      return compareGroupsByMemory(a, b)
+    default:
+      return compareGroupsByHealth(a, b)
+  }
+}
+
+export function CommandCenterPanel({
+  initialSortMode = 'health',
+  showSortControls = false
+}: {
+  initialSortMode?: CommandCenterSortMode
+  showSortControls?: boolean
+}): JSX.Element {
   const state = useSystemStore((s) => s.state)
   const frozenPids = useSystemStore((s) => s.frozenPids)
+  const selectedWorkspace = useUIStore((s) => s.selectedWorkspace)
+  const [sortMode, setSortMode] = useState<CommandCenterSortMode>(initialSortMode)
 
   if (!state) return <></>
 
   const groups = [...state.processes]
     .filter((g) => g.type !== 'other')
-    .sort((a, b) => {
-      const healthOrder = { red: 0, yellow: 1, green: 2 }
-      const ha = healthOrder[getGroupHealth(a)]
-      const hb = healthOrder[getGroupHealth(b)]
-      if (ha !== hb) return ha - hb
-      return b.totalCpu - a.totalCpu
-    })
+    .sort((a, b) => compareGroups(a, b, sortMode, selectedWorkspace))
 
   const otherCount = state.processes
     .filter((g) => g.type === 'other')
@@ -53,7 +121,37 @@ export function CommandCenterPanel(): JSX.Element {
   const repoMap = new Map(state.gitRepos.map((r) => [r.name, r]))
 
   return (
-    <div className="space-y-0.5 text-sm overflow-y-auto max-h-full">
+    <div className="space-y-2 text-sm overflow-y-auto max-h-full">
+      {showSortControls && (
+        <div className="flex items-center justify-between gap-3 px-2">
+          <div className="flex flex-wrap gap-1.5">
+            <SortChip
+              label="Workspace"
+              active={sortMode === 'workspace'}
+              onClick={() => setSortMode('workspace')}
+            />
+            <SortChip
+              label="Health"
+              active={sortMode === 'health'}
+              onClick={() => setSortMode('health')}
+            />
+            <SortChip
+              label="CPU"
+              active={sortMode === 'cpu'}
+              onClick={() => setSortMode('cpu')}
+            />
+            <SortChip
+              label="Memory"
+              active={sortMode === 'memory'}
+              onClick={() => setSortMode('memory')}
+            />
+          </div>
+          <div className="text-[10px] text-gray-600 whitespace-nowrap">
+            CPU is per-core: 144% = 1.44 cores
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center text-[10px] text-gray-600 uppercase tracking-wider px-2 pb-1.5 mb-1 border-b border-gray-800/50">
         <span className="w-4" />
         <span className="flex-1">Workspace</span>
@@ -70,6 +168,7 @@ export function CommandCenterPanel(): JSX.Element {
           group={group}
           repo={repoMap.get(group.name)}
           frozenPids={frozenPids}
+          isSelected={selectedWorkspace === group.name}
         />
       ))}
       {otherCount > 0 && (
@@ -80,19 +179,46 @@ export function CommandCenterPanel(): JSX.Element {
   )
 }
 
+function SortChip({
+  label,
+  active,
+  onClick
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-2.5 py-1 rounded-full border text-[10px] uppercase tracking-[0.18em] transition-colors ${
+        active
+          ? 'border-cyan-700/60 bg-cyan-950/30 text-cyan-200'
+          : 'border-gray-800 bg-gray-900 text-gray-500 hover:text-gray-300'
+      }`}
+    >
+      {label}
+    </button>
+  )
+}
+
 function CommandRow({
   group,
   repo,
-  frozenPids
+  frozenPids,
+  isSelected
 }: {
   group: ProcessGroup
   repo?: { branch: string; dirty: boolean; ahead: number; status: string }
   frozenPids: Set<number>
+  isSelected: boolean
 }): JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const killGroup = useSystemStore((s) => s.killGroup)
   const signalProcess = useSystemStore((s) => s.signalProcess)
+  const selectWorkspace = useUIStore((s) => s.selectWorkspace)
 
   const health = getGroupHealth(group)
   const frozenCount = group.processes.filter((p) => frozenPids.has(p.pid)).length
@@ -129,14 +255,23 @@ function CommandRow({
 
   return (
     <div>
-      <div className="flex items-center py-1.5 px-2 rounded cursor-pointer transition-colors hover:bg-gray-800/50 border border-transparent">
+      <div
+        className={`flex items-center py-1.5 px-2 rounded cursor-pointer transition-colors border ${
+          isSelected
+            ? 'bg-blue-950/30 border-blue-800/50'
+            : 'hover:bg-gray-800/50 border-transparent'
+        }`}
+      >
         <div className="w-4 flex items-center">
           <span className={`w-2 h-2 rounded-full shadow-sm ${HEALTH_DOT[health]}`} />
         </div>
 
         <div
           className="flex items-center gap-2 flex-1 min-w-0"
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => {
+            setExpanded(!expanded)
+            selectWorkspace(group.name)
+          }}
         >
           <span
             className={`text-[10px] ${expanded ? 'rotate-90' : ''} text-gray-500 transition-transform`}

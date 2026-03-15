@@ -205,6 +205,8 @@ export interface CCDailyEntry {
   tokens: number
 }
 
+export type CCUsageSource = 'stats-cache' | 'hybrid' | 'live-log'
+
 export interface CCUsageState {
   available: boolean
   totalSessions: number
@@ -228,6 +230,11 @@ export interface CCUsageState {
   }[]
   lastUpdated: string
   timestamp: number
+  source: CCUsageSource
+  cacheStale: boolean
+  cacheUpdated: string
+  liveLastActivity: string
+  liveDeltaCostUSD: number
 }
 
 export type AutoHealAction = 'restart_process' | 'notify_only'
@@ -336,6 +343,7 @@ export const IPC_CHANNELS = {
   TIMELINE_EVENTS: 'timeline:events',
   SESSION_DELTA: 'session:delta',
   CCUSAGE_STATE: 'ccusage:state',
+  CCUSAGE_REFRESH: 'ccusage:refresh',
   YENNEFER_REQUEST: 'intelligence:yennefer-request'
 } as const
 
