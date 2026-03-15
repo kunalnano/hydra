@@ -131,6 +131,35 @@ const MODE_THEME: Record<
   }
 }
 
+// Google colors for neural weight activation effect
+const G_BLUE = '#4285F4'
+const G_RED = '#EA4335'
+const G_YELLOW = '#FBBC05'
+const G_GREEN = '#34A853'
+const GCOLORS = [G_BLUE, G_RED, G_YELLOW, G_GREEN]
+
+// Softer versions for glow halos
+const G_GLOW = [
+  'rgba(66,133,244,0.35)',
+  'rgba(234,67,53,0.35)',
+  'rgba(251,188,5,0.35)',
+  'rgba(52,168,83,0.35)'
+]
+
+/** Each node gets a unique color rotation offset + cycle duration */
+function nodeColorCycle(index: number): { fills: string; glows: string; dur: number } {
+  const offset = ((index * 7 + 3) % 4)
+  const shifted = [...GCOLORS.slice(offset), ...GCOLORS.slice(0, offset)]
+  const shiftedGlow = [...G_GLOW.slice(offset), ...G_GLOW.slice(0, offset)]
+  // Vary cycle duration so nodes drift out of phase (1800-3600ms)
+  const dur = 1800 + ((index * 131) % 1800)
+  return {
+    fills: shifted.join(';') + ';' + shifted[0],
+    glows: shiftedGlow.join(';') + ';' + shiftedGlow[0],
+    dur
+  }
+}
+
 function getSweepMs(mode: AICoreMode, liveFactor: number): number {
   const base: Record<AICoreMode, number> = {
     idle: 4200,
@@ -347,38 +376,37 @@ export function AICoreNode({
                         )
                       })}
 
-                      {/* Globe nodes at lat/lon intersections */}
+                      {/* Globe nodes: Google-colored neural activations */}
                       {GLOBE_NODES.map((node, i) => {
-                        const delay = Math.round((node.lonIndex / NUM_LONGITUDES) * sweepMs)
+                        const sweepDelay = Math.round((node.lonIndex / NUM_LONGITUDES) * sweepMs)
+                        const cc = nodeColorCycle(i)
                         return (
                           <g key={`gn-${i}`}>
-                            {/* Always-visible dim dot */}
-                            <circle cx={node.x} cy={node.y} r="1.8" fill={theme.nodeFill} opacity="0.15" />
-                            {/* Sweep-activated bright dot */}
-                            <circle cx={node.x} cy={node.y} r="2.5" fill={theme.nodeFill} opacity="0">
-                              <animate attributeName="opacity" values={`0.95;0.95;0;0`}
-                                keyTimes={flashOn} dur={`${sweepMs}ms`} begin={`${delay}ms`} repeatCount="indefinite" />
-                              <animate attributeName="r" values="2.5;4.2;2.5;2.5"
-                                keyTimes={flashOn} dur={`${sweepMs}ms`} begin={`${delay}ms`} repeatCount="indefinite" />
+                            {/* Dim base dot, color-cycling even at rest */}
+                            <circle cx={node.x} cy={node.y} r="2" fill={GCOLORS[i % 4]} opacity="0.22">
+                              <animate attributeName="fill" values={cc.fills}
+                                dur={`${cc.dur}ms`} repeatCount="indefinite" />
                             </circle>
-                            {/* Glow halo */}
-                            <circle cx={node.x} cy={node.y} r="7" fill={theme.glow} opacity="0">
-                              <animate attributeName="opacity" values="0.35;0.35;0;0"
-                                keyTimes="0;0.04;0.14;1" dur={`${sweepMs}ms`} begin={`${delay}ms`} repeatCount="indefinite" />
+                            {/* Sweep-activated bright dot */}
+                            <circle cx={node.x} cy={node.y} r="2.8" fill={GCOLORS[i % 4]} opacity="0">
+                              <animate attributeName="fill" values={cc.fills}
+                                dur={`${cc.dur}ms`} repeatCount="indefinite" />
+                              <animate attributeName="opacity" values="0.95;0.95;0;0"
+                                keyTimes={flashOn} dur={`${sweepMs}ms`} begin={`${sweepDelay}ms`} repeatCount="indefinite" />
+                              <animate attributeName="r" values="2.8;4.5;2.8;2.8"
+                                keyTimes={flashOn} dur={`${sweepMs}ms`} begin={`${sweepDelay}ms`} repeatCount="indefinite" />
+                            </circle>
+                            {/* Glow halo, color-matched */}
+                            <circle cx={node.x} cy={node.y} r="8" fill={G_GLOW[i % 4]} opacity="0">
+                              <animate attributeName="fill" values={cc.glows}
+                                dur={`${cc.dur}ms`} repeatCount="indefinite" />
+                              <animate attributeName="opacity" values="0.4;0.4;0;0"
+                                keyTimes="0;0.04;0.14;1" dur={`${sweepMs}ms`} begin={`${sweepDelay}ms`} repeatCount="indefinite" />
                             </circle>
                           </g>
                         )
                       })}
 
-                      {/* Structural hull curves */}
-                      <path d="M268 188C306 152 366 138 430 150C472 158 510 176 528 202"
-                        fill="none" stroke={theme.meshStroke} strokeWidth="1.8" opacity="0.82">
-                        <animate attributeName="opacity" values="0.28;0.98;0.28" dur={`${pulseMs}ms`} repeatCount="indefinite" />
-                      </path>
-                      <path d="M258 230C304 258 368 266 430 252C476 242 512 220 536 192"
-                        fill="none" stroke={theme.meshStroke} strokeWidth="1.6" opacity="0.78">
-                        <animate attributeName="opacity" values="0.24;0.92;0.24" dur={`${pulseMs + 180}ms`} repeatCount="indefinite" />
-                      </path>
                     </g>
 
                     {/* Scan sweep overlay */}
