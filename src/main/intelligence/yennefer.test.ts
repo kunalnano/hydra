@@ -138,6 +138,79 @@ describe('invokeYennefer', () => {
     expect(prompt).toContain('avoid rehashing')
     expect(prompt).toContain('fresh optimization')
   })
+
+  it('treats dense but healthy sessions as intentional throughput', async () => {
+    const { buildYenneferSystemPrompt, buildYenneferUserPrompt } = await import('./yennefer')
+    const throughputState: SystemState = {
+      ...mockState,
+      processes: [
+        ...mockState.processes,
+        {
+          name: 'worker-farm',
+          type: 'project',
+          processes: [],
+          totalCpu: 18.4,
+          totalMem: 7.5,
+          ports: []
+        },
+        {
+          name: 'indexer',
+          type: 'project',
+          processes: [],
+          totalCpu: 11.2,
+          totalMem: 5.4,
+          ports: []
+        }
+      ],
+      agents: [
+        ...mockState.agents,
+        { ...mockState.agents[0], id: 'pid:1000', name: 'codex', type: 'codex', status: 'busy' },
+        { ...mockState.agents[0], id: 'pid:1001', name: 'cursor', type: 'cursor', status: 'active' },
+        { ...mockState.agents[0], id: 'pid:1002', name: 'aider', type: 'aider', status: 'active' }
+      ],
+      gitRepos: [
+        {
+          ...mockState.gitRepos[0],
+          dirty: true,
+          modified: 8,
+          untracked: 2,
+          status: 'dirty'
+        },
+        {
+          ...mockState.gitRepos[0],
+          name: 'hydra-ui',
+          path: '/home/user/hydra-ui',
+          dirty: true,
+          modified: 5,
+          untracked: 1,
+          status: 'dirty'
+        }
+      ],
+      cpu: { ...mockState.cpu, usage: 42.8 },
+      memory: {
+        total: 32000000000,
+        used: 27200000000,
+        free: 4800000000,
+        usagePercent: 85
+      }
+    }
+
+    const systemPrompt = buildYenneferSystemPrompt(throughputState, 'adaptive')
+    const userPrompt = buildYenneferUserPrompt(throughputState)
+
+    expect(systemPrompt).toContain('busy on purpose')
+    expect(systemPrompt).toContain('occupied working set')
+    expect(userPrompt).toContain('Likely posture: throughput')
+    expect(userPrompt).toContain('4 active or busy agents')
+  })
+
+  it('supports the explicit throughput lens', async () => {
+    const { buildYenneferSystemPrompt } = await import('./yennefer')
+    const prompt = buildYenneferSystemPrompt(mockState, 'throughput')
+
+    expect(prompt).toContain('maximizing local throughput')
+    expect(prompt).toContain('prefers throughput over tidiness')
+  })
 })
 
 describe('HydraConfig yenneferEnabled', () => {

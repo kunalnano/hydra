@@ -387,7 +387,7 @@ function OverviewPage(): JSX.Element {
         </DashPanel>
         <div className="grid gap-4 auto-rows-fr">
           <DashPanel title="Local AI (LM Studio)" className="min-h-[300px]">
-            <BriefingPanel />
+            <BriefingPanel variant="compact" />
           </DashPanel>
           <DashPanel title="Notifications" className="min-h-[220px]">
             <NotificationsPanel />
@@ -497,7 +497,7 @@ function AIPage(): JSX.Element {
     <div className="space-y-4">
       <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.9fr)]">
         <DashPanel title="Local AI (LM Studio)" className="min-h-[520px]">
-          <BriefingPanel />
+          <BriefingPanel variant="full" />
         </DashPanel>
         <div className="grid gap-4 auto-rows-fr">
           <DashPanel title="Notifications" className="min-h-[240px]">
