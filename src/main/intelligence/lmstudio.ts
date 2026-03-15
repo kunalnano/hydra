@@ -1,9 +1,13 @@
 import { networkInterfaces } from 'os'
+import { exec } from 'child_process'
+import { promisify } from 'util'
 import type { LmStudioHealResult, LmStudioProbeAttempt } from '../../shared/types'
 import { loadConfig, saveConfig } from '../config'
 
 const DEFAULT_LM_STUDIO_URL = 'http://localhost:1234'
 const MODEL_DISCOVERY_TIMEOUT_MS = 1500
+const ARP_TIMEOUT_MS = 1500
+const execAsync = promisify(exec)
 
 function normalizeLmStudioUrl(rawUrl: string): string | null {
   const trimmed = rawUrl.trim()
@@ -39,7 +43,49 @@ export function isLmStudioConnectivityError(message: string): boolean {
   ].some((token) => normalized.includes(token))
 }
 
-function buildCandidateUrls(): string[] {
+function getLocalIPv4s(): string[] {
+  const addresses: string[] = []
+  const interfaces = networkInterfaces()
+  for (const entries of Object.values(interfaces)) {
+    for (const entry of entries || []) {
+      if (entry.family !== 'IPv4') continue
+      addresses.push(entry.address)
+    }
+  }
+  return [...new Set(addresses)]
+}
+
+function isPrivateIPv4(ip: string): boolean {
+  return (
+    ip.startsWith('10.') ||
+    ip.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(ip)
+  )
+}
+
+export function parseArpNeighborIps(output: string): string[] {
+  const neighbors = output
+    .split('\n')
+    .map((line) => line.match(/\((\d+\.\d+\.\d+\.\d+)\)/)?.[1] || null)
+    .filter((ip): ip is string => ip !== null)
+    .filter((ip) => isPrivateIPv4(ip))
+
+  return [...new Set(neighbors)]
+}
+
+async function getArpNeighborUrls(): Promise<string[]> {
+  try {
+    const { stdout } = await execAsync('arp -an', { timeout: ARP_TIMEOUT_MS })
+    const localIps = new Set(getLocalIPv4s())
+    return parseArpNeighborIps(stdout)
+      .filter((ip) => !localIps.has(ip))
+      .map((ip) => `http://${ip}:1234`)
+  } catch {
+    return []
+  }
+}
+
+async function buildCandidateUrls(): Promise<string[]> {
   const config = loadConfig()
   const configured = normalizeLmStudioUrl(config.lmStudioUrl || '')
   const envUrl = normalizeLmStudioUrl(process.env.LM_STUDIO_URL || '')
@@ -51,15 +97,13 @@ function buildCandidateUrls(): string[] {
     'http://127.0.0.1:1234'
   ].filter((value): value is string => Boolean(value))
 
-  const interfaces = networkInterfaces()
-  for (const entries of Object.values(interfaces)) {
-    for (const entry of entries || []) {
-      if (entry.family !== 'IPv4' || entry.internal) continue
-      candidates.push(`http://${entry.address}:1234`)
-    }
+  for (const ip of getLocalIPv4s()) {
+    if (ip === '127.0.0.1') continue
+    candidates.push(`http://${ip}:1234`)
   }
 
-  return [...new Set(candidates)]
+  const arpCandidates = await getArpNeighborUrls()
+  return [...new Set([...candidates, ...arpCandidates])]
 }
 
 async function fetchWithTimeout(
@@ -132,7 +176,8 @@ export async function healLmStudioConnection(options?: {
   const previousLabel = previousUrl || configuredValue || undefined
   const attempts: LmStudioProbeAttempt[] = []
 
-  for (const candidate of buildCandidateUrls()) {
+  const candidates = await buildCandidateUrls()
+  for (const candidate of candidates) {
     const probe = await probeLmStudioEndpoint(candidate, fetchImpl)
     attempts.push(probe)
 
@@ -157,12 +202,17 @@ export async function healLmStudioConnection(options?: {
   }
 
   const attemptedUrls = attempts.map((attempt) => attempt.url).join(', ')
+  const remoteHint =
+    previousLabel && /^https?:\/\/(?!localhost|127\.0\.0\.1)/.test(previousLabel)
+      ? ' If LM Studio runs on another machine, enable "Serve on Local Network" there and allow inbound TCP 1234 through that machine\'s firewall.'
+      : ''
+
   return {
     success: false,
     repaired: false,
     message: attemptedUrls
-      ? `LM Studio is unreachable. Checked ${attemptedUrls}.`
-      : 'LM Studio is unreachable.',
+      ? `LM Studio is unreachable. Checked ${attemptedUrls}.${remoteHint}`
+      : `LM Studio is unreachable.${remoteHint}`,
     previousUrl: previousLabel,
     attempts
   }

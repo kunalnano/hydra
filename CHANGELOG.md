@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.1.1 — 2026-03-15
+
+### Reliability
+- Added ARP-neighbor LM Studio discovery so `Invoke Repair` can recover when the LM Studio host is another machine on the LAN
+- Improved unreachable diagnostics for remote LM Studio hosts, including explicit guidance for enabling network serving and firewall access
+
+### Tests
+- Added coverage for ARP-based remote endpoint repair and ARP neighbor parsing
+
 ## v1.1.0 — 2026-03-15
 
 ### Features
