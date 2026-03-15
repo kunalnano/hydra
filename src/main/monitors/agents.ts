@@ -3,8 +3,8 @@ import type { ProcessInfo, AgentInfo, AgentStatus } from '../../shared/types'
 interface AgentPattern {
   type: AgentInfo['type']
   displayName: string
-  /** Match functions — first match wins. Receives the full command string. */
-  match: (cmd: string) => boolean
+  /** Match functions — first match wins. Receives the full process record. */
+  match: (proc: ProcessInfo) => boolean
 }
 
 const AGENT_PATTERNS: AgentPattern[] = [
@@ -12,10 +12,11 @@ const AGENT_PATTERNS: AgentPattern[] = [
     type: 'claude-code',
     displayName: 'Claude Code',
     // CLI instances: "claude" binary but NOT Claude.app
-    match: (cmd) => {
-      const lower = cmd.toLowerCase()
+    match: (proc) => {
+      const lower = proc.command.toLowerCase()
+      const name = proc.name.toLowerCase()
       return (
-        (lower.includes('/claude') || lower.startsWith('claude')) &&
+        (name === 'claude' || lower.includes('/claude') || lower.startsWith('claude')) &&
         !lower.includes('claude.app') &&
         !lower.includes('claude helper')
       )
@@ -24,36 +25,44 @@ const AGENT_PATTERNS: AgentPattern[] = [
   {
     type: 'codex',
     displayName: 'Codex',
-    match: (cmd) => /\bcodex\b/i.test(cmd) && !cmd.includes('.app/')
+    match: (proc) => {
+      const lower = proc.command.toLowerCase()
+      const name = proc.name.toLowerCase()
+      return (
+        name === 'codex' ||
+        lower.includes('/contents/resources/codex app-server') ||
+        /(^|\s)codex(\s|$)/i.test(proc.command)
+      )
+    }
   },
   {
     type: 'gemini',
     displayName: 'Gemini',
     // Chrome app wrapper for Gemini, or native gemini binary
-    match: (cmd) => {
-      const lower = cmd.toLowerCase()
+    match: (proc) => {
+      const lower = proc.command.toLowerCase()
       return lower.includes('gemini.app') || /\bgemini\b/.test(lower)
     }
   },
   {
     type: 'cursor',
     displayName: 'Cursor',
-    match: (cmd) => /cursor/i.test(cmd) && !cmd.includes('setCursor')
+    match: (proc) => /cursor/i.test(proc.command) && !proc.command.includes('setCursor')
   },
   {
     type: 'aider',
     displayName: 'Aider',
-    match: (cmd) => /\baider\b/i.test(cmd)
+    match: (proc) => /\baider\b/i.test(proc.command)
   },
   {
     type: 'continue',
     displayName: 'Continue',
-    match: (cmd) => /\bcontinue\b/i.test(cmd) && cmd.includes('.continue')
+    match: (proc) => /\bcontinue\b/i.test(proc.command) && proc.command.includes('.continue')
   },
   {
     type: 'copilot',
     displayName: 'Copilot',
-    match: (cmd) => /copilot-agent|github-copilot/i.test(cmd)
+    match: (proc) => /copilot-agent|github-copilot/i.test(proc.command)
   }
 ]
 
@@ -63,7 +72,7 @@ export function detectAgents(processes: ProcessInfo[]): AgentInfo[] {
 
   for (const proc of processes) {
     for (const pattern of AGENT_PATTERNS) {
-      if (pattern.match(proc.command)) {
+      if (pattern.match(proc)) {
         const count = (seenTypes.get(pattern.type) || 0) + 1
         seenTypes.set(pattern.type, count)
 

@@ -115,6 +115,17 @@ let monitorConfig = loadConfig()
 
 let latestGitRepos: SystemState['gitRepos'] = []
 
+function refreshAndBroadcastCCUsage(
+  mainWindow: BrowserWindow,
+  options: { forceLive?: boolean } = {}
+): CCUsageState {
+  latestCCUsage = getCCUsage({ forceLive: options.forceLive })
+  if (!mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(IPC_CHANNELS.CCUSAGE_STATE, latestCCUsage)
+  }
+  return latestCCUsage
+}
+
 async function collectSystemState(): Promise<SystemState> {
   const [processes, ports] = await Promise.all([
     getProcesses(),
@@ -194,6 +205,7 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
   ipcMain.on(IPC_CHANNELS.REQUEST_REFRESH, async () => {
     latestState = await collectSystemState()
     mainWindow.webContents.send(IPC_CHANNELS.SYSTEM_STATE_UPDATE, latestState)
+    refreshAndBroadcastCCUsage(mainWindow, { forceLive: true })
   })
 
   monitorInterval = setInterval(async () => {
@@ -309,10 +321,7 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
       if (ccusagePollCount >= 12) {
         ccusagePollCount = 0
         try {
-          latestCCUsage = getCCUsage()
-          if (!mainWindow.isDestroyed()) {
-            mainWindow.webContents.send(IPC_CHANNELS.CCUSAGE_STATE, latestCCUsage)
-          }
+          refreshAndBroadcastCCUsage(mainWindow)
         } catch (err) {
           console.error('CC Usage monitor failed:', err)
         }
@@ -510,6 +519,10 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
     return latestCCUsage
   })
 
+  ipcMain.handle(IPC_CHANNELS.CCUSAGE_REFRESH, () => {
+    return refreshAndBroadcastCCUsage(mainWindow, { forceLive: true })
+  })
+
   ipcMain.handle(IPC_CHANNELS.SESSION_DELTA, async () => {
     const lastSession = getLatestSession()
     if (!lastSession || !latestState) return null
@@ -550,6 +563,7 @@ export function stopMonitoring(): void {
   ipcMain.removeHandler(IPC_CHANNELS.TIMELINE_EVENTS)
   ipcMain.removeHandler(IPC_CHANNELS.SESSION_DELTA)
   ipcMain.removeHandler(IPC_CHANNELS.CCUSAGE_STATE)
+  ipcMain.removeHandler(IPC_CHANNELS.CCUSAGE_REFRESH)
   previousState = null
   healHistory = []
   notifications = []
