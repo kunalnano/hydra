@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { BriefingResult, BriefingAlert, YenneferStyle } from '../../../shared/types'
+import { useSystemStore } from '../stores/system'
+import { AICoreNode, type AICoreMode } from './AICoreNode'
 
 const SEVERITY_STYLES: Record<BriefingAlert['severity'], string> = {
   info: 'text-blue-400 bg-blue-950/30 border-blue-900',
@@ -17,7 +19,21 @@ const SOURCE_TAG_STYLES: Record<string, string> = {
   briefing: 'bg-gray-800 text-gray-400'
 }
 
-export function BriefingPanel(): JSX.Element {
+const MODE_LABELS: Record<AICoreMode, string> = {
+  idle: 'Hydra Awake',
+  thinking: 'Hydra Thinking',
+  speaking: 'Yennefer Live',
+  repairing: 'Repairing',
+  offline: 'Isolated',
+  throughput: 'Throughput'
+}
+
+interface BriefingPanelProps {
+  variant?: 'compact' | 'full'
+}
+
+export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.Element {
+  const systemState = useSystemStore((s) => s.state)
   const [briefing, setBriefing] = useState<BriefingResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [yenneferLoading, setYenneferLoading] = useState(false)
@@ -28,6 +44,26 @@ export function BriefingPanel(): JSX.Element {
   const [lmStudioUrl, setLmStudioUrl] = useState<string>('http://localhost:1234')
   const [yenneferEnabled, setYenneferEnabled] = useState(true)
   const [yenneferStyle, setYenneferStyle] = useState<YenneferStyle>('adaptive')
+  const [recentCoreMode, setRecentCoreMode] = useState<AICoreMode | null>(null)
+  const coreTimerRef = useRef<number | null>(null)
+
+  const activeAgents =
+    systemState?.agents.filter((agent) => agent.status === 'active' || agent.status === 'busy').length || 0
+  const totalAgents = systemState?.agents.length || 0
+  const listenerCount = systemState?.ports.filter((port) => port.state === 'LISTEN').length || 0
+  const cpuUsage = systemState?.cpu.usage || 0
+  const memoryUsage = systemState?.memory.usagePercent || 0
+
+  const pulseCore = useCallback((mode: AICoreMode): void => {
+    if (coreTimerRef.current !== null) {
+      window.clearTimeout(coreTimerRef.current)
+    }
+    setRecentCoreMode(mode)
+    coreTimerRef.current = window.setTimeout(() => {
+      setRecentCoreMode(null)
+      coreTimerRef.current = null
+    }, 6000)
+  }, [])
 
   const refreshConfig = useCallback(async (): Promise<void> => {
     const cfg = await window.hydra.getConfig()
@@ -40,6 +76,14 @@ export function BriefingPanel(): JSX.Element {
     refreshConfig().catch(() => {})
   }, [refreshConfig])
 
+  useEffect(() => {
+    return () => {
+      if (coreTimerRef.current !== null) {
+        window.clearTimeout(coreTimerRef.current)
+      }
+    }
+  }, [])
+
   const requestBriefing = useCallback(async (): Promise<void> => {
     setLoading(true)
     setError(null)
@@ -48,6 +92,7 @@ export function BriefingPanel(): JSX.Element {
       const result = await window.hydra.requestBriefing()
       if (result) {
         setBriefing(result)
+        pulseCore('speaking')
       } else {
         setError('No system state available yet')
       }
@@ -68,6 +113,7 @@ export function BriefingPanel(): JSX.Element {
       if (result.url) setLmStudioUrl(result.url)
       if (result.success) {
         setNotice(result.message)
+        pulseCore('speaking')
       } else {
         setError(result.message)
       }
@@ -87,6 +133,7 @@ export function BriefingPanel(): JSX.Element {
       const result = await window.hydra.requestYennefer()
       if (result) {
         setBriefing(result)
+        pulseCore('speaking')
       } else {
         setError('No system state available yet')
       }
@@ -128,33 +175,100 @@ export function BriefingPanel(): JSX.Element {
     }
   }, [])
 
+  const coreMode: AICoreMode = (() => {
+    const lowerError = error?.toLowerCase() || ''
+    const lowerSummary = briefing?.summary.toLowerCase() || ''
+    const lmStudioOffline =
+      lowerError.includes('lm studio') ||
+      lowerError.includes('reachable') ||
+      lowerError.includes('offline') ||
+      lowerSummary.includes('lm studio offline') ||
+      lowerSummary.includes('unable to reach')
+
+    if (healing) return 'repairing'
+    if (loading || yenneferLoading) return 'thinking'
+    if (lmStudioOffline) return 'offline'
+    if (recentCoreMode) return recentCoreMode
+
+    const throughputReady =
+      (yenneferStyle === 'throughput' || activeAgents >= 3 || totalAgents >= 4) &&
+      cpuUsage < 80 &&
+      (memoryUsage < 94 || (systemState?.memory.free || 0) / 1e9 >= 2.5)
+
+    if (systemState && throughputReady) return 'throughput'
+    return 'idle'
+  })()
+
   return (
     <div className="h-full flex flex-col text-sm">
-      <div className="flex items-center justify-between pb-3">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={requestBriefing}
+      {variant === 'full' && yenneferEnabled ? (
+        <div className="pb-4">
+          <AICoreNode
+            mode={coreMode}
+            activeAgents={activeAgents}
+            totalAgents={totalAgents}
+            cpuUsage={cpuUsage}
+            memoryUsage={memoryUsage}
+            listenerCount={listenerCount}
+            yenneferStyle={yenneferStyle}
+            lmStudioUrl={lmStudioUrl}
             disabled={loading || yenneferLoading || healing}
-            className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors font-medium"
-          >
-            {loading ? 'Generating...' : 'Request Briefing'}
-          </button>
-          <button
-            onClick={healLmStudio}
-            disabled={loading || yenneferLoading || healing}
-            className="px-3 py-1.5 text-xs bg-emerald-700 hover:bg-emerald-600 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors font-medium"
-          >
-            {healing ? 'Repairing...' : 'Invoke Repair'}
-          </button>
-          {yenneferEnabled && (
+            onRequestBriefing={requestBriefing}
+            onRepair={healLmStudio}
+            onInvokeYennefer={invokeYennefer}
+          />
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3 pb-3">
+          <div className="flex items-center gap-2">
             <button
-              onClick={invokeYennefer}
+              onClick={requestBriefing}
               disabled={loading || yenneferLoading || healing}
-              className="px-3 py-1.5 text-xs bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors font-medium"
+              className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors font-medium"
             >
-              {yenneferLoading ? 'Channeling...' : '\u2694\uFE0F Invoke Yennefer'}
+              {loading ? 'Generating...' : 'Request Briefing'}
             </button>
-          )}
+            <button
+              onClick={healLmStudio}
+              disabled={loading || yenneferLoading || healing}
+              className="px-3 py-1.5 text-xs bg-emerald-700 hover:bg-emerald-600 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors font-medium"
+            >
+              {healing ? 'Repairing...' : 'Invoke Repair'}
+            </button>
+            {yenneferEnabled && (
+              <button
+                onClick={invokeYennefer}
+                disabled={loading || yenneferLoading || healing}
+                className="px-3 py-1.5 text-xs bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors font-medium"
+              >
+                {yenneferLoading ? 'Channeling...' : '\u2694\uFE0F Invoke Yennefer'}
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-2.5 py-1">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                coreMode === 'offline'
+                  ? 'bg-rose-400 shadow-[0_0_14px_rgba(251,113,133,0.65)]'
+                  : coreMode === 'repairing'
+                    ? 'bg-amber-300 shadow-[0_0_14px_rgba(252,211,77,0.65)]'
+                    : coreMode === 'thinking'
+                      ? 'bg-violet-400 animate-pulse shadow-[0_0_14px_rgba(167,139,250,0.65)]'
+                      : coreMode === 'throughput'
+                        ? 'bg-teal-300 shadow-[0_0_14px_rgba(94,234,212,0.65)]'
+                        : 'bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,0.65)]'
+              }`}
+            />
+            <span className="text-[10px] uppercase tracking-[0.26em] text-gray-400">
+              {coreMode === 'throughput' ? 'Hydra Alive' : MODE_LABELS[coreMode]}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-3 pb-2">
+        <div className="text-[10px] text-gray-600 font-mono truncate" title={lmStudioUrl}>
+          → {lmStudioUrl}
         </div>
         {briefing && (
           <span className="text-xs text-gray-600 font-mono">
@@ -162,15 +276,13 @@ export function BriefingPanel(): JSX.Element {
           </span>
         )}
       </div>
-      <div className="text-[10px] text-gray-600 font-mono pb-2 truncate" title={lmStudioUrl}>
-        → {lmStudioUrl}
-      </div>
+
       {yenneferEnabled && (
         <div className="flex items-center justify-between gap-3 pb-3">
           <div>
             <div className="text-[10px] uppercase tracking-wider text-gray-500">Yennefer Lens</div>
             <div className="text-[11px] text-gray-600">
-              Adaptive respects multi-agent sessions. Creative varies the read.
+              Throughput treats dense work as intentional. Creative varies the read.
             </div>
           </div>
           <select
@@ -180,6 +292,7 @@ export function BriefingPanel(): JSX.Element {
             className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200 disabled:text-gray-500"
           >
             <option value="adaptive">Adaptive</option>
+            <option value="throughput">Throughput</option>
             <option value="creative">Creative</option>
             <option value="strict">Strict</option>
           </select>

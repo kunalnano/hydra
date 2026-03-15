@@ -363,7 +363,7 @@ export interface PostureHistoryEntry {
   verdict: string
 }
 
-export type YenneferStyle = 'adaptive' | 'creative' | 'strict'
+export type YenneferStyle = 'adaptive' | 'throughput' | 'creative' | 'strict'
 
 export interface HydraConfig {
   apiKey?: string
