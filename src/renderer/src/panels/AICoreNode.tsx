@@ -331,8 +331,8 @@ export function AICoreNode({
               <div onClick={disabled ? undefined : onInvokeYennefer}
                 role="button" tabIndex={disabled ? -1 : 0}
                 className={`group relative w-full overflow-hidden rounded-[22px] border border-white/10 bg-black/18 transition-all ${disabled ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-white/20'}`}
-                style={{ paddingTop: '52%' }}>
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 792 412" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                style={{ paddingTop: '49%' }}>
+                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 792 388" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
                   <defs>
                     <clipPath id={clipId}>
                       <circle cx={SPHERE.cx} cy={SPHERE.cy} r={SPHERE.r} />
@@ -348,7 +348,7 @@ export function AICoreNode({
                     </linearGradient>
                   </defs>
 
-                  <rect x="0" y="0" width="792" height="412" fill={`url(#${glowId})`} />
+                  <rect x="0" y="0" width="792" height="388" fill={`url(#${glowId})`} />
 
                   <g clipPath={`url(#${clipId})`}>
                     <rect x={SPHERE.cx - SPHERE.r} y={SPHERE.cy - SPHERE.r}
