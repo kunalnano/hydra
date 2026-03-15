@@ -1,6 +1,23 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { SystemState } from '../../shared/types'
+import type { BriefingResult, SystemState } from '../../shared/types'
 import { IPC_CHANNELS } from '../../shared/types'
+
+const loadConfig = vi.fn(() => ({
+  gitRepoPaths: [],
+  monitorInterval: 2000,
+  snapshotInterval: 30000,
+  yenneferStyle: 'adaptive' as const
+}))
+
+const getRecentBriefings = vi.fn<(limit?: number) => BriefingResult[]>(() => [])
+
+vi.mock('../config', () => ({
+  loadConfig
+}))
+
+vi.mock('../db/queries', () => ({
+  getRecentBriefings
+}))
 
 const mockState: SystemState = {
   timestamp: Date.now(),
@@ -72,6 +89,7 @@ describe('loadElevenLabsConfig', () => {
 describe('invokeYennefer', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.clearAllMocks()
   })
 
   it('returns a BriefingResult with summary when LM Studio is offline', async () => {
@@ -90,6 +108,35 @@ describe('invokeYennefer', () => {
     // Should gracefully handle the connection failure
     expect(typeof result.summary).toBe('string')
     expect(result.summary.length).toBeGreaterThan(0)
+  })
+
+  it('builds a less repetitive prompt for multi-agent sessions', async () => {
+    getRecentBriefings.mockReturnValue([
+      {
+        timestamp: Date.now(),
+        summary: 'Three agents are active. Memory is elevated. Consider trimming context.',
+        alerts: [],
+        suggestions: []
+      }
+    ])
+
+    const { buildYenneferSystemPrompt } = await import('./yennefer')
+    const prompt = buildYenneferSystemPrompt(
+      {
+        ...mockState,
+        agents: [
+          ...mockState.agents,
+          { ...mockState.agents[0], id: 'pid:1000', name: 'codex', type: 'codex' },
+          { ...mockState.agents[0], id: 'pid:1001', name: 'cursor', type: 'cursor' }
+        ],
+        memory: { ...mockState.memory, usagePercent: 78 }
+      },
+      'adaptive'
+    )
+
+    expect(prompt).toContain('intentional swarm work')
+    expect(prompt).toContain('avoid rehashing')
+    expect(prompt).toContain('fresh optimization')
   })
 })
 

@@ -430,7 +430,13 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
 
   ipcMain.handle(IPC_CHANNELS.YENNEFER_REQUEST, async () => {
     if (!latestState) return null
-    return invokeYennefer(latestState)
+    const result = await invokeYennefer(latestState)
+    try {
+      insertBriefing(result)
+    } catch {
+      /* DB write failed — continue */
+    }
+    return result
   })
 
   ipcMain.handle(IPC_CHANNELS.GET_HEAL_HISTORY, () => healHistory)

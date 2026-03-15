@@ -363,6 +363,8 @@ export interface PostureHistoryEntry {
   verdict: string
 }
 
+export type YenneferStyle = 'adaptive' | 'creative' | 'strict'
+
 export interface HydraConfig {
   apiKey?: string
   gitRepoPaths: string[]
@@ -375,4 +377,5 @@ export interface HydraConfig {
   agentFeedPaths?: string[]
   logFilePaths?: string[]
   yenneferEnabled?: boolean
+  yenneferStyle?: YenneferStyle
 }

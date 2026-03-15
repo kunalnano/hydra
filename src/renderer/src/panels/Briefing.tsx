@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { BriefingResult, BriefingAlert } from '../../../shared/types'
+import type { BriefingResult, BriefingAlert, YenneferStyle } from '../../../shared/types'
 
 const SEVERITY_STYLES: Record<BriefingAlert['severity'], string> = {
   info: 'text-blue-400 bg-blue-950/30 border-blue-900',
@@ -22,15 +22,18 @@ export function BriefingPanel(): JSX.Element {
   const [loading, setLoading] = useState(false)
   const [yenneferLoading, setYenneferLoading] = useState(false)
   const [healing, setHealing] = useState(false)
+  const [savingStyle, setSavingStyle] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [lmStudioUrl, setLmStudioUrl] = useState<string>('http://localhost:1234')
   const [yenneferEnabled, setYenneferEnabled] = useState(true)
+  const [yenneferStyle, setYenneferStyle] = useState<YenneferStyle>('adaptive')
 
   const refreshConfig = useCallback(async (): Promise<void> => {
     const cfg = await window.hydra.getConfig()
     if (cfg.lmStudioUrl) setLmStudioUrl(cfg.lmStudioUrl)
     if (cfg.yenneferEnabled === false) setYenneferEnabled(false)
+    if (cfg.yenneferStyle) setYenneferStyle(cfg.yenneferStyle)
   }, [])
 
   useEffect(() => {
@@ -109,6 +112,22 @@ export function BriefingPanel(): JSX.Element {
     return unsub
   }, [invokeYennefer])
 
+  const updateYenneferStyle = useCallback(async (nextStyle: YenneferStyle): Promise<void> => {
+    setYenneferStyle(nextStyle)
+    setSavingStyle(true)
+    setNotice(null)
+    setError(null)
+    try {
+      const current = await window.hydra.getConfig()
+      await window.hydra.saveConfig({ ...current, yenneferStyle: nextStyle })
+      setNotice(`Yennefer lens set to ${nextStyle}.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save Yennefer lens')
+    } finally {
+      setSavingStyle(false)
+    }
+  }, [])
+
   return (
     <div className="h-full flex flex-col text-sm">
       <div className="flex items-center justify-between pb-3">
@@ -146,6 +165,26 @@ export function BriefingPanel(): JSX.Element {
       <div className="text-[10px] text-gray-600 font-mono pb-2 truncate" title={lmStudioUrl}>
         → {lmStudioUrl}
       </div>
+      {yenneferEnabled && (
+        <div className="flex items-center justify-between gap-3 pb-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-gray-500">Yennefer Lens</div>
+            <div className="text-[11px] text-gray-600">
+              Adaptive respects multi-agent sessions. Creative varies the read.
+            </div>
+          </div>
+          <select
+            value={yenneferStyle}
+            disabled={savingStyle || yenneferLoading}
+            onChange={(e) => updateYenneferStyle(e.target.value as YenneferStyle)}
+            className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200 disabled:text-gray-500"
+          >
+            <option value="adaptive">Adaptive</option>
+            <option value="creative">Creative</option>
+            <option value="strict">Strict</option>
+          </select>
+        </div>
+      )}
 
       {error && <div className="text-red-400 text-xs mb-2">{error}</div>}
       {notice && <div className="text-emerald-400 text-xs mb-2">{notice}</div>}

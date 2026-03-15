@@ -95,7 +95,7 @@ export function ScorecardsStrip(): JSX.Element {
   const netTrend = getSmartTrend(netCombinedHistory, false)
 
   return (
-    <div className="flex gap-3">
+    <div className="flex flex-wrap gap-3">
       <Scorecard
         value={`${Math.round(cpuUsage)}%`}
         label="CPU"

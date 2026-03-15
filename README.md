@@ -1,43 +1,45 @@
-# HYDRA — Real-Time Ops Dashboard
+# HYDRA v2 — Operator Shell For Local AI Systems
 
-Real-time ops dashboard for developers running AI agents and local services. Electron app for macOS.
+Hydra is a desktop ops shell for developers running AI agents, local services, and multi-machine model workflows. It keeps overall system status visible while giving each domain its own page instead of forcing everything into one dense dashboard.
 
-Monitors processes, AI agents, git repos, network traffic, disk/battery health, and security posture — with local AI briefings via LM Studio and an auto-heal engine.
+Version 2 focuses on faster navigation, lower renderer churn, and a stronger local AI workflow around LM Studio and Yennefer.
 
-![Hydra Mission Control Dashboard](docs/screenshots/dashboard.png)
+![Hydra v2 Overview](docs/screenshots/dashboard-v2-overview.png)
+![Hydra v2 AI Page](docs/screenshots/dashboard-v2-ai.png)
 
-## Panels
+## What Changed In v2
 
-HYDRA's dashboard has 12 integrated panels:
+- Dedicated pages for `Overview`, `Workspaces`, `Agents`, `Systems`, `AI`, and `Activity`
+- Persistent status shell with health scorecards and always-visible system posture
+- `Yennefer Lens` modes so the operator can choose `adaptive`, `creative`, or `strict` output
+- Repetition-aware Yennefer prompts using recent briefing history and live workload context
+- LM Studio self-heal flow that can repair stale endpoints and recover remote LAN-hosted LM Studio servers
 
-| Panel | What it does |
-|-------|-------------|
-| **Command Center** | Workspace health overview with scored process groups |
-| **Scorecards Strip** | At-a-glance cards: CPU, Memory, Network, Agents, Ports, Git, Disk, Battery, CC Cost |
-| **Git Status** | Multi-repo branch tracking, dirty state, ahead/behind, git actions |
-| **Agents** | Auto-detection of 8 AI agent types (Claude Code, Codex, Gemini, Cursor, Aider, Continue, Copilot) |
-| **Network** | Per-process bandwidth monitoring with rate computation via `nettop` |
-| **Staff of Gandalf** | Security scan integration (survey, illuminate, shadowfax, delve, scry) |
-| **Ports** | Listening port detection and port-to-process mapping via `lsof` |
-| **Notifications** | Auto-heal events, alerts, severity grouping with dismiss |
-| **Local AI (LM Studio)** | On-demand system briefings from a local LLM (Cmd+B) |
-| **CC Usage** | Claude Code usage stats — tokens, sessions, cost estimates from `~/.claude/stats-cache.json` |
-| **Git History** | Commit timeline across repos with AI-authored commit detection |
-| **Timeline** | Workspace lifecycle events (process start/stop) |
-| **Logs** | Live log file streaming |
+## Core Capabilities
 
-## Key Features
+- **Overview page** surfaces health, hotspots, active workspaces, notifications, and the command center
+- **Agents page** tracks active agent processes, cadence, and coordination load
+- **Systems page** exposes ports, network traffic, platform telemetry, and security tools
+- **AI page** centralizes LM Studio health, briefing requests, Yennefer invocation, and repair actions
+- **Activity page** keeps timeline, logs, and historical events separated from the main operational flow
+- **SQLite persistence** stores snapshots, alerts, briefings, notifications, and Yennefer history locally
 
-- **Local AI briefings** — LM Studio integration at configurable URL (default `http://localhost:1234`). No cloud API needed. Structured JSON briefings with alerts and suggestions.
-- **Auto-heal engine** — 5 built-in rules with 60s cooldowns: high CPU/memory, process/port disappearance, agent idle detection, RAM climb rate, disk/battery warnings.
-- **Claude Code usage tracking** — Reads `~/.claude/stats-cache.json` for per-model token counts, cost estimates (Opus/Sonnet/Haiku pricing), daily activity sparklines.
-- **System tray** — Color-coded health indicator (green/yellow/red) in the menu bar.
-- **SQLite persistence** — Snapshots, alerts, briefings, notifications stored locally.
-- **Late-night awareness** — Suppresses non-critical alerts between midnight and 6am.
+## Local AI Workflow
+
+Hydra uses LM Studio as a local OpenAI-compatible endpoint. No cloud inference is required for briefings.
+
+- Default target: `http://localhost:1234`
+- Configurable via `~/.config/hydra/config.json`
+- Overrideable in local development with `.env`
+- `Invoke Repair` probes configured, local, and LAN-discovered endpoints and persists a repaired URL when Hydra finds a healthy LM Studio server
+
+For cross-machine setups, enable LM Studio network serving on the host machine and make sure the chosen port is reachable through the host firewall.
 
 ## Stack
 
-Electron 35 · React 18 · TypeScript · Tailwind 4 · Zustand · SQLite (better-sqlite3) · Vite (electron-vite) · Vitest
+Electron 35 · React 18 · TypeScript · Tailwind 4 · Zustand · SQLite (`better-sqlite3`) · Vite (`electron-vite`) · Vitest
+
+Electron remains the pragmatic cross-OS shell here because Hydra depends on desktop IPC, tray integration, local process inspection, filesystem access, and machine-adjacent monitoring.
 
 ## Getting Started
 
@@ -50,54 +52,43 @@ npm run dev
 
 Requires Node.js 18+.
 
-For a global `hydra` command, put a launcher script in your PATH:
-
-```bash
-#!/bin/bash
-cd /path/to/hydra && npm run dev &>/dev/null & disown
-echo "HYDRA launched."
-```
-
 ## Configuration
 
 Config file: `~/.config/hydra/config.json`
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `lmStudioUrl` | `http://localhost:1234` | LM Studio server URL for AI briefings |
+| `lmStudioUrl` | `http://localhost:1234` | LM Studio server URL for briefings and Yennefer |
+| `yenneferStyle` | `adaptive` | Controls Yennefer tone and creativity |
 | `gitRepoPaths` | `[]` | Paths to monitor for git status |
-| `monitorInterval` | `2000` | Monitor polling interval (ms) |
-| `staffBinPath` | auto-detected | Path to `staff` binary for security scans |
+| `monitorInterval` | `2000` | Monitor polling interval in milliseconds |
+| `staffBinPath` | auto-detected | Path to the `staff` binary for security scans |
 
-No API keys required — AI briefings use a local LM Studio server. If `lmStudioUrl` is wrong or the server moves to a different IP, briefings will fail silently with "LM Studio offline." Update the config file or check `http://<your-ip>:1234/v1/models` to verify.
-
-## Local Configuration
-
-Override defaults with a `.env` file (gitignored, never committed):
+Optional local override:
 
 ```bash
 cp .env.example .env
-# Edit .env with your values:
-LM_STUDIO_URL=http://[your-lm-studio-host]:1234
+# Example:
+LM_STUDIO_URL=http://192.168.7.200:1234
 ```
-
-The `.env` file sets `LM_STUDIO_URL` for the AI briefing engine. The default (`http://localhost:1234`) works when LM Studio runs on the same machine. If your LM Studio server is on another host, set the URL in `.env`.
-
-The active URL is shown in the briefing panel (below the Request Briefing button) so you can verify the connection target at a glance.
 
 ## Testing
 
 ```bash
-npx vitest --run     # 162 tests
-npx vitest --watch   # watch mode
+npm run typecheck
+npm test
 ```
 
-Tests cover all monitor parsers (empty output, malformed data, header-only), auto-heal rules, briefing response parsing (including markdown fence stripping), cost estimation, and health scoring.
+Useful targeted checks:
+
+```bash
+npm test -- yennefer briefing lmstudio
+```
 
 ## Platform Support
 
-- **macOS** — Full support. All monitors functional.
-- **Linux/Windows** — Platform guards in place, monitors return empty data. Contributions welcome.
+- **macOS**: primary supported platform
+- **Windows/Linux**: supported for remote LM Studio and guarded monitor paths; some local monitor integrations remain macOS-first
 
 ## License
 

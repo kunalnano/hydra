@@ -3,16 +3,104 @@ import { join } from 'path'
 import { homedir, tmpdir } from 'os'
 import { writeFileSync, unlinkSync } from 'fs'
 import { spawn } from 'child_process'
-import type { SystemState, BriefingResult } from '../../shared/types'
+import type { SystemState, BriefingResult, YenneferStyle } from '../../shared/types'
 import { buildBriefingPrompt } from './briefing'
 import { healLmStudioConnection, isLmStudioConnectivityError } from './lmstudio'
+import { loadConfig } from '../config'
+import { getRecentBriefings } from '../db/queries'
 
-const YENNEFER_SYSTEM_PROMPT =
-  'You are Yennefer of Vengerberg. Brilliant, sardonic, and intolerant of ' +
-  'mediocrity. You are analyzing a developer\'s workstation. Be concise, ' +
-  'withering when warranted, and deliver your assessment like you\'re doing ' +
-  'them a favor by bothering at all. Two to three sentences maximum. No ' +
-  'markdown. No bullet points. Speak in plain sentences.'
+const YENNEFER_STYLE_GUIDANCE: Record<YenneferStyle, string> = {
+  adaptive:
+    'Stay sharp, but calibrate your severity to actual pressure. Avoid repeating the obvious. If the workstation is coping, offer a fresh optimization or coordination idea instead of scolding.',
+  creative:
+    'Be more inventive and surprising with your phrasing, but remain useful. Prefer a novel angle, an unexpected optimization, or a sharper systems insight over the same old warning.',
+  strict:
+    'Be stern and exacting. Call out real inefficiency quickly, but still avoid repeating yourself unless the situation has materially worsened.'
+}
+
+function getYenneferStyle(): YenneferStyle {
+  return loadConfig().yenneferStyle || 'adaptive'
+}
+
+function getRecentBriefingSummaries(limit = 3): string[] {
+  try {
+    return getRecentBriefings(limit)
+      .map((entry) => entry.summary.trim().replace(/\s+/g, ' '))
+      .filter((summary) => summary.length > 0)
+      .slice(0, limit)
+      .map((summary) => summary.slice(0, 180))
+  } catch {
+    return []
+  }
+}
+
+function getWorkloadContext(state: SystemState): string[] {
+  const notes: string[] = []
+  const agentCount = state.agents.length
+
+  if (agentCount >= 3 && state.cpu.usage < 65 && state.memory.usagePercent < 88) {
+    notes.push(
+      `There are ${agentCount} active agents, but the machine is still coping. Treat that as intentional swarm work unless another signal is genuinely degraded.`
+    )
+  } else if (agentCount >= 3) {
+    notes.push(
+      `There are ${agentCount} active agents. Focus on coordination, batching, or model placement if resource pressure is real.`
+    )
+  }
+
+  if (state.cpu.usage < 50) {
+    notes.push('CPU is only moderate. Do not pretend CPU is the primary crisis unless another signal supports it.')
+  } else if (state.cpu.usage >= 80) {
+    notes.push('CPU pressure is genuinely notable. Prioritize it if it is constraining the session.')
+  }
+
+  if (state.memory.usagePercent >= 85) {
+    notes.push('Memory pressure is the most plausible constraint. Prefer memory-reduction tactics over generic complaints.')
+  } else if (state.memory.usagePercent >= 70) {
+    notes.push('Memory is elevated but not yet catastrophic. Suggest one practical memory optimization instead of doom.')
+  }
+
+  if (state.gitRepos.some((repo) => repo.dirty)) {
+    notes.push('Dirty repos are context, not automatically a problem. Mention them only if they create real operational risk.')
+  }
+
+  return notes
+}
+
+export function buildYenneferSystemPrompt(state: SystemState, style: YenneferStyle): string {
+  const recentSummaries = getRecentBriefingSummaries()
+  const recentContext =
+    recentSummaries.length > 0
+      ? `Recent outputs to avoid rehashing unless conditions materially changed:\n- ${recentSummaries.join('\n- ')}`
+      : ''
+
+  const workloadContext = getWorkloadContext(state)
+
+  return [
+    'You are Yennefer of Vengerberg. Brilliant, sardonic, and incisive.',
+    'You are analyzing a developer workstation and should sound like an elite operator, not a dashboard parser.',
+    YENNEFER_STYLE_GUIDANCE[style],
+    'Respond in two to four plain sentences. No markdown. No bullet points.',
+    'Make one primary judgment, one secondary observation at most, and end with one concrete next move.',
+    'If the same issue keeps recurring, only bring it up again if it worsened or if you have a genuinely different prescription.',
+    'If multi-agent load is intentional and the machine is coping, treat it as normal and recommend a smarter operating pattern instead of acting scandalized.',
+    workloadContext.length > 0 ? `Operational context:\n- ${workloadContext.join('\n- ')}` : '',
+    recentContext
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+function getYenneferTemperature(style: YenneferStyle): number {
+  switch (style) {
+    case 'creative':
+      return 1
+    case 'strict':
+      return 0.55
+    default:
+      return 0.8
+  }
+}
 
 interface ElevenLabsConfig {
   apiKey: string
@@ -92,6 +180,7 @@ async function speakWithElevenLabs(text: string, config: ElevenLabsConfig): Prom
 
 export async function invokeYennefer(state: SystemState): Promise<BriefingResult> {
   const prompt = buildBriefingPrompt(state)
+  const yenneferStyle = getYenneferStyle()
   const connection = await healLmStudioConnection({ persist: true })
 
   if (!connection.success || !connection.url) {
@@ -120,11 +209,11 @@ export async function invokeYennefer(state: SystemState): Promise<BriefingResult
       body: JSON.stringify({
         model: connection.model || 'local-model',
         messages: [
-          { role: 'system', content: YENNEFER_SYSTEM_PROMPT },
+          { role: 'system', content: buildYenneferSystemPrompt(state, yenneferStyle) },
           { role: 'user', content: prompt }
         ],
         max_tokens: 256,
-        temperature: 0.7
+        temperature: getYenneferTemperature(yenneferStyle)
       }),
       signal: controller.signal
     })

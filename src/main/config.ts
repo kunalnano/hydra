@@ -9,7 +9,8 @@ const CONFIG_FILE = 'config.json'
 const DEFAULT_CONFIG: HydraConfig = {
   gitRepoPaths: [],
   monitorInterval: 2000,
-  snapshotInterval: 30000
+  snapshotInterval: 30000,
+  yenneferStyle: 'adaptive'
 }
 
 export function getConfigPath(): string {

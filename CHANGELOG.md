@@ -1,5 +1,23 @@
 # Changelog
 
+## v2.0.0 — 2026-03-15
+
+### Product
+- Rebuilt Hydra around dedicated pages for `Overview`, `Workspaces`, `Agents`, `Systems`, `AI`, and `Activity` instead of a single dense dashboard
+- Added a persistent navigation shell with global status, health scorecards, and faster drill-down between operational views
+
+### AI
+- Added `Yennefer Lens` modes (`adaptive`, `creative`, `strict`) so operator tone can match the session
+- Reduced repetitive Yennefer critiques by incorporating recent briefing history and multi-agent-aware workload context
+- Persisted Yennefer responses into briefing history so later prompts can avoid re-adjudicating the same state
+
+### Reliability
+- Preserved the LM Studio self-heal flow, including LAN repair support for remote Windows GPU hosts running LM Studio
+- Improved renderer efficiency by mounting only the active page and allowing scorecards to wrap instead of compressing into a single strip
+
+### Docs
+- Refreshed the README for the v2 shell and added current screenshots for the `Overview` and `AI` pages
+
 ## v1.1.1 — 2026-03-15
 
 ### Reliability
