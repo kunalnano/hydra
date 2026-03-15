@@ -572,7 +572,7 @@ function NavBadge({ pageId }: { pageId: HydraPageId }): JSX.Element {
       badge = `${state.gitRepos.length}`
       break
     case 'agents':
-      badge = `${state.agents.filter((agent) => agent.status === 'waiting').length}`
+      badge = `${state.agents.length}`
       break
     case 'systems':
       badge = `${state.ports.filter((port) => port.state === 'LISTEN').length}`
