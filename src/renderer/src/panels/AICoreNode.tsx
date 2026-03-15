@@ -300,9 +300,9 @@ export function AICoreNode({
   }
 
   return (
-    <div className={`space-y-4 rounded-[28px] border ${theme.border} bg-gradient-to-br ${theme.shell} p-4 shadow-[0_18px_60px_rgba(0,0,0,0.32)]`}>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.72fr)]">
-        <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/28 p-4">
+    <div className={`flex h-full flex-col gap-4 rounded-[28px] border ${theme.border} bg-gradient-to-br ${theme.shell} p-4 shadow-[0_18px_60px_rgba(0,0,0,0.32)]`}>
+      <div className="flex-1 min-h-0 grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.72fr)]">
+        <div className="relative flex flex-col overflow-hidden rounded-[24px] border border-white/10 bg-black/28 p-4">
           <div className="absolute inset-0 opacity-28" style={{
             backgroundImage: 'linear-gradient(rgba(121,168,201,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(121,168,201,0.1) 1px, transparent 1px)',
             backgroundSize: '34px 34px'
@@ -323,15 +323,14 @@ export function AICoreNode({
             </div>
           </div>
 
-          {/* Sphere container with inset for overlays */}
-          <div className="relative mt-4">
+          {/* Sphere container: fills remaining height */}
+          <div className="relative mt-4 flex-1 min-h-0">
             <div ref={sphereRef} onPointerMove={handlePointerMove} onPointerLeave={handlePointerLeave}
-              className="relative transition-transform duration-200 ease-out"
+              className="relative h-full transition-transform duration-200 ease-out"
               style={{ transform: 'perspective(1400px) rotateX(0deg) rotateY(0deg) scale(1)' }}>
               <div onClick={disabled ? undefined : onInvokeYennefer}
                 role="button" tabIndex={disabled ? -1 : 0}
-                className={`group relative w-full overflow-hidden rounded-[22px] border border-white/10 bg-black/18 transition-all ${disabled ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-white/20'}`}
-                style={{ paddingTop: '49%' }}>
+                className={`group relative h-full w-full overflow-hidden rounded-[22px] border border-white/10 bg-black/18 transition-all ${disabled ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-white/20'}`}>
                 <svg className="absolute inset-0 h-full w-full" viewBox="0 0 792 388" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
                   <defs>
                     <clipPath id={clipId}>
