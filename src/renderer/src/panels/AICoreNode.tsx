@@ -12,6 +12,7 @@ export type AICoreMode =
 
 interface AICoreNodeProps {
   mode: AICoreMode
+  mono?: boolean
   activeAgents: number
   totalAgents: number
   cpuUsage: number
@@ -23,6 +24,7 @@ interface AICoreNodeProps {
   onInvokeYennefer: () => void
   onRequestBriefing: () => void
   onRepair: () => void
+  onToggleMono?: () => void
 }
 
 const MODE_THEME: Record<
@@ -107,7 +109,7 @@ const MODE_THEME: Record<
   }
 }
 
-// Google colors
+// Google colors (chromatic mode)
 const GCOLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
 const G_GLOW = [
   'rgba(66,133,244,0.4)',
@@ -116,16 +118,27 @@ const G_GLOW = [
   'rgba(52,168,83,0.4)'
 ]
 
+// Monochrome palette: silver-white tones at varying brightness
+const MONO_COLORS = ['#e8e8e8', '#c0c0c0', '#f5f5f5', '#d4d4d4']
+const MONO_GLOW = [
+  'rgba(232,232,232,0.35)',
+  'rgba(192,192,192,0.35)',
+  'rgba(245,245,245,0.35)',
+  'rgba(212,212,212,0.35)'
+]
+
 /** Deterministic pseudo-random 0-1 from index + seed */
 function prand(index: number, seed: number): number {
   return (((index * 2654435761 + seed * 340573) >>> 0) % 10000) / 10000
 }
 
 /** Per-node twinkle parameters: like stars in a night sky */
-function nodeTwinkle(index: number) {
+function nodeTwinkle(index: number, mono: boolean) {
+  const colors = mono ? MONO_COLORS : GCOLORS
+  const glows = mono ? MONO_GLOW : G_GLOW
   const colorOffset = ((index * 7 + 3) % 4)
-  const shifted = [...GCOLORS.slice(colorOffset), ...GCOLORS.slice(0, colorOffset)]
-  const shiftedGlow = [...G_GLOW.slice(colorOffset), ...G_GLOW.slice(0, colorOffset)]
+  const shifted = [...colors.slice(colorOffset), ...colors.slice(0, colorOffset)]
+  const shiftedGlow = [...glows.slice(colorOffset), ...glows.slice(0, colorOffset)]
 
   // Color cycle duration: 1.6-3.8s, each node different
   const colorDur = 1600 + Math.round(prand(index, 1) * 2200)
@@ -164,8 +177,8 @@ function nodeTwinkle(index: number) {
     rMax,
     beginOffset,
     isBright,
-    startColor: GCOLORS[colorOffset],
-    startGlow: G_GLOW[colorOffset]
+    startColor: colors[colorOffset],
+    startGlow: glows[colorOffset]
   }
 }
 
@@ -216,9 +229,9 @@ function ActionNode({ label, detail, accent, disabled, onClick }: {
 }
 
 export function AICoreNode({
-  mode, activeAgents, totalAgents, cpuUsage, memoryUsage, listenerCount,
+  mode, mono = false, activeAgents, totalAgents, cpuUsage, memoryUsage, listenerCount,
   yenneferStyle, lmStudioUrl, disabled,
-  onInvokeYennefer, onRequestBriefing, onRepair
+  onInvokeYennefer, onRequestBriefing, onRepair, onToggleMono
 }: AICoreNodeProps): JSX.Element {
   const theme = MODE_THEME[mode]
   const sphereRef = useRef<HTMLDivElement | null>(null)
@@ -341,7 +354,7 @@ export function AICoreNode({
 
                       {/* Night-sky nodes: independent twinkling in Google colors */}
                       {GLOBE_NODES.map((node, i) => {
-                        const t = nodeTwinkle(i)
+                        const t = nodeTwinkle(i, mono)
                         return (
                           <g key={`gn-${i}`}>
                             {/* Core dot: color-cycling, size-pulsing, opacity-twinkling */}
@@ -386,8 +399,20 @@ export function AICoreNode({
                 <div className="absolute left-6 top-6 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-gray-300">
                   Wireframe Intelligence
                 </div>
-                <div className="absolute right-6 top-6 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-gray-300">
-                  live // contained
+                <div className="absolute right-6 top-6 flex items-center gap-2">
+                  {onToggleMono && (
+                    <button type="button" onClick={(e) => { e.stopPropagation(); onToggleMono() }}
+                      className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] transition-colors ${
+                        mono
+                          ? 'border-white/25 bg-white/15 text-white'
+                          : 'border-white/10 bg-black/45 text-gray-400 hover:text-gray-200'
+                      }`}>
+                      {mono ? 'mono' : 'color'}
+                    </button>
+                  )}
+                  <div className="rounded-full border border-white/10 bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-gray-300">
+                    live // contained
+                  </div>
                 </div>
                 <div className="absolute bottom-5 left-6 flex items-center gap-2">
                   <span className={`h-2.5 w-2.5 rounded-full ${theme.text} bg-current shadow-[0_0_18px_currentColor]`} />
