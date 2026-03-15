@@ -1,14 +1,6 @@
 import { useId, useRef } from 'react'
 import type { YenneferStyle } from '../../../shared/types'
-import {
-  SPHERE,
-  MERIDIAN_RX,
-  LATITUDE_RY,
-  NUM_LONGITUDES,
-  LONGITUDE_LINES,
-  GLOBE_NODES,
-  DUST_POINTS
-} from './globe-data'
+import { SPHERE, MERIDIAN_RX, LATITUDE_RY, GLOBE_NODES, DUST_POINTS } from './globe-data'
 
 export type AICoreMode =
   | 'idle'
@@ -43,9 +35,7 @@ const MODE_THEME: Record<
     text: string
     meshStroke: string
     meshDim: string
-    nodeFill: string
     hullFill: string
-    beam: string
     glow: string
   }
 > = {
@@ -57,23 +47,18 @@ const MODE_THEME: Record<
     text: 'text-cyan-100',
     meshStroke: 'rgba(179,243,255,0.7)',
     meshDim: 'rgba(86,165,194,0.2)',
-    nodeFill: 'rgba(242,253,255,0.96)',
     hullFill: 'rgba(38,167,196,0.12)',
-    beam: 'rgba(224,248,255,0.22)',
     glow: 'rgba(59,204,255,0.3)'
   },
   thinking: {
     label: 'Hydra Thinking',
-    detail:
-      'The wireframe is tightening around active context while Yennefer resolves the next read.',
+    detail: 'The wireframe is tightening around active context while Yennefer resolves the next read.',
     shell: 'from-[#100b25] via-[#0c1831] to-[#050912]',
     border: 'border-violet-300/32',
     text: 'text-violet-100',
     meshStroke: 'rgba(220,195,255,0.76)',
     meshDim: 'rgba(139,106,212,0.22)',
-    nodeFill: 'rgba(247,235,255,0.96)',
     hullFill: 'rgba(128,87,247,0.12)',
-    beam: 'rgba(247,227,255,0.22)',
     glow: 'rgba(167,139,250,0.32)'
   },
   speaking: {
@@ -84,9 +69,7 @@ const MODE_THEME: Record<
     text: 'text-emerald-100',
     meshStroke: 'rgba(190,255,234,0.74)',
     meshDim: 'rgba(63,186,147,0.2)',
-    nodeFill: 'rgba(239,255,248,0.96)',
     hullFill: 'rgba(42,176,136,0.12)',
-    beam: 'rgba(228,255,245,0.2)',
     glow: 'rgba(52,211,153,0.3)'
   },
   repairing: {
@@ -97,9 +80,7 @@ const MODE_THEME: Record<
     text: 'text-amber-100',
     meshStroke: 'rgba(255,228,183,0.76)',
     meshDim: 'rgba(202,147,66,0.2)',
-    nodeFill: 'rgba(255,248,235,0.98)',
     hullFill: 'rgba(213,138,48,0.12)',
-    beam: 'rgba(255,244,214,0.22)',
     glow: 'rgba(245,158,11,0.3)'
   },
   offline: {
@@ -110,87 +91,103 @@ const MODE_THEME: Record<
     text: 'text-rose-100',
     meshStroke: 'rgba(255,193,214,0.72)',
     meshDim: 'rgba(212,92,132,0.2)',
-    nodeFill: 'rgba(255,239,244,0.96)',
     hullFill: 'rgba(225,79,129,0.12)',
-    beam: 'rgba(255,230,237,0.18)',
     glow: 'rgba(251,113,133,0.3)'
   },
   throughput: {
     label: 'Throughput Mode',
-    detail:
-      'The sphere is intentionally saturated. Density is a feature until the lattice starts to choke.',
+    detail: 'The sphere is intentionally saturated. Density is a feature until the lattice starts to choke.',
     shell: 'from-[#061915] via-[#0a2130] to-[#050b10]',
     border: 'border-teal-300/32',
     text: 'text-teal-100',
     meshStroke: 'rgba(185,255,245,0.76)',
     meshDim: 'rgba(71,182,171,0.2)',
-    nodeFill: 'rgba(237,255,252,0.98)',
     hullFill: 'rgba(32,168,154,0.12)',
-    beam: 'rgba(225,255,249,0.22)',
     glow: 'rgba(45,212,191,0.3)'
   }
 }
 
-// Google colors for neural weight activation effect
-const G_BLUE = '#4285F4'
-const G_RED = '#EA4335'
-const G_YELLOW = '#FBBC05'
-const G_GREEN = '#34A853'
-const GCOLORS = [G_BLUE, G_RED, G_YELLOW, G_GREEN]
-
-// Softer versions for glow halos
+// Google colors
+const GCOLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
 const G_GLOW = [
-  'rgba(66,133,244,0.35)',
-  'rgba(234,67,53,0.35)',
-  'rgba(251,188,5,0.35)',
-  'rgba(52,168,83,0.35)'
+  'rgba(66,133,244,0.4)',
+  'rgba(234,67,53,0.4)',
+  'rgba(251,188,5,0.4)',
+  'rgba(52,168,83,0.4)'
 ]
 
-/** Each node gets a unique color rotation offset + cycle duration */
-function nodeColorCycle(index: number): { fills: string; glows: string; dur: number } {
-  const offset = ((index * 7 + 3) % 4)
-  const shifted = [...GCOLORS.slice(offset), ...GCOLORS.slice(0, offset)]
-  const shiftedGlow = [...G_GLOW.slice(offset), ...G_GLOW.slice(0, offset)]
-  // Vary cycle duration so nodes drift out of phase (1800-3600ms)
-  const dur = 1800 + ((index * 131) % 1800)
+/** Deterministic pseudo-random 0-1 from index + seed */
+function prand(index: number, seed: number): number {
+  return (((index * 2654435761 + seed * 340573) >>> 0) % 10000) / 10000
+}
+
+/** Per-node twinkle parameters: like stars in a night sky */
+function nodeTwinkle(index: number) {
+  const colorOffset = ((index * 7 + 3) % 4)
+  const shifted = [...GCOLORS.slice(colorOffset), ...GCOLORS.slice(0, colorOffset)]
+  const shiftedGlow = [...G_GLOW.slice(colorOffset), ...G_GLOW.slice(0, colorOffset)]
+
+  // Color cycle duration: 1.6-3.8s, each node different
+  const colorDur = 1600 + Math.round(prand(index, 1) * 2200)
+
+  // Twinkle (opacity) duration: 0.8-3.5s
+  const twinkleDur = 800 + Math.round(prand(index, 2) * 2700)
+
+  // Size pulse duration: 1.2-4.0s
+  const sizeDur = 1200 + Math.round(prand(index, 3) * 2800)
+
+  // Base radius: most nodes small, some randomly bigger
+  const isBright = prand(index, 4) > 0.72
+  const baseR = isBright ? 2.8 + prand(index, 5) * 1.8 : 1.6 + prand(index, 6) * 1.2
+
+  // Twinkle amplitude: how much opacity varies
+  const dimFloor = isBright ? 0.35 : 0.08
+  const brightCeil = isBright ? 0.95 : 0.55
+
+  // Size pulse amplitude
+  const rMin = baseR * 0.7
+  const rMax = baseR * (isBright ? 1.8 : 1.3)
+
+  // Stagger begin so nodes don't sync up
+  const beginOffset = Math.round(prand(index, 7) * 3000)
+
   return {
     fills: shifted.join(';') + ';' + shifted[0],
     glows: shiftedGlow.join(';') + ';' + shiftedGlow[0],
-    dur
+    colorDur,
+    twinkleDur,
+    sizeDur,
+    baseR,
+    dimFloor,
+    brightCeil,
+    rMin,
+    rMax,
+    beginOffset,
+    isBright,
+    startColor: GCOLORS[colorOffset],
+    startGlow: G_GLOW[colorOffset]
   }
 }
 
-function getSweepMs(mode: AICoreMode, liveFactor: number): number {
-  const base: Record<AICoreMode, number> = {
-    idle: 4200,
-    thinking: 2800,
-    speaking: 3400,
-    repairing: 2400,
-    offline: 6000,
-    throughput: 2000
-  }
-  return Math.max(1400, Math.round(base[mode] - liveFactor * 180))
-}
-
-function getBaseMotionProfile(mode: AICoreMode) {
+function getMotionProfile(mode: AICoreMode) {
   switch (mode) {
     case 'thinking':
-      return { pulseMs: 1400, scanMs: 3100, shimmerMs: 1900, driftMs: 8800 }
+      return { pulseMs: 1400, shimmerMs: 1900, driftMs: 8800 }
     case 'repairing':
-      return { pulseMs: 1500, scanMs: 2600, shimmerMs: 1700, driftMs: 8200 }
+      return { pulseMs: 1500, shimmerMs: 1700, driftMs: 8200 }
     case 'speaking':
-      return { pulseMs: 1700, scanMs: 3400, shimmerMs: 2100, driftMs: 9600 }
+      return { pulseMs: 1700, shimmerMs: 2100, driftMs: 9600 }
     case 'offline':
-      return { pulseMs: 2400, scanMs: 4400, shimmerMs: 2500, driftMs: 11200 }
+      return { pulseMs: 2400, shimmerMs: 2500, driftMs: 11200 }
     case 'throughput':
-      return { pulseMs: 1300, scanMs: 2300, shimmerMs: 1600, driftMs: 7200 }
+      return { pulseMs: 1300, shimmerMs: 1600, driftMs: 7200 }
     default:
-      return { pulseMs: 1800, scanMs: 3600, shimmerMs: 2200, driftMs: 10400 }
+      return { pulseMs: 1800, shimmerMs: 2200, driftMs: 10400 }
   }
 }
 
-function titleCase(value: string): string {
-  return value[0].toUpperCase() + value.slice(1)
+function titleCase(v: string): string {
+  return v[0].toUpperCase() + v.slice(1)
 }
 
 function MetricPill({ label, value, emphasis = false }: {
@@ -228,18 +225,15 @@ export function AICoreNode({
   const uid = useId().replace(/:/g, '')
   const clipId = `hydra-clip-${uid}`
   const glowId = `hydra-glow-${uid}`
-  const sweepGradId = `hydra-sweep-${uid}`
   const hullId = `hydra-hull-${uid}`
   const endpoint = lmStudioUrl.replace(/^https?:\/\//, '')
 
   const liveFactor =
     activeAgents * 0.55 + Math.max(0, memoryUsage - 70) * 0.08 + Math.max(0, cpuUsage - 40) * 0.05
-  const baseMotion = getBaseMotionProfile(mode)
-  const pulseMs = Math.max(880, Math.round(baseMotion.pulseMs - liveFactor * 120))
-  const scanMs = Math.max(1600, Math.round(baseMotion.scanMs - liveFactor * 85))
-  const shimmerMs = Math.max(1100, Math.round(baseMotion.shimmerMs - liveFactor * 70))
-  const driftMs = Math.max(4800, Math.round(baseMotion.driftMs - liveFactor * 140))
-  const sweepMs = getSweepMs(mode, liveFactor)
+  const motion = getMotionProfile(mode)
+  const pulseMs = Math.max(880, Math.round(motion.pulseMs - liveFactor * 120))
+  const shimmerMs = Math.max(1100, Math.round(motion.shimmerMs - liveFactor * 70))
+  const driftMs = Math.max(4800, Math.round(motion.driftMs - liveFactor * 140))
 
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>): void {
     const el = sphereRef.current
@@ -255,28 +249,16 @@ export function AICoreNode({
     if (el) el.style.transform = 'perspective(1400px) rotateX(0deg) rotateY(0deg) scale(1)'
   }
 
-  // Sweep timing: each longitude flashes briefly within a full sweepMs cycle.
-  // All animations share dur=sweepMs. The flash is positioned via begin delay,
-  // and the values pulse at the start of each instance's cycle.
-  const flashOn = '0;0.06;0.18;1'
-
   return (
     <div className={`space-y-4 rounded-[28px] border ${theme.border} bg-gradient-to-br ${theme.shell} p-4 shadow-[0_18px_60px_rgba(0,0,0,0.32)]`}>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.72fr)]">
-        {/* Sphere viewport */}
         <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/28 p-4">
-          {/* Background grid texture */}
           <div className="absolute inset-0 opacity-28" style={{
             backgroundImage: 'linear-gradient(rgba(121,168,201,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(121,168,201,0.1) 1px, transparent 1px)',
             backgroundSize: '34px 34px'
           }} />
           <div className="absolute inset-0 opacity-55" style={{
             backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0) 24%, rgba(255,255,255,0.04) 68%, rgba(255,255,255,0))'
-          }} />
-          {/* Scan sweep beam */}
-          <div className="absolute -left-20 top-[-14%] h-[150%] w-24 rotate-[16deg] blur-xl" style={{
-            background: `linear-gradient(90deg, rgba(255,255,255,0) 0%, ${theme.beam} 48%, rgba(255,255,255,0) 100%)`,
-            animation: `hydra-scan-sweep ${scanMs}ms linear infinite`
           }} />
 
           <div className="relative flex items-start justify-between gap-4">
@@ -306,11 +288,6 @@ export function AICoreNode({
                       <stop offset="62%" stopColor="rgba(255,255,255,0.05)" />
                       <stop offset="100%" stopColor="rgba(255,255,255,0)" />
                     </radialGradient>
-                    <linearGradient id={sweepGradId} x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="rgba(255,255,255,0)" />
-                      <stop offset="48%" stopColor={theme.beam} />
-                      <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-                    </linearGradient>
                     <linearGradient id={hullId} x1="24%" y1="24%" x2="82%" y2="76%">
                       <stop offset="0%" stopColor={theme.hullFill} />
                       <stop offset="100%" stopColor="rgba(255,255,255,0)" />
@@ -323,24 +300,26 @@ export function AICoreNode({
                     <rect x={SPHERE.cx - SPHERE.r} y={SPHERE.cy - SPHERE.r}
                       width={SPHERE.r * 2} height={SPHERE.r * 2} fill="rgba(4,10,18,0.28)" />
 
-                    {/* Wireframe: meridian + latitude ellipses */}
-                    <g opacity="0.52">
+                    {/* Wireframe: meridians + latitudes */}
+                    <g opacity="0.44">
                       {MERIDIAN_RX.map((rx, i) => (
                         <ellipse key={`m-${rx}`} cx={SPHERE.cx} cy={SPHERE.cy}
                           rx={Math.max(22, rx)} ry={SPHERE.r}
-                          fill="none" stroke={theme.meshDim} strokeWidth={i % 2 === 0 ? 1 : 0.8} />
+                          fill="none" stroke={theme.meshDim} strokeWidth={i % 2 === 0 ? 0.9 : 0.6} />
                       ))}
                       {LATITUDE_RY.map((ry, i) => (
                         <ellipse key={`l-${ry}`} cx={SPHERE.cx} cy={SPHERE.cy}
                           rx={SPHERE.r} ry={ry}
-                          fill="none" stroke={theme.meshDim} strokeWidth={i % 2 === 0 ? 1 : 0.8} />
+                          fill="none" stroke={theme.meshDim} strokeWidth={i % 2 === 0 ? 0.9 : 0.6} />
                       ))}
-                      <ellipse cx={SPHERE.cx} cy={SPHERE.cy} rx={SPHERE.r} ry={SPHERE.r * 0.92}
-                        fill="none" stroke={theme.meshDim} strokeWidth="1.2" opacity="0.7" />
                     </g>
 
+                    {/* Equator: prominent horizontal band */}
+                    <line x1={SPHERE.cx - SPHERE.r} y1={SPHERE.cy} x2={SPHERE.cx + SPHERE.r} y2={SPHERE.cy}
+                      stroke={theme.meshStroke} strokeWidth="1.2" opacity="0.5" />
+
                     {/* Mesh group with drift + breathing */}
-                    <g opacity="0.85">
+                    <g opacity="0.9">
                       <animateTransform attributeName="transform" type="translate"
                         values="0 0;5 -3;0 0;-4 2;0 0" dur={`${driftMs}ms`} repeatCount="indefinite" />
                       <animateTransform additive="sum" attributeName="transform" type="scale"
@@ -360,62 +339,36 @@ export function AICoreNode({
                         </circle>
                       ))}
 
-                      {/* Longitude scan lines: dim base + sweep highlight */}
-                      {LONGITUDE_LINES.map((lon) => {
-                        const delay = Math.round((lon.index / NUM_LONGITUDES) * sweepMs)
-                        return (
-                          <g key={`lon-${lon.index}`}>
-                            <line x1={lon.x} y1={lon.yTop} x2={lon.x} y2={lon.yBot}
-                              stroke={theme.meshDim} strokeWidth="0.6" opacity="0.35" />
-                            <line x1={lon.x} y1={lon.yTop} x2={lon.x} y2={lon.yBot}
-                              stroke={theme.meshStroke} strokeWidth="1.6" opacity="0">
-                              <animate attributeName="opacity" values={`0.85;0.85;0;0`}
-                                keyTimes={flashOn} dur={`${sweepMs}ms`} begin={`${delay}ms`} repeatCount="indefinite" />
-                            </line>
-                          </g>
-                        )
-                      })}
-
-                      {/* Globe nodes: Google-colored neural activations */}
+                      {/* Night-sky nodes: independent twinkling in Google colors */}
                       {GLOBE_NODES.map((node, i) => {
-                        const sweepDelay = Math.round((node.lonIndex / NUM_LONGITUDES) * sweepMs)
-                        const cc = nodeColorCycle(i)
+                        const t = nodeTwinkle(i)
                         return (
                           <g key={`gn-${i}`}>
-                            {/* Dim base dot, color-cycling even at rest */}
-                            <circle cx={node.x} cy={node.y} r="2" fill={GCOLORS[i % 4]} opacity="0.22">
-                              <animate attributeName="fill" values={cc.fills}
-                                dur={`${cc.dur}ms`} repeatCount="indefinite" />
+                            {/* Core dot: color-cycling, size-pulsing, opacity-twinkling */}
+                            <circle cx={node.x} cy={node.y} r={t.baseR} fill={t.startColor}
+                              opacity={t.dimFloor}>
+                              <animate attributeName="fill" values={t.fills}
+                                dur={`${t.colorDur}ms`} repeatCount="indefinite" />
+                              <animate attributeName="opacity"
+                                values={`${t.dimFloor};${t.brightCeil};${t.dimFloor}`}
+                                dur={`${t.twinkleDur}ms`} begin={`${t.beginOffset}ms`} repeatCount="indefinite" />
+                              <animate attributeName="r"
+                                values={`${t.rMin};${t.rMax};${t.rMin}`}
+                                dur={`${t.sizeDur}ms`} begin={`${t.beginOffset}ms`} repeatCount="indefinite" />
                             </circle>
-                            {/* Sweep-activated bright dot */}
-                            <circle cx={node.x} cy={node.y} r="2.8" fill={GCOLORS[i % 4]} opacity="0">
-                              <animate attributeName="fill" values={cc.fills}
-                                dur={`${cc.dur}ms`} repeatCount="indefinite" />
-                              <animate attributeName="opacity" values="0.95;0.95;0;0"
-                                keyTimes={flashOn} dur={`${sweepMs}ms`} begin={`${sweepDelay}ms`} repeatCount="indefinite" />
-                              <animate attributeName="r" values="2.8;4.5;2.8;2.8"
-                                keyTimes={flashOn} dur={`${sweepMs}ms`} begin={`${sweepDelay}ms`} repeatCount="indefinite" />
-                            </circle>
-                            {/* Glow halo, color-matched */}
-                            <circle cx={node.x} cy={node.y} r="8" fill={G_GLOW[i % 4]} opacity="0">
-                              <animate attributeName="fill" values={cc.glows}
-                                dur={`${cc.dur}ms`} repeatCount="indefinite" />
-                              <animate attributeName="opacity" values="0.4;0.4;0;0"
-                                keyTimes="0;0.04;0.14;1" dur={`${sweepMs}ms`} begin={`${sweepDelay}ms`} repeatCount="indefinite" />
-                            </circle>
+                            {/* Glow halo for brighter nodes */}
+                            {t.isBright && (
+                              <circle cx={node.x} cy={node.y} r={t.rMax * 2.5} fill={t.startGlow} opacity="0">
+                                <animate attributeName="fill" values={t.glows}
+                                  dur={`${t.colorDur}ms`} repeatCount="indefinite" />
+                                <animate attributeName="opacity" values="0;0.35;0"
+                                  dur={`${t.twinkleDur}ms`} begin={`${t.beginOffset}ms`} repeatCount="indefinite" />
+                              </circle>
+                            )}
                           </g>
                         )
                       })}
-
                     </g>
-
-                    {/* Scan sweep overlay */}
-                    <rect x={SPHERE.cx - SPHERE.r - 50} y={SPHERE.cy - SPHERE.r}
-                      width="70" height={SPHERE.r * 2} fill={`url(#${sweepGradId})`}>
-                      <animate attributeName="x"
-                        values={`${SPHERE.cx - SPHERE.r - 60};${SPHERE.cx + SPHERE.r + 40}`}
-                        dur={`${scanMs}ms`} repeatCount="indefinite" />
-                    </rect>
                   </g>
 
                   {/* Sphere boundary */}
@@ -471,7 +424,6 @@ export function AICoreNode({
         </div>
       </div>
 
-      {/* Actions */}
       <div className="rounded-[24px] border border-white/10 bg-black/25 p-3">
         <div className="grid gap-2 lg:grid-cols-3">
           <ActionNode label="Request Briefing" detail="Run the structured ops pass."
@@ -482,15 +434,6 @@ export function AICoreNode({
             accent="bg-violet-600/20 text-violet-100 hover:bg-violet-500/25" disabled={disabled} onClick={onInvokeYennefer} />
         </div>
       </div>
-
-      <style>{`
-        @keyframes hydra-scan-sweep {
-          0% { transform: translate3d(0, 0, 0); opacity: 0; }
-          8% { opacity: 0.84; }
-          52% { opacity: 0.62; }
-          100% { transform: translate3d(760px, 0, 0); opacity: 0; }
-        }
-      `}</style>
     </div>
   )
 }

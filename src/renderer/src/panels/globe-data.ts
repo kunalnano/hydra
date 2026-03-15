@@ -1,81 +1,77 @@
 /**
  * Globe geometry for the AI Core Lattice.
  *
- * Nodes are placed at the intersections of longitude scan lines and
- * latitude ellipses. The sweep animation highlights one longitude
- * column at a time, left-to-right, creating a spinning-globe effect.
+ * Nodes placed at equator + latitude band intersections with longitude
+ * columns. Slight positional jitter breaks the grid into an organic
+ * star-field pattern.
  */
 
 export const SPHERE = { cx: 396, cy: 194, r: 172 }
 
-/** Meridian ellipse rx values (decorative wireframe structure) */
+/** Meridian ellipse rx values (decorative wireframe) */
 export const MERIDIAN_RX = [26, 52, 78, 104, 130, 156]
 
-/** Latitude ellipse ry values (horizontal bands) */
-export const LATITUDE_RY = [42, 70, 98, 128, 154]
+/** Latitude ellipse ry values (bands above and below equator) */
+export const LATITUDE_RY = [32, 64, 96, 128, 156]
 
-/** Number of evenly-spaced longitude scan columns */
-export const NUM_LONGITUDES = 12
+/** Number of longitude columns */
+export const NUM_LONGITUDES = 14
 
 export interface GlobeNode {
   x: number
   y: number
-  lonIndex: number
 }
 
-export interface LongitudeLine {
-  x: number
-  yTop: number
-  yBot: number
-  index: number
+/** Deterministic jitter from index */
+function jitter(index: number, seed: number): number {
+  return (((index * 2654435761 + seed * 340573) >>> 0) % 1000) / 1000 * 6 - 3
 }
 
-function buildLongitudes(): LongitudeLine[] {
-  const lines: LongitudeLine[] = []
+function round1(n: number): number {
+  return Math.round(n * 10) / 10
+}
+
+function buildNodes(): GlobeNode[] {
+  const nodes: GlobeNode[] = []
   const inset = SPHERE.r * 0.06
-  for (let i = 0; i < NUM_LONGITUDES; i++) {
-    const t = (i + 0.5) / NUM_LONGITUDES
+  let idx = 0
+
+  for (let li = 0; li < NUM_LONGITUDES; li++) {
+    const t = (li + 0.5) / NUM_LONGITUDES
     const x = SPHERE.cx - SPHERE.r + inset + t * (2 * SPHERE.r - 2 * inset)
     const dx = x - SPHERE.cx
-    const h = Math.sqrt(Math.max(0, SPHERE.r ** 2 - dx ** 2))
-    if (h > 8) {
-      lines.push({
-        x: Math.round(x * 10) / 10,
-        yTop: Math.round((SPHERE.cy - h) * 10) / 10,
-        yBot: Math.round((SPHERE.cy + h) * 10) / 10,
-        index: i
-      })
-    }
-  }
-  return lines
-}
-
-function buildNodes(longitudes: LongitudeLine[]): GlobeNode[] {
-  const nodes: GlobeNode[] = []
-  for (const lon of longitudes) {
-    const dx = lon.x - SPHERE.cx
     const sf = Math.sqrt(Math.max(0, 1 - (dx / SPHERE.r) ** 2))
+    if (sf < 0.05) continue
+
+    // Equator node
+    nodes.push({
+      x: round1(x + jitter(idx, 1)),
+      y: round1(SPHERE.cy + jitter(idx, 2))
+    })
+    idx++
+
+    // Latitude band intersections (above + below)
     for (const ry of LATITUDE_RY) {
       const yOff = ry * sf
       if (yOff > 6) {
         nodes.push({
-          x: lon.x,
-          y: Math.round((SPHERE.cy - yOff) * 10) / 10,
-          lonIndex: lon.index
+          x: round1(x + jitter(idx, 3)),
+          y: round1(SPHERE.cy - yOff + jitter(idx, 4))
         })
+        idx++
         nodes.push({
-          x: lon.x,
-          y: Math.round((SPHERE.cy + yOff) * 10) / 10,
-          lonIndex: lon.index
+          x: round1(x + jitter(idx, 5)),
+          y: round1(SPHERE.cy + yOff + jitter(idx, 6))
         })
+        idx++
       }
     }
   }
+
   return nodes
 }
 
-export const LONGITUDE_LINES = buildLongitudes()
-export const GLOBE_NODES = buildNodes(LONGITUDE_LINES)
+export const GLOBE_NODES = buildNodes()
 
 export const DUST_POINTS: Array<[number, number]> = [
   [206, 124], [222, 156], [214, 214], [232, 276], [266, 338],
