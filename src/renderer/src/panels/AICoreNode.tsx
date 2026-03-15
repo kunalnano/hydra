@@ -1,5 +1,11 @@
-import { useId, useRef } from 'react'
-import type { YenneferStyle } from '../../../shared/types'
+import { useId, useMemo, useRef } from 'react'
+import type {
+  YenneferStyle,
+  ProcessGroup,
+  AgentInfo,
+  PortInfo,
+  GitRepoInfo
+} from '../../../shared/types'
 import { SPHERE, MERIDIAN_RX, LATITUDE_RY, GLOBE_NODES, DUST_POINTS } from './globe-data'
 
 export type AICoreMode =
@@ -9,6 +15,16 @@ export type AICoreMode =
   | 'repairing'
   | 'offline'
   | 'throughput'
+
+/** Entity kind determines node color */
+export type EntityKind = 'workspace' | 'agent' | 'port' | 'git' | 'ambient'
+
+interface LatticeEntity {
+  kind: EntityKind
+  name: string
+  /** 0-1 activity level driving brightness/size */
+  activity: number
+}
 
 interface AICoreNodeProps {
   mode: AICoreMode
@@ -21,187 +37,178 @@ interface AICoreNodeProps {
   yenneferStyle: YenneferStyle
   lmStudioUrl: string
   disabled: boolean
+  processes?: ProcessGroup[]
+  agents?: AgentInfo[]
+  ports?: PortInfo[]
+  gitRepos?: GitRepoInfo[]
   onInvokeYennefer: () => void
   onRequestBriefing: () => void
   onRepair: () => void
   onToggleMono?: () => void
 }
 
-const MODE_THEME: Record<
-  AICoreMode,
-  {
-    label: string
-    detail: string
-    shell: string
-    border: string
-    text: string
-    meshStroke: string
-    meshDim: string
-    hullFill: string
-    glow: string
-  }
-> = {
+// ---------------------------------------------------------------------------
+// Theme
+// ---------------------------------------------------------------------------
+
+const MODE_THEME: Record<AICoreMode, {
+  label: string; detail: string; shell: string; border: string; text: string
+  meshStroke: string; meshDim: string; hullFill: string; glow: string
+}> = {
   idle: {
     label: 'Hydra Awake',
     detail: 'The sphere is coherent, quiet, and waiting for the next command.',
     shell: 'from-[#061521] via-[#081d2f] to-[#04080f]',
-    border: 'border-cyan-300/30',
-    text: 'text-cyan-100',
-    meshStroke: 'rgba(179,243,255,0.7)',
-    meshDim: 'rgba(86,165,194,0.2)',
-    hullFill: 'rgba(38,167,196,0.12)',
-    glow: 'rgba(59,204,255,0.3)'
+    border: 'border-cyan-300/30', text: 'text-cyan-100',
+    meshStroke: 'rgba(179,243,255,0.7)', meshDim: 'rgba(86,165,194,0.2)',
+    hullFill: 'rgba(38,167,196,0.12)', glow: 'rgba(59,204,255,0.3)'
   },
   thinking: {
     label: 'Hydra Thinking',
     detail: 'The wireframe is tightening around active context while Yennefer resolves the next read.',
     shell: 'from-[#100b25] via-[#0c1831] to-[#050912]',
-    border: 'border-violet-300/32',
-    text: 'text-violet-100',
-    meshStroke: 'rgba(220,195,255,0.76)',
-    meshDim: 'rgba(139,106,212,0.22)',
-    hullFill: 'rgba(128,87,247,0.12)',
-    glow: 'rgba(167,139,250,0.32)'
+    border: 'border-violet-300/32', text: 'text-violet-100',
+    meshStroke: 'rgba(220,195,255,0.76)', meshDim: 'rgba(139,106,212,0.22)',
+    hullFill: 'rgba(128,87,247,0.12)', glow: 'rgba(167,139,250,0.32)'
   },
   speaking: {
     label: 'Yennefer Channel Open',
     detail: 'Inference has resolved. The sphere brightens because the answer is ready.',
     shell: 'from-[#07191c] via-[#0a2133] to-[#041015]',
-    border: 'border-emerald-300/30',
-    text: 'text-emerald-100',
-    meshStroke: 'rgba(190,255,234,0.74)',
-    meshDim: 'rgba(63,186,147,0.2)',
-    hullFill: 'rgba(42,176,136,0.12)',
-    glow: 'rgba(52,211,153,0.3)'
+    border: 'border-emerald-300/30', text: 'text-emerald-100',
+    meshStroke: 'rgba(190,255,234,0.74)', meshDim: 'rgba(63,186,147,0.2)',
+    hullFill: 'rgba(42,176,136,0.12)', glow: 'rgba(52,211,153,0.3)'
   },
   repairing: {
     label: 'Repair Cycle Active',
     detail: 'Hydra is testing paths and rebuilding the LM Studio route from inside the mesh.',
     shell: 'from-[#1b1106] via-[#121c2c] to-[#080a10]',
-    border: 'border-amber-300/32',
-    text: 'text-amber-100',
-    meshStroke: 'rgba(255,228,183,0.76)',
-    meshDim: 'rgba(202,147,66,0.2)',
-    hullFill: 'rgba(213,138,48,0.12)',
-    glow: 'rgba(245,158,11,0.3)'
+    border: 'border-amber-300/32', text: 'text-amber-100',
+    meshStroke: 'rgba(255,228,183,0.76)', meshDim: 'rgba(202,147,66,0.2)',
+    hullFill: 'rgba(213,138,48,0.12)', glow: 'rgba(245,158,11,0.3)'
   },
   offline: {
     label: 'Core Isolated',
     detail: 'The sphere is alive, but the external inference line is down and the mesh runs cold.',
     shell: 'from-[#1b0a13] via-[#121725] to-[#07090f]',
-    border: 'border-rose-300/32',
-    text: 'text-rose-100',
-    meshStroke: 'rgba(255,193,214,0.72)',
-    meshDim: 'rgba(212,92,132,0.2)',
-    hullFill: 'rgba(225,79,129,0.12)',
-    glow: 'rgba(251,113,133,0.3)'
+    border: 'border-rose-300/32', text: 'text-rose-100',
+    meshStroke: 'rgba(255,193,214,0.72)', meshDim: 'rgba(212,92,132,0.2)',
+    hullFill: 'rgba(225,79,129,0.12)', glow: 'rgba(251,113,133,0.3)'
   },
   throughput: {
     label: 'Throughput Mode',
     detail: 'The sphere is intentionally saturated. Density is a feature until the lattice starts to choke.',
     shell: 'from-[#061915] via-[#0a2130] to-[#050b10]',
-    border: 'border-teal-300/32',
-    text: 'text-teal-100',
-    meshStroke: 'rgba(185,255,245,0.76)',
-    meshDim: 'rgba(71,182,171,0.2)',
-    hullFill: 'rgba(32,168,154,0.12)',
-    glow: 'rgba(45,212,191,0.3)'
+    border: 'border-teal-300/32', text: 'text-teal-100',
+    meshStroke: 'rgba(185,255,245,0.76)', meshDim: 'rgba(71,182,171,0.2)',
+    hullFill: 'rgba(32,168,154,0.12)', glow: 'rgba(45,212,191,0.3)'
   }
 }
 
-// Google colors (chromatic mode)
-const GCOLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
-const G_GLOW = [
-  'rgba(66,133,244,0.4)',
-  'rgba(234,67,53,0.4)',
-  'rgba(251,188,5,0.4)',
-  'rgba(52,168,83,0.4)'
-]
+// ---------------------------------------------------------------------------
+// Entity-to-color mapping
+// ---------------------------------------------------------------------------
 
-// Monochrome palette: silver-white tones at varying brightness
-const MONO_COLORS = ['#e8e8e8', '#c0c0c0', '#f5f5f5', '#d4d4d4']
-const MONO_GLOW = [
-  'rgba(232,232,232,0.35)',
-  'rgba(192,192,192,0.35)',
-  'rgba(245,245,245,0.35)',
-  'rgba(212,212,212,0.35)'
-]
+const KIND_COLOR: Record<EntityKind, { fill: string; glow: string }> = {
+  workspace: { fill: '#4285F4', glow: 'rgba(66,133,244,0.4)' },
+  agent:     { fill: '#EA4335', glow: 'rgba(234,67,53,0.4)' },
+  port:      { fill: '#FBBC05', glow: 'rgba(251,188,5,0.4)' },
+  git:       { fill: '#34A853', glow: 'rgba(52,168,83,0.4)' },
+  ambient:   { fill: '#9aa0a6', glow: 'rgba(154,160,166,0.25)' }
+}
 
-/** Deterministic pseudo-random 0-1 from index + seed */
+const KIND_COLOR_MONO: Record<EntityKind, { fill: string; glow: string }> = {
+  workspace: { fill: '#f0f0f0', glow: 'rgba(240,240,240,0.35)' },
+  agent:     { fill: '#d4d4d4', glow: 'rgba(212,212,212,0.35)' },
+  port:      { fill: '#e8e8e8', glow: 'rgba(232,232,232,0.35)' },
+  git:       { fill: '#c0c0c0', glow: 'rgba(192,192,192,0.35)' },
+  ambient:   { fill: '#888888', glow: 'rgba(136,136,136,0.2)' }
+}
+
+// ---------------------------------------------------------------------------
+// System entity flattening
+// ---------------------------------------------------------------------------
+
+function buildEntities(
+  processes?: ProcessGroup[],
+  agents?: AgentInfo[],
+  ports?: PortInfo[],
+  gitRepos?: GitRepoInfo[]
+): LatticeEntity[] {
+  const entities: LatticeEntity[] = []
+
+  if (processes) {
+    for (const g of processes) {
+      const cpuActivity = Math.min(1, g.totalCpu / 100)
+      entities.push({ kind: 'workspace', name: g.name, activity: Math.max(0.15, cpuActivity) })
+    }
+  }
+  if (agents) {
+    for (const a of agents) {
+      const act = a.status === 'active' || a.status === 'busy' ? 0.9
+        : a.status === 'idle' ? 0.4 : 0.15
+      entities.push({ kind: 'agent', name: a.name, activity: act })
+    }
+  }
+  if (ports) {
+    for (const p of ports) {
+      if (p.state !== 'LISTEN') continue
+      entities.push({ kind: 'port', name: `${p.port}/${p.process}`, activity: 0.5 })
+    }
+  }
+  if (gitRepos) {
+    for (const r of gitRepos) {
+      const act = r.dirty ? 0.7 : r.ahead > 0 ? 0.5 : 0.25
+      entities.push({ kind: 'git', name: r.name, activity: act })
+    }
+  }
+  return entities
+}
+
+// ---------------------------------------------------------------------------
+// Per-node visual params
+// ---------------------------------------------------------------------------
+
 function prand(index: number, seed: number): number {
   return (((index * 2654435761 + seed * 340573) >>> 0) % 10000) / 10000
 }
 
-/** Per-node twinkle parameters: like stars in a night sky */
-function nodeTwinkle(index: number, mono: boolean) {
-  const colors = mono ? MONO_COLORS : GCOLORS
-  const glows = mono ? MONO_GLOW : G_GLOW
-  const colorOffset = ((index * 7 + 3) % 4)
-  const shifted = [...colors.slice(colorOffset), ...colors.slice(0, colorOffset)]
-  const shiftedGlow = [...glows.slice(colorOffset), ...glows.slice(0, colorOffset)]
+function nodeVisuals(index: number, entity: LatticeEntity | null, mono: boolean) {
+  const palette = mono ? KIND_COLOR_MONO : KIND_COLOR
+  const kind = entity?.kind ?? 'ambient'
+  const { fill, glow } = palette[kind]
+  const activity = entity?.activity ?? (0.05 + prand(index, 8) * 0.2)
 
-  // Color cycle duration: 1.6-3.8s, each node different
-  const colorDur = 1600 + Math.round(prand(index, 1) * 2200)
-
-  // Twinkle (opacity) duration: 0.8-3.5s
   const twinkleDur = 800 + Math.round(prand(index, 2) * 2700)
-
-  // Size pulse duration: 1.2-4.0s
   const sizeDur = 1200 + Math.round(prand(index, 3) * 2800)
-
-  // Base radius: most nodes small, some randomly bigger
-  const isBright = prand(index, 4) > 0.72
-  const baseR = isBright ? 2.8 + prand(index, 5) * 1.8 : 1.6 + prand(index, 6) * 1.2
-
-  // Twinkle amplitude: how much opacity varies
-  const dimFloor = isBright ? 0.35 : 0.08
-  const brightCeil = isBright ? 0.95 : 0.55
-
-  // Size pulse amplitude
-  const rMin = baseR * 0.7
-  const rMax = baseR * (isBright ? 1.8 : 1.3)
-
-  // Stagger begin so nodes don't sync up
   const beginOffset = Math.round(prand(index, 7) * 3000)
 
-  return {
-    fills: shifted.join(';') + ';' + shifted[0],
-    glows: shiftedGlow.join(';') + ';' + shiftedGlow[0],
-    colorDur,
-    twinkleDur,
-    sizeDur,
-    baseR,
-    dimFloor,
-    brightCeil,
-    rMin,
-    rMax,
-    beginOffset,
-    isBright,
-    startColor: colors[colorOffset],
-    startGlow: glows[colorOffset]
-  }
+  const isEntity = entity !== null
+  const baseR = isEntity ? 2.2 + activity * 2.8 : 1.2 + prand(index, 6) * 1.0
+  const dimFloor = isEntity ? 0.2 + activity * 0.3 : 0.06
+  const brightCeil = isEntity ? 0.6 + activity * 0.4 : 0.35
+  const rMin = baseR * 0.75
+  const rMax = baseR * (isEntity ? 1.5 + activity * 0.5 : 1.2)
+
+  return { fill, glow, twinkleDur, sizeDur, beginOffset, baseR, dimFloor, brightCeil, rMin, rMax, isEntity }
 }
+
+// ---------------------------------------------------------------------------
+// Motion
+// ---------------------------------------------------------------------------
 
 function getMotionProfile(mode: AICoreMode) {
   switch (mode) {
-    case 'thinking':
-      return { pulseMs: 1400, shimmerMs: 1900, driftMs: 8800 }
-    case 'repairing':
-      return { pulseMs: 1500, shimmerMs: 1700, driftMs: 8200 }
-    case 'speaking':
-      return { pulseMs: 1700, shimmerMs: 2100, driftMs: 9600 }
-    case 'offline':
-      return { pulseMs: 2400, shimmerMs: 2500, driftMs: 11200 }
-    case 'throughput':
-      return { pulseMs: 1300, shimmerMs: 1600, driftMs: 7200 }
-    default:
-      return { pulseMs: 1800, shimmerMs: 2200, driftMs: 10400 }
+    case 'thinking':  return { pulseMs: 1400, shimmerMs: 1900, driftMs: 8800 }
+    case 'repairing': return { pulseMs: 1500, shimmerMs: 1700, driftMs: 8200 }
+    case 'speaking':  return { pulseMs: 1700, shimmerMs: 2100, driftMs: 9600 }
+    case 'offline':   return { pulseMs: 2400, shimmerMs: 2500, driftMs: 11200 }
+    case 'throughput': return { pulseMs: 1300, shimmerMs: 1600, driftMs: 7200 }
+    default:          return { pulseMs: 1800, shimmerMs: 2200, driftMs: 10400 }
   }
 }
 
-function titleCase(v: string): string {
-  return v[0].toUpperCase() + v.slice(1)
-}
+function titleCase(v: string): string { return v[0].toUpperCase() + v.slice(1) }
 
 function MetricPill({ label, value, emphasis = false }: {
   label: string; value: string; emphasis?: boolean
@@ -228,9 +235,14 @@ function ActionNode({ label, detail, accent, disabled, onClick }: {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
 export function AICoreNode({
   mode, mono = false, activeAgents, totalAgents, cpuUsage, memoryUsage, listenerCount,
   yenneferStyle, lmStudioUrl, disabled,
+  processes, agents, ports, gitRepos,
   onInvokeYennefer, onRequestBriefing, onRepair, onToggleMono
 }: AICoreNodeProps): JSX.Element {
   const theme = MODE_THEME[mode]
@@ -247,6 +259,31 @@ export function AICoreNode({
   const pulseMs = Math.max(880, Math.round(motion.pulseMs - liveFactor * 120))
   const shimmerMs = Math.max(1100, Math.round(motion.shimmerMs - liveFactor * 70))
   const driftMs = Math.max(4800, Math.round(motion.driftMs - liveFactor * 140))
+
+  // Build entity list from live system data
+  const entities = useMemo(
+    () => buildEntities(processes, agents, ports, gitRepos),
+    [processes, agents, ports, gitRepos]
+  )
+
+  // Map entities to globe node positions (first N get real entities, rest ambient)
+  const nodeCount = GLOBE_NODES.length
+  const entityMap: Array<LatticeEntity | null> = useMemo(() => {
+    const map: Array<LatticeEntity | null> = new Array(nodeCount).fill(null)
+    // Spread entities evenly across node positions using stride
+    const stride = entities.length > 0 ? Math.max(1, Math.floor(nodeCount / entities.length)) : 1
+    for (let i = 0; i < entities.length && i * stride < nodeCount; i++) {
+      map[i * stride] = entities[i]
+    }
+    return map
+  }, [entities, nodeCount])
+
+  // Count entities by kind for the legend
+  const kindCounts = useMemo(() => {
+    const c = { workspace: 0, agent: 0, port: 0, git: 0 }
+    for (const e of entities) if (e.kind !== 'ambient') c[e.kind]++
+    return c
+  }, [entities])
 
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>): void {
     const el = sphereRef.current
@@ -274,6 +311,7 @@ export function AICoreNode({
             backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0) 24%, rgba(255,255,255,0.04) 68%, rgba(255,255,255,0))'
           }} />
 
+          {/* Header row */}
           <div className="relative flex items-start justify-between gap-4">
             <div>
               <div className="text-[10px] uppercase tracking-[0.34em] text-gray-500">AI Core Lattice</div>
@@ -285,13 +323,16 @@ export function AICoreNode({
             </div>
           </div>
 
+          {/* Sphere container with inset for overlays */}
           <div className="relative mt-4">
             <div ref={sphereRef} onPointerMove={handlePointerMove} onPointerLeave={handlePointerLeave}
               className="relative transition-transform duration-200 ease-out"
               style={{ transform: 'perspective(1400px) rotateX(0deg) rotateY(0deg) scale(1)' }}>
-              <button onClick={onInvokeYennefer} disabled={disabled}
-                className={`group relative h-[370px] w-full overflow-hidden rounded-[22px] border border-white/10 bg-black/18 text-left transition-all ${disabled ? 'cursor-not-allowed opacity-80' : 'hover:border-white/20'}`}>
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 640 390" aria-hidden="true">
+              <div onClick={disabled ? undefined : onInvokeYennefer}
+                role="button" tabIndex={disabled ? -1 : 0}
+                className={`group relative w-full overflow-hidden rounded-[22px] border border-white/10 bg-black/18 transition-all ${disabled ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-white/20'}`}
+                style={{ paddingTop: '52%' }}>
+                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 792 412" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
                   <defs>
                     <clipPath id={clipId}>
                       <circle cx={SPHERE.cx} cy={SPHERE.cy} r={SPHERE.r} />
@@ -307,13 +348,12 @@ export function AICoreNode({
                     </linearGradient>
                   </defs>
 
-                  <rect x="0" y="0" width="640" height="390" fill={`url(#${glowId})`} />
+                  <rect x="0" y="0" width="792" height="412" fill={`url(#${glowId})`} />
 
                   <g clipPath={`url(#${clipId})`}>
                     <rect x={SPHERE.cx - SPHERE.r} y={SPHERE.cy - SPHERE.r}
                       width={SPHERE.r * 2} height={SPHERE.r * 2} fill="rgba(4,10,18,0.28)" />
 
-                    {/* Wireframe: meridians + latitudes */}
                     <g opacity="0.44">
                       {MERIDIAN_RX.map((rx, i) => (
                         <ellipse key={`m-${rx}`} cx={SPHERE.cx} cy={SPHERE.cy}
@@ -327,24 +367,20 @@ export function AICoreNode({
                       ))}
                     </g>
 
-                    {/* Equator: prominent horizontal band */}
                     <line x1={SPHERE.cx - SPHERE.r} y1={SPHERE.cy} x2={SPHERE.cx + SPHERE.r} y2={SPHERE.cy}
                       stroke={theme.meshStroke} strokeWidth="1.2" opacity="0.5" />
 
-                    {/* Mesh group with drift + breathing */}
                     <g opacity="0.9">
                       <animateTransform attributeName="transform" type="translate"
                         values="0 0;5 -3;0 0;-4 2;0 0" dur={`${driftMs}ms`} repeatCount="indefinite" />
                       <animateTransform additive="sum" attributeName="transform" type="scale"
                         values="1 1;1.012 1.008;1 1;0.996 1.004;1 1" dur={`${pulseMs * 3}ms`} repeatCount="indefinite" />
 
-                      {/* Hull interior */}
                       <path d="M238 106C286 60 390 42 470 80C546 116 586 192 572 258C556 330 490 370 412 372C330 374 248 338 224 270C200 204 190 156 238 106Z"
                         fill={`url(#${hullId})`} stroke={theme.meshDim} strokeWidth="1.1" opacity="0.78">
                         <animate attributeName="opacity" values="0.42;0.82;0.42" dur={`${pulseMs}ms`} repeatCount="indefinite" />
                       </path>
 
-                      {/* Ambient dust */}
                       {DUST_POINTS.map(([x, y], i) => (
                         <circle key={`d-${i}`} cx={x} cy={y} r="1.3" fill={theme.meshDim} opacity="0.66">
                           <animate attributeName="opacity" values="0.15;0.62;0.15"
@@ -352,30 +388,21 @@ export function AICoreNode({
                         </circle>
                       ))}
 
-                      {/* Night-sky nodes: independent twinkling in Google colors */}
                       {GLOBE_NODES.map((node, i) => {
-                        const t = nodeTwinkle(i, mono)
+                        const v = nodeVisuals(i, entityMap[i], mono)
                         return (
                           <g key={`gn-${i}`}>
-                            {/* Core dot: color-cycling, size-pulsing, opacity-twinkling */}
-                            <circle cx={node.x} cy={node.y} r={t.baseR} fill={t.startColor}
-                              opacity={t.dimFloor}>
-                              <animate attributeName="fill" values={t.fills}
-                                dur={`${t.colorDur}ms`} repeatCount="indefinite" />
+                            <circle cx={node.x} cy={node.y} r={v.baseR} fill={v.fill} opacity={v.dimFloor}>
                               <animate attributeName="opacity"
-                                values={`${t.dimFloor};${t.brightCeil};${t.dimFloor}`}
-                                dur={`${t.twinkleDur}ms`} begin={`${t.beginOffset}ms`} repeatCount="indefinite" />
-                              <animate attributeName="r"
-                                values={`${t.rMin};${t.rMax};${t.rMin}`}
-                                dur={`${t.sizeDur}ms`} begin={`${t.beginOffset}ms`} repeatCount="indefinite" />
+                                values={`${v.dimFloor};${v.brightCeil};${v.dimFloor}`}
+                                dur={`${v.twinkleDur}ms`} begin={`${v.beginOffset}ms`} repeatCount="indefinite" />
+                              <animate attributeName="r" values={`${v.rMin};${v.rMax};${v.rMin}`}
+                                dur={`${v.sizeDur}ms`} begin={`${v.beginOffset}ms`} repeatCount="indefinite" />
                             </circle>
-                            {/* Glow halo for brighter nodes */}
-                            {t.isBright && (
-                              <circle cx={node.x} cy={node.y} r={t.rMax * 2.5} fill={t.startGlow} opacity="0">
-                                <animate attributeName="fill" values={t.glows}
-                                  dur={`${t.colorDur}ms`} repeatCount="indefinite" />
+                            {v.isEntity && (
+                              <circle cx={node.x} cy={node.y} r={v.rMax * 2.5} fill={v.glow} opacity="0">
                                 <animate attributeName="opacity" values="0;0.35;0"
-                                  dur={`${t.twinkleDur}ms`} begin={`${t.beginOffset}ms`} repeatCount="indefinite" />
+                                  dur={`${v.twinkleDur}ms`} begin={`${v.beginOffset}ms`} repeatCount="indefinite" />
                               </circle>
                             )}
                           </g>
@@ -384,10 +411,8 @@ export function AICoreNode({
                     </g>
                   </g>
 
-                  {/* Sphere boundary */}
                   <circle cx={SPHERE.cx} cy={SPHERE.cy} r={SPHERE.r}
                     fill="none" stroke={theme.meshStroke} strokeWidth="1.4" opacity="0.82" />
-                  {/* Orbiting dashed ring */}
                   <circle cx={SPHERE.cx} cy={SPHERE.cy} r={SPHERE.r + 12}
                     fill="none" stroke={theme.meshDim} strokeDasharray="4 12" strokeWidth="1" opacity="0.68">
                     <animateTransform attributeName="transform" type="rotate"
@@ -396,32 +421,63 @@ export function AICoreNode({
                   </circle>
                 </svg>
 
-                <div className="absolute left-6 top-6 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-gray-300">
-                  Wireframe Intelligence
-                </div>
-                <div className="absolute right-6 top-6 flex items-center gap-2">
-                  {onToggleMono && (
-                    <button type="button" onClick={(e) => { e.stopPropagation(); onToggleMono() }}
-                      className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] transition-colors ${
-                        mono
-                          ? 'border-white/25 bg-white/15 text-white'
-                          : 'border-white/10 bg-black/45 text-gray-400 hover:text-gray-200'
-                      }`}>
-                      {mono ? 'mono' : 'color'}
-                    </button>
+                {/* Overlay badges: positioned inside padding zone, outside sphere */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="pointer-events-auto absolute left-4 top-3 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[9px] uppercase tracking-[0.24em] text-gray-300">
+                    Wireframe Intelligence
+                  </div>
+                  <div className="pointer-events-auto absolute right-4 top-3 flex items-center gap-1.5">
+                    {onToggleMono && (
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onToggleMono() }}
+                        className={`rounded-full border px-2 py-1 text-[9px] uppercase tracking-[0.2em] transition-colors ${
+                          mono
+                            ? 'border-white/25 bg-white/15 text-white'
+                            : 'border-white/10 bg-black/60 text-gray-400 hover:text-gray-200'
+                        }`}>
+                        {mono ? 'mono' : 'color'}
+                      </button>
+                    )}
+                    <div className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[9px] uppercase tracking-[0.24em] text-gray-300">
+                      live
+                    </div>
+                  </div>
+
+                  {/* Entity legend */}
+                  {entities.length > 0 && (
+                    <div className="pointer-events-auto absolute left-4 bottom-3 flex items-center gap-3">
+                      {kindCounts.workspace > 0 && (
+                        <span className="flex items-center gap-1 text-[9px] text-gray-400">
+                          <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#f0f0f0' : '#4285F4' }} />
+                          {kindCounts.workspace}
+                        </span>
+                      )}
+                      {kindCounts.agent > 0 && (
+                        <span className="flex items-center gap-1 text-[9px] text-gray-400">
+                          <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#d4d4d4' : '#EA4335' }} />
+                          {kindCounts.agent}
+                        </span>
+                      )}
+                      {kindCounts.port > 0 && (
+                        <span className="flex items-center gap-1 text-[9px] text-gray-400">
+                          <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#e8e8e8' : '#FBBC05' }} />
+                          {kindCounts.port}
+                        </span>
+                      )}
+                      {kindCounts.git > 0 && (
+                        <span className="flex items-center gap-1 text-[9px] text-gray-400">
+                          <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#c0c0c0' : '#34A853' }} />
+                          {kindCounts.git}
+                        </span>
+                      )}
+                    </div>
                   )}
-                  <div className="rounded-full border border-white/10 bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-gray-300">
-                    live // contained
+
+                  <div className="absolute bottom-3 right-4 flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${theme.text} bg-current shadow-[0_0_14px_currentColor]`} />
+                    <span className={`text-[9px] uppercase tracking-[0.22em] ${theme.text}`}>{titleCase(yenneferStyle)} lens</span>
                   </div>
                 </div>
-                <div className="absolute bottom-5 left-6 flex items-center gap-2">
-                  <span className={`h-2.5 w-2.5 rounded-full ${theme.text} bg-current shadow-[0_0_18px_currentColor]`} />
-                  <span className={`text-[11px] uppercase tracking-[0.26em] ${theme.text}`}>{titleCase(yenneferStyle)} lens</span>
-                </div>
-                <div className="absolute bottom-5 right-6 text-[11px] text-gray-300">
-                  {disabled ? 'Mesh occupied' : 'Interactive sphere online'}
-                </div>
-              </button>
+              </div>
             </div>
           </div>
         </div>
