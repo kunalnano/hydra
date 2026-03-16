@@ -452,29 +452,33 @@ export function AICoreNode({
 
                   {/* Entity legend */}
                   {entities.length > 0 && (
-                    <div className="pointer-events-auto absolute left-4 bottom-3 flex items-center gap-3">
+                    <div className="pointer-events-auto absolute bottom-3 left-4 flex max-w-[calc(100%-8rem)] flex-wrap items-center gap-2">
                       {kindCounts.workspace > 0 && (
-                        <span className="flex items-center gap-1 text-[9px] text-gray-400">
+                        <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
                           <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#f0f0f0' : '#4285F4' }} />
-                          {kindCounts.workspace}
+                          <span>Workspaces</span>
+                          <span className="text-white">{kindCounts.workspace}</span>
                         </span>
                       )}
                       {kindCounts.agent > 0 && (
-                        <span className="flex items-center gap-1 text-[9px] text-gray-400">
+                        <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
                           <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#d4d4d4' : '#EA4335' }} />
-                          {kindCounts.agent}
+                          <span>Agents</span>
+                          <span className="text-white">{kindCounts.agent}</span>
                         </span>
                       )}
                       {kindCounts.port > 0 && (
-                        <span className="flex items-center gap-1 text-[9px] text-gray-400">
+                        <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
                           <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#e8e8e8' : '#FBBC05' }} />
-                          {kindCounts.port}
+                          <span>Ports</span>
+                          <span className="text-white">{kindCounts.port}</span>
                         </span>
                       )}
                       {kindCounts.git > 0 && (
-                        <span className="flex items-center gap-1 text-[9px] text-gray-400">
+                        <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
                           <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#c0c0c0' : '#34A853' }} />
-                          {kindCounts.git}
+                          <span>Git</span>
+                          <span className="text-white">{kindCounts.git}</span>
                         </span>
                       )}
                     </div>
