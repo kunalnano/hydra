@@ -45,6 +45,8 @@ interface AICoreNodeProps {
   onRequestBriefing: () => void
   onRepair: () => void
   onToggleMono?: () => void
+  onSetYenneferStyle?: (style: YenneferStyle) => void
+  lensDisabled?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -193,6 +195,17 @@ function nodeVisuals(index: number, entity: LatticeEntity | null, mono: boolean)
   return { fill, glow, twinkleDur, sizeDur, beginOffset, baseR, dimFloor, brightCeil, rMin, rMax, isEntity }
 }
 
+function dustVisuals(index: number, kind: EntityKind, mono: boolean) {
+  const palette = mono ? KIND_COLOR_MONO : KIND_COLOR
+  const { fill, glow } = palette[kind]
+  const twinkleDur = 1100 + Math.round(prand(index, 11) * 2200)
+  const beginOffset = Math.round(prand(index, 13) * 2400)
+  const baseOpacity = kind === 'ambient' ? 0.16 : 0.24
+  const peakOpacity = kind === 'ambient' ? 0.38 : 0.58
+  const baseRadius = kind === 'ambient' ? 1.05 : 1.35
+  return { fill, glow, twinkleDur, beginOffset, baseOpacity, peakOpacity, baseRadius }
+}
+
 // ---------------------------------------------------------------------------
 // Motion
 // ---------------------------------------------------------------------------
@@ -243,7 +256,7 @@ export function AICoreNode({
   mode, mono = false, activeAgents, totalAgents, cpuUsage, memoryUsage, listenerCount,
   yenneferStyle, lmStudioUrl, disabled,
   processes, agents, ports, gitRepos,
-  onInvokeYennefer, onRequestBriefing, onRepair, onToggleMono
+  onInvokeYennefer, onRequestBriefing, onRepair, onToggleMono, onSetYenneferStyle, lensDisabled = false
 }: AICoreNodeProps): JSX.Element {
   const theme = MODE_THEME[mode]
   const sphereRef = useRef<HTMLDivElement | null>(null)
@@ -284,6 +297,16 @@ export function AICoreNode({
     for (const e of entities) if (e.kind !== 'ambient') c[e.kind]++
     return c
   }, [entities])
+
+  const twinkleKinds = useMemo(() => {
+    const activeKinds: EntityKind[] = []
+    if (kindCounts.workspace > 0) activeKinds.push('workspace')
+    if (kindCounts.agent > 0) activeKinds.push('agent')
+    if (kindCounts.port > 0) activeKinds.push('port')
+    if (kindCounts.git > 0) activeKinds.push('git')
+    if (activeKinds.length === 0) activeKinds.push('ambient')
+    return activeKinds
+  }, [kindCounts])
 
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>): void {
     const el = sphereRef.current
@@ -389,12 +412,62 @@ export function AICoreNode({
                         <animate attributeName="opacity" values="0.42;0.82;0.42" dur={`${pulseMs}ms`} repeatCount="indefinite" />
                       </path>
 
-                      {DUST_POINTS.map(([x, y], i) => (
-                        <circle key={`d-${i}`} cx={x} cy={y} r="1.3" fill={theme.meshDim} opacity="0.66">
-                          <animate attributeName="opacity" values="0.15;0.62;0.15"
-                            dur={`${shimmerMs + i * 30}ms`} begin={`${(i * 70) % 900}ms`} repeatCount="indefinite" />
-                        </circle>
-                      ))}
+                      {DUST_POINTS.map(([x, y], i) => {
+                        const kind = twinkleKinds[i % twinkleKinds.length]
+                        const v = dustVisuals(i, kind, mono)
+                        return (
+                          <g key={`d-${i}`}>
+                            <circle cx={x} cy={y} r={v.baseRadius * 3.2} fill={v.glow} opacity="0">
+                              <animate
+                                attributeName="opacity"
+                                values={`0;${kind === 'ambient' ? '0.12' : '0.26'};0`}
+                                dur={`${v.twinkleDur}ms`}
+                                begin={`${v.beginOffset}ms`}
+                                repeatCount="indefinite"
+                              />
+                              <animate
+                                attributeName="r"
+                                values={`${(v.baseRadius * 2.4).toFixed(2)};${(v.baseRadius * 4.1).toFixed(2)};${(v.baseRadius * 2.4).toFixed(2)}`}
+                                dur={`${Math.max(1200, v.twinkleDur + 320)}ms`}
+                                begin={`${v.beginOffset}ms`}
+                                repeatCount="indefinite"
+                              />
+                            </circle>
+                            <circle cx={x} cy={y} r={v.baseRadius} fill={v.fill} opacity={v.baseOpacity}>
+                              <animate
+                                attributeName="opacity"
+                                values={`${v.baseOpacity};${v.peakOpacity};${v.baseOpacity}`}
+                                dur={`${Math.max(900, shimmerMs - 260) + i * 18}ms`}
+                                begin={`${v.beginOffset}ms`}
+                                repeatCount="indefinite"
+                              />
+                              <animate
+                                attributeName="r"
+                                values={`${v.baseRadius};${(v.baseRadius * 1.55).toFixed(2)};${v.baseRadius}`}
+                                dur={`${v.twinkleDur}ms`}
+                                begin={`${v.beginOffset}ms`}
+                                repeatCount="indefinite"
+                              />
+                            </circle>
+                            <circle cx={x} cy={y} r={Math.max(0.55, v.baseRadius * 0.42)} fill="rgba(241,252,255,0.92)" opacity="0.4">
+                              <animate
+                                attributeName="opacity"
+                                values="0.28;0.92;0.28"
+                                dur={`${Math.max(860, v.twinkleDur - 120)}ms`}
+                                begin={`${v.beginOffset}ms`}
+                                repeatCount="indefinite"
+                              />
+                              <animate
+                                attributeName="r"
+                                values={`${Math.max(0.55, v.baseRadius * 0.36).toFixed(2)};${Math.max(0.9, v.baseRadius * 0.64).toFixed(2)};${Math.max(0.55, v.baseRadius * 0.36).toFixed(2)}`}
+                                dur={`${Math.max(820, v.twinkleDur - 200)}ms`}
+                                begin={`${v.beginOffset}ms`}
+                                repeatCount="indefinite"
+                              />
+                            </circle>
+                          </g>
+                        )
+                      })}
 
                       {GLOBE_NODES.map((node, i) => {
                         const v = nodeVisuals(i, entityMap[i], mono)
@@ -501,6 +574,24 @@ export function AICoreNode({
               <div className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Interface</div>
               <div className="mt-1 text-sm font-semibold text-gray-100">{titleCase(yenneferStyle)} Lens</div>
               <div className="mt-1 truncate text-xs text-gray-500" title={lmStudioUrl}>{endpoint}</div>
+              {onSetYenneferStyle && (
+                <div className="mt-3">
+                  <label className="block text-[10px] uppercase tracking-[0.24em] text-gray-500">
+                    Lens Control
+                  </label>
+                  <select
+                    value={yenneferStyle}
+                    disabled={lensDisabled}
+                    onChange={(event) => onSetYenneferStyle(event.target.value as YenneferStyle)}
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs text-gray-200 transition-colors disabled:cursor-not-allowed disabled:text-gray-500"
+                  >
+                    <option value="adaptive">Adaptive</option>
+                    <option value="throughput">Throughput</option>
+                    <option value="creative">Creative</option>
+                    <option value="strict">Strict</option>
+                  </select>
+                </div>
+              )}
             </div>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
               <MetricPill label="Swarm" value={`${activeAgents}/${totalAgents} active`} emphasis={mode === 'throughput'} />
