@@ -301,7 +301,7 @@ export function AICoreNode({
 
   return (
     <div className={`space-y-4 rounded-[28px] border ${theme.border} bg-gradient-to-br ${theme.shell} p-4 shadow-[0_18px_60px_rgba(0,0,0,0.32)]`}>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.72fr)]">
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.72fr)]">
         <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/28 p-4">
           <div className="absolute inset-0 opacity-28" style={{
             backgroundImage: 'linear-gradient(rgba(121,168,201,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(121,168,201,0.1) 1px, transparent 1px)',
@@ -323,16 +323,24 @@ export function AICoreNode({
             </div>
           </div>
 
-          {/* Sphere container with inset for overlays */}
           <div className="relative mt-4">
-            <div ref={sphereRef} onPointerMove={handlePointerMove} onPointerLeave={handlePointerLeave}
-              className="relative transition-transform duration-200 ease-out"
-              style={{ transform: 'perspective(1400px) rotateX(0deg) rotateY(0deg) scale(1)' }}>
-              <div onClick={disabled ? undefined : onInvokeYennefer}
-                role="button" tabIndex={disabled ? -1 : 0}
-                className={`group relative w-full overflow-hidden rounded-[22px] border border-white/10 bg-black/18 transition-all ${disabled ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-white/20'}`}
-                style={{ paddingTop: '52%' }}>
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 792 412" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <div
+              ref={sphereRef}
+              onPointerMove={handlePointerMove}
+              onPointerLeave={handlePointerLeave}
+              className="relative mx-auto w-full max-w-[792px] transition-transform duration-200 ease-out"
+              style={{
+                aspectRatio: '2 / 1',
+                transform: 'perspective(1400px) rotateX(0deg) rotateY(0deg) scale(1)'
+              }}
+            >
+              <div
+                onClick={disabled ? undefined : onInvokeYennefer}
+                role="button"
+                tabIndex={disabled ? -1 : 0}
+                className={`group absolute inset-0 overflow-hidden rounded-[22px] border border-white/10 bg-black/18 transition-all ${disabled ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-white/20'}`}
+              >
+                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 792 388" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
                   <defs>
                     <clipPath id={clipId}>
                       <circle cx={SPHERE.cx} cy={SPHERE.cy} r={SPHERE.r} />
@@ -348,7 +356,7 @@ export function AICoreNode({
                     </linearGradient>
                   </defs>
 
-                  <rect x="0" y="0" width="792" height="412" fill={`url(#${glowId})`} />
+                  <rect x="0" y="0" width="792" height="388" fill={`url(#${glowId})`} />
 
                   <g clipPath={`url(#${clipId})`}>
                     <rect x={SPHERE.cx - SPHERE.r} y={SPHERE.cy - SPHERE.r}
@@ -421,7 +429,7 @@ export function AICoreNode({
                   </circle>
                 </svg>
 
-                {/* Overlay badges: positioned inside padding zone, outside sphere */}
+                {/* Overlay badges stay inside the aspect-ratio frame so the sphere never spills into neighboring panels. */}
                 <div className="absolute inset-0 pointer-events-none">
                   <div className="pointer-events-auto absolute left-4 top-3 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[9px] uppercase tracking-[0.24em] text-gray-300">
                     Wireframe Intelligence
