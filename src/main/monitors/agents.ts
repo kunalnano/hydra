@@ -118,7 +118,11 @@ export function detectAgents(processes: ProcessInfo[]): AgentInfo[] {
           workingDir: proc.cwd
         }
         const existing = agentsByKey.get(key)
-        if (!existing || priority > existing.priority || (priority === existing.priority && proc.cpu > existing.cpu)) {
+        if (
+          !existing ||
+          priority > existing.priority ||
+          (priority === existing.priority && proc.cpu > existing.cpu)
+        ) {
           agentsByKey.set(key, { agent: nextAgent, priority, cpu: proc.cpu })
         }
         break

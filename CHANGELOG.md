@@ -16,6 +16,18 @@
 ### Docs
 - Updated the README to reflect the shipped Live Lattice patch line and current release state
 
+## v2.1.1 — 2026-03-15
+
+### Reliability
+- Fixed agent detection so Codex helper processes and `CursorUIViewService` no longer inflate the agent roster
+- Simplified the Agents sidebar badge so it shows the actual detected agent count instead of the old waiting-only value
+
+### Operations
+- Fixed GitHub Actions CI on Node 20 by rebuilding `better-sqlite3` for the Node runtime before running Vitest
+
+### Docs
+- Updated the README so the documented release state matches the shipped v2.1.1 patch line
+
 ## v2.1.0 — 2026-03-15
 
 ### Product
