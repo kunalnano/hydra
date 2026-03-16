@@ -324,7 +324,7 @@ export function AICoreNode({
 
   return (
     <div className={`space-y-4 rounded-[28px] border ${theme.border} bg-gradient-to-br ${theme.shell} p-4 shadow-[0_18px_60px_rgba(0,0,0,0.32)]`}>
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.72fr)]">
+      <div className="space-y-4">
         <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/28 p-4">
           <div className="absolute inset-0 opacity-28" style={{
             backgroundImage: 'linear-gradient(rgba(121,168,201,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(121,168,201,0.1) 1px, transparent 1px)',
@@ -351,7 +351,7 @@ export function AICoreNode({
               ref={sphereRef}
               onPointerMove={handlePointerMove}
               onPointerLeave={handlePointerLeave}
-              className="relative mx-auto w-full max-w-[792px] transition-transform duration-200 ease-out"
+              className="relative mx-auto w-full max-w-[980px] transition-transform duration-200 ease-out"
               style={{
                 aspectRatio: '2 / 1',
                 transform: 'perspective(1400px) rotateX(0deg) rotateY(0deg) scale(1)'
@@ -569,9 +569,8 @@ export function AICoreNode({
           </div>
         </div>
 
-        {/* Right sidebar */}
-        <div className="flex flex-col justify-between rounded-[24px] border border-white/10 bg-black/25 p-4">
-          <div className="space-y-3">
+        <div className="rounded-[24px] border border-white/10 bg-black/25 p-4">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.62fr)_minmax(0,0.95fr)_minmax(0,0.72fr)]">
             <div>
               <div className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Interface</div>
               <div className="mt-1 text-sm font-semibold text-gray-100">{titleCase(yenneferStyle)} Lens</div>
@@ -595,17 +594,19 @@ export function AICoreNode({
                 </div>
               )}
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-2">
               <MetricPill label="Swarm" value={`${activeAgents}/${totalAgents} active`} emphasis={mode === 'throughput'} />
               <MetricPill label="Memory" value={`${Math.round(memoryUsage)}%`} emphasis={memoryUsage >= 85} />
               <MetricPill label="CPU" value={`${Math.round(cpuUsage)}%`} emphasis={cpuUsage >= 80} />
               <MetricPill label="Ports" value={`${listenerCount} listeners`} />
             </div>
-          </div>
-          <div className="mt-4 rounded-[18px] border border-white/10 bg-black/20 p-3">
-            <div className="text-[10px] uppercase tracking-[0.26em] text-gray-500">Readout</div>
-            <div className={`mt-2 text-sm font-semibold ${theme.text}`}>{theme.label}</div>
-            <p className="mt-2 text-xs leading-relaxed text-gray-300">{theme.detail}</p>
+
+            <div className="rounded-[18px] border border-white/10 bg-black/20 p-3">
+              <div className="text-[10px] uppercase tracking-[0.26em] text-gray-500">Readout</div>
+              <div className={`mt-2 text-sm font-semibold ${theme.text}`}>{theme.label}</div>
+              <p className="mt-2 text-xs leading-relaxed text-gray-300">{theme.detail}</p>
+            </div>
           </div>
         </div>
       </div>
