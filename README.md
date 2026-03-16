@@ -4,10 +4,12 @@ Hydra is a desktop ops shell for developers running AI agents, local services, a
 
 Latest release: `v2.1.2`
 
-Version 2.1.2 keeps the Live Lattice sphere contained, makes the AI page scale like a real interface instead of a flexbox accident, and tightens the operational plumbing around agent detection and CI.
+Version 2.1.2 keeps the Live Lattice sphere contained, refocuses the AI page into a dedicated local-AI instrument, and tightens the operational plumbing around agent detection and CI.
 
 ![Hydra v2 Overview](docs/screenshots/dashboard-v2-overview.png)
 ![Hydra v2 AI Page](docs/screenshots/dashboard-v2-ai.png)
+
+Operator walkthrough: [docs/OPERATOR-WALKTHROUGH.md](docs/OPERATOR-WALKTHROUGH.md)
 
 ## See The Shell
 
@@ -21,11 +23,12 @@ The overview screen is Hydra's calmer control layer: persistent scorecards acros
 
 ### AI Page
 
-The AI page is where Hydra shows off the Live Lattice visualizer. The contained `2:1` sphere keeps the wireframe globe inside its frame while the side readout, Yennefer lens, LM Studio endpoint, and action dock stay readable around it.
+The AI page is now intentionally singular: the Live Lattice gets the full runway, the interface tray sits directly beneath it, and the page stays focused on the local model loop instead of repeating panels that already live elsewhere in the shell.
 
 - The Live Lattice maps real workstation entities to the globe: `Workspaces`, `Agents`, `Ports`, and `Git` each get their own node color
 - The labeled legend makes the color story readable instead of leaving you to guess what the dots mean
 - `Request Briefing`, `Invoke Repair`, and `Invoke Yennefer` stay attached to the visualizer so the page behaves like an instrument, not just a decoration
+- The LM Studio endpoint, lens control, live swarm metrics, and readout now live in the interface tray beneath the globe instead of squeezing the lattice sideways
 
 ## Navigation Flow
 
@@ -41,7 +44,8 @@ Hydra's biggest v2 shift is structural, not cosmetic. The app now behaves like a
 ## What Changed In v2.1.2
 
 - Re-contained the Live Lattice sphere inside a responsive `2:1` frame so it scales down cleanly and stays inside its rounded border
-- Kept the lattice overlays, metrics rail, and action dock inside the AI panel without pushing `Notifications`, `Agents`, `Timeline`, or `Command Center` off-screen
+- Refocused the AI page around the LM Studio panel instead of duplicating `Notifications`, `Agents`, `Timeline`, and `Command Center` inside the same surface
+- Kept the lattice overlays, interface tray, and action dock inside the AI panel without pushing neighboring content off-screen
 - Fixed the Agents sidebar badge so it reflects the detected roster instead of only counting waiting agents
 - Tightened agent detection to ignore Codex helper processes and `CursorUIViewService` false positives
 - Fixed GitHub Actions test runs on Node 20 by rebuilding `better-sqlite3` for the Node runtime before Vitest executes

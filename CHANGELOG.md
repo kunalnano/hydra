@@ -4,7 +4,7 @@
 
 ### Product
 - Re-contained the Live Lattice AI sphere inside a responsive `2:1` frame so the globe scales with the AI page instead of overflowing into neighboring panels
-- Rebalanced the AI page panel sizing so `Notifications`, `Agents`, `Timeline`, and `Command Center` stay visible without the old greedy-height behavior
+- Refocused the AI page around the LM Studio surface instead of duplicating `Notifications`, `Agents`, `Timeline`, and `Command Center` inside the same view
 
 ### Reliability
 - Fixed the Agents sidebar badge so it reflects the detected roster instead of only showing queued agents
@@ -15,6 +15,7 @@
 
 ### Docs
 - Updated the README to reflect the shipped Live Lattice patch line and current release state
+- Added an operator walkthrough covering pages, actions, shortcuts, and the current local-AI workflow
 
 ## v2.1.1 — 2026-03-15
 
