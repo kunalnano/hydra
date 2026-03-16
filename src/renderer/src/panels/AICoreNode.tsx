@@ -504,62 +504,64 @@ export function AICoreNode({
 
                 {/* Overlay badges stay inside the aspect-ratio frame so the sphere never spills into neighboring panels. */}
                 <div className="absolute inset-0 pointer-events-none">
-                  <div className="pointer-events-auto absolute left-4 top-3 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[9px] uppercase tracking-[0.24em] text-gray-300">
-                    Wireframe Intelligence
-                  </div>
-                  <div className="pointer-events-auto absolute right-4 top-3 flex items-center gap-1.5">
-                    {onToggleMono && (
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onToggleMono() }}
-                        className={`rounded-full border px-2 py-1 text-[9px] uppercase tracking-[0.2em] transition-colors ${
-                          mono
-                            ? 'border-white/25 bg-white/15 text-white'
-                            : 'border-white/10 bg-black/60 text-gray-400 hover:text-gray-200'
-                        }`}>
-                        {mono ? 'mono' : 'color'}
-                      </button>
-                    )}
-                    <div className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[9px] uppercase tracking-[0.24em] text-gray-300">
-                      live
-                    </div>
-                  </div>
-
-                  {/* Entity legend */}
-                  {entities.length > 0 && (
-                    <div className="pointer-events-auto absolute bottom-3 left-4 flex max-w-[calc(100%-8rem)] flex-wrap items-center gap-2">
-                      {kindCounts.workspace > 0 && (
-                        <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
-                          <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#f0f0f0' : '#4285F4' }} />
-                          <span>Workspaces</span>
-                          <span className="text-white">{kindCounts.workspace}</span>
-                        </span>
-                      )}
-                      {kindCounts.agent > 0 && (
-                        <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
-                          <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#d4d4d4' : '#EA4335' }} />
-                          <span>Agents</span>
-                          <span className="text-white">{kindCounts.agent}</span>
-                        </span>
-                      )}
-                      {kindCounts.port > 0 && (
-                        <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
-                          <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#e8e8e8' : '#FBBC05' }} />
-                          <span>Ports</span>
-                          <span className="text-white">{kindCounts.port}</span>
-                        </span>
-                      )}
-                      {kindCounts.git > 0 && (
-                        <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
-                          <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#c0c0c0' : '#34A853' }} />
-                          <span>Git</span>
-                          <span className="text-white">{kindCounts.git}</span>
-                        </span>
+                  <div className="pointer-events-auto absolute inset-x-4 bottom-3 flex flex-wrap items-end justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                      <div className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[9px] uppercase tracking-[0.24em] text-gray-300">
+                        Wireframe Intelligence
+                      </div>
+                      {entities.length > 0 && (
+                        <>
+                          {kindCounts.workspace > 0 && (
+                            <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
+                              <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#f0f0f0' : '#4285F4' }} />
+                              <span>Workspaces</span>
+                              <span className="text-white">{kindCounts.workspace}</span>
+                            </span>
+                          )}
+                          {kindCounts.agent > 0 && (
+                            <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
+                              <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#d4d4d4' : '#EA4335' }} />
+                              <span>Agents</span>
+                              <span className="text-white">{kindCounts.agent}</span>
+                            </span>
+                          )}
+                          {kindCounts.port > 0 && (
+                            <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
+                              <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#e8e8e8' : '#FBBC05' }} />
+                              <span>Ports</span>
+                              <span className="text-white">{kindCounts.port}</span>
+                            </span>
+                          )}
+                          {kindCounts.git > 0 && (
+                            <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
+                              <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#c0c0c0' : '#34A853' }} />
+                              <span>Git</span>
+                              <span className="text-white">{kindCounts.git}</span>
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
-                  )}
 
-                  <div className="absolute bottom-3 right-4 flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${theme.text} bg-current shadow-[0_0_14px_currentColor]`} />
-                    <span className={`text-[9px] uppercase tracking-[0.22em] ${theme.text}`}>{titleCase(yenneferStyle)} lens</span>
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      {onToggleMono && (
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onToggleMono() }}
+                          className={`rounded-full border px-2 py-1 text-[9px] uppercase tracking-[0.2em] transition-colors ${
+                            mono
+                              ? 'border-white/25 bg-white/15 text-white'
+                              : 'border-white/10 bg-black/60 text-gray-400 hover:text-gray-200'
+                          }`}>
+                          {mono ? 'mono' : 'color'}
+                        </button>
+                      )}
+                      <div className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[9px] uppercase tracking-[0.24em] text-gray-300">
+                        live
+                      </div>
+                      <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/60 px-2.5 py-1">
+                        <span className={`h-2 w-2 rounded-full ${theme.text} bg-current shadow-[0_0_14px_currentColor]`} />
+                        <span className={`text-[9px] uppercase tracking-[0.22em] ${theme.text}`}>{titleCase(yenneferStyle)} lens</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
