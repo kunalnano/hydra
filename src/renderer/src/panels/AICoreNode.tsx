@@ -45,6 +45,8 @@ interface AICoreNodeProps {
   onRequestBriefing: () => void
   onRepair: () => void
   onToggleMono?: () => void
+  onSetYenneferStyle?: (style: YenneferStyle) => void
+  lensDisabled?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -193,6 +195,17 @@ function nodeVisuals(index: number, entity: LatticeEntity | null, mono: boolean)
   return { fill, glow, twinkleDur, sizeDur, beginOffset, baseR, dimFloor, brightCeil, rMin, rMax, isEntity }
 }
 
+function dustVisuals(index: number, kind: EntityKind, mono: boolean) {
+  const palette = mono ? KIND_COLOR_MONO : KIND_COLOR
+  const { fill, glow } = palette[kind]
+  const twinkleDur = 1100 + Math.round(prand(index, 11) * 2200)
+  const beginOffset = Math.round(prand(index, 13) * 2400)
+  const baseOpacity = kind === 'ambient' ? 0.16 : 0.24
+  const peakOpacity = kind === 'ambient' ? 0.38 : 0.58
+  const baseRadius = kind === 'ambient' ? 1.05 : 1.35
+  return { fill, glow, twinkleDur, beginOffset, baseOpacity, peakOpacity, baseRadius }
+}
+
 // ---------------------------------------------------------------------------
 // Motion
 // ---------------------------------------------------------------------------
@@ -243,7 +256,7 @@ export function AICoreNode({
   mode, mono = false, activeAgents, totalAgents, cpuUsage, memoryUsage, listenerCount,
   yenneferStyle, lmStudioUrl, disabled,
   processes, agents, ports, gitRepos,
-  onInvokeYennefer, onRequestBriefing, onRepair, onToggleMono
+  onInvokeYennefer, onRequestBriefing, onRepair, onToggleMono, onSetYenneferStyle, lensDisabled = false
 }: AICoreNodeProps): JSX.Element {
   const theme = MODE_THEME[mode]
   const sphereRef = useRef<HTMLDivElement | null>(null)
@@ -285,6 +298,16 @@ export function AICoreNode({
     return c
   }, [entities])
 
+  const twinkleKinds = useMemo(() => {
+    const activeKinds: EntityKind[] = []
+    if (kindCounts.workspace > 0) activeKinds.push('workspace')
+    if (kindCounts.agent > 0) activeKinds.push('agent')
+    if (kindCounts.port > 0) activeKinds.push('port')
+    if (kindCounts.git > 0) activeKinds.push('git')
+    if (activeKinds.length === 0) activeKinds.push('ambient')
+    return activeKinds
+  }, [kindCounts])
+
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>): void {
     const el = sphereRef.current
     if (!el) return
@@ -301,7 +324,7 @@ export function AICoreNode({
 
   return (
     <div className={`space-y-4 rounded-[28px] border ${theme.border} bg-gradient-to-br ${theme.shell} p-4 shadow-[0_18px_60px_rgba(0,0,0,0.32)]`}>
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.72fr)]">
+      <div className="space-y-4">
         <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/28 p-4">
           <div className="absolute inset-0 opacity-28" style={{
             backgroundImage: 'linear-gradient(rgba(121,168,201,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(121,168,201,0.1) 1px, transparent 1px)',
@@ -328,7 +351,7 @@ export function AICoreNode({
               ref={sphereRef}
               onPointerMove={handlePointerMove}
               onPointerLeave={handlePointerLeave}
-              className="relative mx-auto w-full max-w-[792px] transition-transform duration-200 ease-out"
+              className="relative mx-auto w-full max-w-[980px] transition-transform duration-200 ease-out"
               style={{
                 aspectRatio: '2 / 1',
                 transform: 'perspective(1400px) rotateX(0deg) rotateY(0deg) scale(1)'
@@ -389,12 +412,62 @@ export function AICoreNode({
                         <animate attributeName="opacity" values="0.42;0.82;0.42" dur={`${pulseMs}ms`} repeatCount="indefinite" />
                       </path>
 
-                      {DUST_POINTS.map(([x, y], i) => (
-                        <circle key={`d-${i}`} cx={x} cy={y} r="1.3" fill={theme.meshDim} opacity="0.66">
-                          <animate attributeName="opacity" values="0.15;0.62;0.15"
-                            dur={`${shimmerMs + i * 30}ms`} begin={`${(i * 70) % 900}ms`} repeatCount="indefinite" />
-                        </circle>
-                      ))}
+                      {DUST_POINTS.map(([x, y], i) => {
+                        const kind = twinkleKinds[i % twinkleKinds.length]
+                        const v = dustVisuals(i, kind, mono)
+                        return (
+                          <g key={`d-${i}`}>
+                            <circle cx={x} cy={y} r={v.baseRadius * 3.2} fill={v.glow} opacity="0">
+                              <animate
+                                attributeName="opacity"
+                                values={`0;${kind === 'ambient' ? '0.12' : '0.26'};0`}
+                                dur={`${v.twinkleDur}ms`}
+                                begin={`${v.beginOffset}ms`}
+                                repeatCount="indefinite"
+                              />
+                              <animate
+                                attributeName="r"
+                                values={`${(v.baseRadius * 2.4).toFixed(2)};${(v.baseRadius * 4.1).toFixed(2)};${(v.baseRadius * 2.4).toFixed(2)}`}
+                                dur={`${Math.max(1200, v.twinkleDur + 320)}ms`}
+                                begin={`${v.beginOffset}ms`}
+                                repeatCount="indefinite"
+                              />
+                            </circle>
+                            <circle cx={x} cy={y} r={v.baseRadius} fill={v.fill} opacity={v.baseOpacity}>
+                              <animate
+                                attributeName="opacity"
+                                values={`${v.baseOpacity};${v.peakOpacity};${v.baseOpacity}`}
+                                dur={`${Math.max(900, shimmerMs - 260) + i * 18}ms`}
+                                begin={`${v.beginOffset}ms`}
+                                repeatCount="indefinite"
+                              />
+                              <animate
+                                attributeName="r"
+                                values={`${v.baseRadius};${(v.baseRadius * 1.55).toFixed(2)};${v.baseRadius}`}
+                                dur={`${v.twinkleDur}ms`}
+                                begin={`${v.beginOffset}ms`}
+                                repeatCount="indefinite"
+                              />
+                            </circle>
+                            <circle cx={x} cy={y} r={Math.max(0.55, v.baseRadius * 0.42)} fill="rgba(241,252,255,0.92)" opacity="0.4">
+                              <animate
+                                attributeName="opacity"
+                                values="0.28;0.92;0.28"
+                                dur={`${Math.max(860, v.twinkleDur - 120)}ms`}
+                                begin={`${v.beginOffset}ms`}
+                                repeatCount="indefinite"
+                              />
+                              <animate
+                                attributeName="r"
+                                values={`${Math.max(0.55, v.baseRadius * 0.36).toFixed(2)};${Math.max(0.9, v.baseRadius * 0.64).toFixed(2)};${Math.max(0.55, v.baseRadius * 0.36).toFixed(2)}`}
+                                dur={`${Math.max(820, v.twinkleDur - 200)}ms`}
+                                begin={`${v.beginOffset}ms`}
+                                repeatCount="indefinite"
+                              />
+                            </circle>
+                          </g>
+                        )
+                      })}
 
                       {GLOBE_NODES.map((node, i) => {
                         const v = nodeVisuals(i, entityMap[i], mono)
@@ -431,58 +504,64 @@ export function AICoreNode({
 
                 {/* Overlay badges stay inside the aspect-ratio frame so the sphere never spills into neighboring panels. */}
                 <div className="absolute inset-0 pointer-events-none">
-                  <div className="pointer-events-auto absolute left-4 top-3 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[9px] uppercase tracking-[0.24em] text-gray-300">
-                    Wireframe Intelligence
-                  </div>
-                  <div className="pointer-events-auto absolute right-4 top-3 flex items-center gap-1.5">
-                    {onToggleMono && (
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onToggleMono() }}
-                        className={`rounded-full border px-2 py-1 text-[9px] uppercase tracking-[0.2em] transition-colors ${
-                          mono
-                            ? 'border-white/25 bg-white/15 text-white'
-                            : 'border-white/10 bg-black/60 text-gray-400 hover:text-gray-200'
-                        }`}>
-                        {mono ? 'mono' : 'color'}
-                      </button>
-                    )}
-                    <div className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[9px] uppercase tracking-[0.24em] text-gray-300">
-                      live
-                    </div>
-                  </div>
-
-                  {/* Entity legend */}
-                  {entities.length > 0 && (
-                    <div className="pointer-events-auto absolute left-4 bottom-3 flex items-center gap-3">
-                      {kindCounts.workspace > 0 && (
-                        <span className="flex items-center gap-1 text-[9px] text-gray-400">
-                          <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#f0f0f0' : '#4285F4' }} />
-                          {kindCounts.workspace}
-                        </span>
-                      )}
-                      {kindCounts.agent > 0 && (
-                        <span className="flex items-center gap-1 text-[9px] text-gray-400">
-                          <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#d4d4d4' : '#EA4335' }} />
-                          {kindCounts.agent}
-                        </span>
-                      )}
-                      {kindCounts.port > 0 && (
-                        <span className="flex items-center gap-1 text-[9px] text-gray-400">
-                          <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#e8e8e8' : '#FBBC05' }} />
-                          {kindCounts.port}
-                        </span>
-                      )}
-                      {kindCounts.git > 0 && (
-                        <span className="flex items-center gap-1 text-[9px] text-gray-400">
-                          <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#c0c0c0' : '#34A853' }} />
-                          {kindCounts.git}
-                        </span>
+                  <div className="pointer-events-auto absolute inset-x-4 bottom-3 flex flex-wrap items-end justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                      <div className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[9px] uppercase tracking-[0.24em] text-gray-300">
+                        Wireframe Intelligence
+                      </div>
+                      {entities.length > 0 && (
+                        <>
+                          {kindCounts.workspace > 0 && (
+                            <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
+                              <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#f0f0f0' : '#4285F4' }} />
+                              <span>Workspaces</span>
+                              <span className="text-white">{kindCounts.workspace}</span>
+                            </span>
+                          )}
+                          {kindCounts.agent > 0 && (
+                            <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
+                              <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#d4d4d4' : '#EA4335' }} />
+                              <span>Agents</span>
+                              <span className="text-white">{kindCounts.agent}</span>
+                            </span>
+                          )}
+                          {kindCounts.port > 0 && (
+                            <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
+                              <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#e8e8e8' : '#FBBC05' }} />
+                              <span>Ports</span>
+                              <span className="text-white">{kindCounts.port}</span>
+                            </span>
+                          )}
+                          {kindCounts.git > 0 && (
+                            <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-gray-300">
+                              <span className="inline-block h-2 w-2 rounded-full" style={{ background: mono ? '#c0c0c0' : '#34A853' }} />
+                              <span>Git</span>
+                              <span className="text-white">{kindCounts.git}</span>
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
-                  )}
 
-                  <div className="absolute bottom-3 right-4 flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${theme.text} bg-current shadow-[0_0_14px_currentColor]`} />
-                    <span className={`text-[9px] uppercase tracking-[0.22em] ${theme.text}`}>{titleCase(yenneferStyle)} lens</span>
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      {onToggleMono && (
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onToggleMono() }}
+                          className={`rounded-full border px-2 py-1 text-[9px] uppercase tracking-[0.2em] transition-colors ${
+                            mono
+                              ? 'border-white/25 bg-white/15 text-white'
+                              : 'border-white/10 bg-black/60 text-gray-400 hover:text-gray-200'
+                          }`}>
+                          {mono ? 'mono' : 'color'}
+                        </button>
+                      )}
+                      <div className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[9px] uppercase tracking-[0.24em] text-gray-300">
+                        live
+                      </div>
+                      <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/60 px-2.5 py-1">
+                        <span className={`h-2 w-2 rounded-full ${theme.text} bg-current shadow-[0_0_14px_currentColor]`} />
+                        <span className={`text-[9px] uppercase tracking-[0.22em] ${theme.text}`}>{titleCase(yenneferStyle)} lens</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -490,25 +569,44 @@ export function AICoreNode({
           </div>
         </div>
 
-        {/* Right sidebar */}
-        <div className="flex flex-col justify-between rounded-[24px] border border-white/10 bg-black/25 p-4">
-          <div className="space-y-3">
+        <div className="rounded-[24px] border border-white/10 bg-black/25 p-4">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.62fr)_minmax(0,0.95fr)_minmax(0,0.72fr)]">
             <div>
               <div className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Interface</div>
               <div className="mt-1 text-sm font-semibold text-gray-100">{titleCase(yenneferStyle)} Lens</div>
               <div className="mt-1 truncate text-xs text-gray-500" title={lmStudioUrl}>{endpoint}</div>
+              {onSetYenneferStyle && (
+                <div className="mt-3">
+                  <label className="block text-[10px] uppercase tracking-[0.24em] text-gray-500">
+                    Lens Control
+                  </label>
+                  <select
+                    value={yenneferStyle}
+                    disabled={lensDisabled}
+                    onChange={(event) => onSetYenneferStyle(event.target.value as YenneferStyle)}
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs text-gray-200 transition-colors disabled:cursor-not-allowed disabled:text-gray-500"
+                  >
+                    <option value="adaptive">Adaptive</option>
+                    <option value="throughput">Throughput</option>
+                    <option value="creative">Creative</option>
+                    <option value="strict">Strict</option>
+                  </select>
+                </div>
+              )}
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-2">
               <MetricPill label="Swarm" value={`${activeAgents}/${totalAgents} active`} emphasis={mode === 'throughput'} />
               <MetricPill label="Memory" value={`${Math.round(memoryUsage)}%`} emphasis={memoryUsage >= 85} />
               <MetricPill label="CPU" value={`${Math.round(cpuUsage)}%`} emphasis={cpuUsage >= 80} />
               <MetricPill label="Ports" value={`${listenerCount} listeners`} />
             </div>
-          </div>
-          <div className="mt-4 rounded-[18px] border border-white/10 bg-black/20 p-3">
-            <div className="text-[10px] uppercase tracking-[0.26em] text-gray-500">Readout</div>
-            <div className={`mt-2 text-sm font-semibold ${theme.text}`}>{theme.label}</div>
-            <p className="mt-2 text-xs leading-relaxed text-gray-300">{theme.detail}</p>
+
+            <div className="rounded-[18px] border border-white/10 bg-black/20 p-3">
+              <div className="text-[10px] uppercase tracking-[0.26em] text-gray-500">Readout</div>
+              <div className={`mt-2 text-sm font-semibold ${theme.text}`}>{theme.label}</div>
+              <p className="mt-2 text-xs leading-relaxed text-gray-300">{theme.detail}</p>
+            </div>
           </div>
         </div>
       </div>

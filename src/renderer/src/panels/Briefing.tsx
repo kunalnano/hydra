@@ -200,8 +200,10 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
     return 'idle'
   })()
 
+  const isFull = variant === 'full'
+
   return (
-    <div className="h-full flex flex-col text-sm">
+    <div className={isFull ? 'space-y-3 text-sm' : 'h-full flex flex-col text-sm'}>
       {variant === 'full' && yenneferEnabled ? (
         <div className="pb-4">
           <AICoreNode
@@ -223,6 +225,8 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
             onRepair={healLmStudio}
             onInvokeYennefer={invokeYennefer}
             onToggleMono={() => setMonoLattice((m) => !m)}
+            onSetYenneferStyle={updateYenneferStyle}
+            lensDisabled={savingStyle || yenneferLoading}
           />
         </div>
       ) : (
@@ -273,50 +277,73 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-3 pb-2">
-        <div className="text-[10px] text-gray-600 font-mono truncate" title={lmStudioUrl}>
-          → {lmStudioUrl}
-        </div>
-        {briefing && (
-          <span className="text-xs text-gray-600 font-mono">
-            {new Date(briefing.timestamp).toLocaleTimeString()}
-          </span>
-        )}
-      </div>
-
-      {yenneferEnabled && (
-        <div className="flex items-center justify-between gap-3 pb-3">
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-gray-500">Yennefer Lens</div>
-            <div className="text-[11px] text-gray-600">
-              Throughput treats dense work as intentional. Creative varies the read.
+      {isFull ? (
+        briefing && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/8 bg-black/10 px-3 py-2">
+            <div className="min-w-0 flex-1 text-[10px] text-gray-600 font-mono truncate" title={lmStudioUrl}>
+              → {lmStudioUrl}
             </div>
+            <span className="text-[10px] text-gray-600 font-mono">
+              {new Date(briefing.timestamp).toLocaleTimeString()}
+            </span>
           </div>
-          <select
-            value={yenneferStyle}
-            disabled={savingStyle || yenneferLoading}
-            onChange={(e) => updateYenneferStyle(e.target.value as YenneferStyle)}
-            className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200 disabled:text-gray-500"
-          >
-            <option value="adaptive">Adaptive</option>
-            <option value="throughput">Throughput</option>
-            <option value="creative">Creative</option>
-            <option value="strict">Strict</option>
-          </select>
-        </div>
+        )
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-3 pb-2">
+            <div className="text-[10px] text-gray-600 font-mono truncate" title={lmStudioUrl}>
+              → {lmStudioUrl}
+            </div>
+            {briefing && (
+              <span className="text-xs text-gray-600 font-mono">
+                {new Date(briefing.timestamp).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+
+          {yenneferEnabled && (
+            <div className="flex items-center justify-between gap-3 pb-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-gray-500">Yennefer Lens</div>
+                <div className="text-[11px] text-gray-600">
+                  Throughput treats dense work as intentional. Creative varies the read.
+                </div>
+              </div>
+              <select
+                value={yenneferStyle}
+                disabled={savingStyle || yenneferLoading}
+                onChange={(e) => updateYenneferStyle(e.target.value as YenneferStyle)}
+                className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200 disabled:text-gray-500"
+              >
+                <option value="adaptive">Adaptive</option>
+                <option value="throughput">Throughput</option>
+                <option value="creative">Creative</option>
+                <option value="strict">Strict</option>
+              </select>
+            </div>
+          )}
+        </>
       )}
 
       {error && <div className="text-red-400 text-xs mb-2">{error}</div>}
       {notice && <div className="text-emerald-400 text-xs mb-2">{notice}</div>}
 
-      {!briefing && !loading && !error && (
-        <div className="text-gray-600 text-xs flex-1 flex items-center justify-center">
+      {!isFull && !briefing && !loading && !error && (
+        <div
+          className="text-gray-600 text-xs flex-1 flex items-center justify-center"
+        >
           Press the button or Cmd+B for a Local AI (LM Studio) briefing
         </div>
       )}
 
       {briefing && (
-        <div className="flex-1 overflow-y-auto space-y-3">
+        <div
+          className={
+            isFull
+              ? 'max-h-[280px] space-y-3 overflow-y-auto rounded-xl border border-white/8 bg-black/10 p-3'
+              : 'flex-1 overflow-y-auto space-y-3'
+          }
+        >
           {/* Summary */}
           <p className="text-gray-300 leading-relaxed">{briefing.summary}</p>
 
