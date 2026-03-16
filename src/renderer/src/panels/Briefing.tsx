@@ -203,7 +203,7 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
   return (
     <div className="h-full flex flex-col text-sm">
       {variant === 'full' && yenneferEnabled ? (
-        <div className="flex-1 min-h-0 pb-4">
+        <div className="pb-4">
           <AICoreNode
             mode={coreMode}
             mono={monoLattice}

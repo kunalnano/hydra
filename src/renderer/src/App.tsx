@@ -504,25 +504,25 @@ function SystemsPage(): JSX.Element {
 function AIPage(): JSX.Element {
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.9fr)]">
-        <DashPanel title="Local AI (LM Studio)" className="min-h-[520px]">
+      <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.9fr)]">
+        <DashPanel title="Local AI (LM Studio)" className="min-h-[420px]">
           <BriefingPanel variant="full" />
         </DashPanel>
-        <div className="grid gap-4 auto-rows-fr">
-          <DashPanel title="Notifications" className="min-h-[240px]">
+        <div className="grid content-start gap-4">
+          <DashPanel title="Notifications" className="min-h-[220px]">
             <NotificationsPanel />
           </DashPanel>
-          <DashPanel title="Agents" className="min-h-[260px]">
+          <DashPanel title="Agents" className="min-h-[240px]">
             <AgentsPanel />
           </DashPanel>
         </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <DashPanel title="Timeline" className="min-h-[300px]">
+        <DashPanel title="Timeline" className="min-h-[280px]">
           <TimelinePanel />
         </DashPanel>
-        <DashPanel title="Command Center" className="min-h-[300px]">
+        <DashPanel title="Command Center" className="min-h-[280px]">
           <CommandCenterPanel />
         </DashPanel>
       </div>
@@ -572,7 +572,7 @@ function NavBadge({ pageId }: { pageId: HydraPageId }): JSX.Element {
       badge = `${state.gitRepos.length}`
       break
     case 'agents':
-      badge = `${state.agents.filter((agent) => agent.status === 'waiting').length}`
+      badge = `${state.agents.length}`
       break
     case 'systems':
       badge = `${state.ports.filter((port) => port.state === 'LISTEN').length}`

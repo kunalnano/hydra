@@ -175,6 +175,75 @@ describe('detectAgents', () => {
     expect(agents).toHaveLength(0)
   })
 
+  it('ignores Codex helper processes and keeps the real desktop agent', () => {
+    const procs: ProcessInfo[] = [
+      {
+        pid: 87935,
+        user: 'test',
+        cpu: 51.9,
+        mem: 0.4,
+        command:
+          '/Applications/Codex.app/Contents/Frameworks/Codex Helper.app/Contents/MacOS/Codex Helper --type=gpu-process',
+        name: 'Codex'
+      },
+      {
+        pid: 88079,
+        user: 'test',
+        cpu: 42.6,
+        mem: 2.3,
+        command:
+          '/Applications/Codex.app/Contents/Frameworks/Codex Helper (Renderer).app/Contents/MacOS/Codex Helper (Renderer) --type=renderer',
+        name: 'Codex'
+      },
+      {
+        pid: 88081,
+        user: 'test',
+        cpu: 5.7,
+        mem: 0.5,
+        command: '/Applications/Codex.app/Contents/Resources/codex app-server --analytics-default-enabled',
+        name: 'codex'
+      },
+      {
+        pid: 87901,
+        user: 'test',
+        cpu: 0.4,
+        mem: 0.8,
+        command: '/Applications/Codex.app/Contents/MacOS/Codex',
+        name: 'Codex'
+      },
+      {
+        pid: 87937,
+        user: 'test',
+        cpu: 0,
+        mem: 0.2,
+        command:
+          '/Applications/Codex.app/Contents/Frameworks/Codex Helper.app/Contents/MacOS/Codex Helper --type=utility --utility-sub-type=network.mojom.NetworkService',
+        name: 'Codex'
+      }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents).toHaveLength(1)
+    expect(agents[0].type).toBe('codex')
+    expect(agents[0].pid).toBe(88081)
+    expect(agents[0].name).toBe('Codex')
+  })
+
+  it('does not mistake CursorUIViewService for the Cursor editor', () => {
+    const procs: ProcessInfo[] = [
+      {
+        pid: 809,
+        user: 'test',
+        cpu: 0,
+        mem: 0.1,
+        command:
+          '/System/Library/PrivateFrameworks/TextInputUIMacHelper.framework/Versions/A/XPCServices/CursorUIViewService.xpc/Contents/MacOS/CursorUIViewService',
+        name: 'CursorUIViewService'
+      }
+    ]
+    const agents = detectAgents(procs)
+    expect(agents).toHaveLength(0)
+  })
+
   it('numbers multiple instances of same agent type', () => {
     const procs: ProcessInfo[] = [
       { pid: 100, user: 'test', cpu: 10, mem: 1, command: '/usr/local/bin/claude', name: 'claude' },

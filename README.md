@@ -1,13 +1,23 @@
-# HYDRA v2 — Operator Shell For Local AI Systems
+# HYDRA v2.1.2 — Operator Shell For Local AI Systems
 
 Hydra is a desktop ops shell for developers running AI agents, local services, and multi-machine model workflows. It keeps overall system status visible while giving each domain its own page instead of forcing everything into one dense dashboard.
 
-Version 2 focuses on faster navigation, lower renderer churn, and a stronger local AI workflow around LM Studio and Yennefer.
+Latest release: `v2.1.2`
+
+Version 2.1.2 keeps the Live Lattice sphere contained, makes the AI page scale like a real interface instead of a flexbox accident, and tightens the operational plumbing around agent detection and CI.
 
 ![Hydra v2 Overview](docs/screenshots/dashboard-v2-overview.png)
 ![Hydra v2 AI Page](docs/screenshots/dashboard-v2-ai.png)
 
-## What Changed In v2
+## What Changed In v2.1.2
+
+- Re-contained the Live Lattice sphere inside a responsive `2:1` frame so it scales down cleanly and stays inside its rounded border
+- Kept the lattice overlays, metrics rail, and action dock inside the AI panel without pushing `Notifications`, `Agents`, `Timeline`, or `Command Center` off-screen
+- Fixed the Agents sidebar badge so it reflects the detected roster instead of only counting waiting agents
+- Tightened agent detection to ignore Codex helper processes and `CursorUIViewService` false positives
+- Fixed GitHub Actions test runs on Node 20 by rebuilding `better-sqlite3` for the Node runtime before Vitest executes
+
+## What Landed In v2
 
 - Dedicated pages for `Overview`, `Workspaces`, `Agents`, `Systems`, `AI`, and `Activity`
 - Persistent status shell with health scorecards and always-visible system posture

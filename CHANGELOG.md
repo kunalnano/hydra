@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.1.2 — 2026-03-15
+
+### Product
+- Re-contained the Live Lattice AI sphere inside a responsive `2:1` frame so the globe scales with the AI page instead of overflowing into neighboring panels
+- Rebalanced the AI page panel sizing so `Notifications`, `Agents`, `Timeline`, and `Command Center` stay visible without the old greedy-height behavior
+
+### Reliability
+- Fixed the Agents sidebar badge so it reflects the detected roster instead of only showing queued agents
+- Tightened agent detection to ignore Codex helper processes, `codex-cli-mcp-tool`, and macOS `CursorUIViewService` false positives
+
+### Operations
+- Fixed GitHub Actions CI on Node 20 by rebuilding `better-sqlite3` for the Node runtime before Vitest runs
+
+### Docs
+- Updated the README to reflect the shipped Live Lattice patch line and current release state
+
 ## v2.1.0 — 2026-03-15
 
 ### Product
