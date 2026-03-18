@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSystemStore } from '../stores/system'
+import { useNavigationStore, type HydraPageId } from '../stores/navigation'
 
 interface PaletteCommand {
   id: string
@@ -8,6 +9,56 @@ interface PaletteCommand {
   description: string
   action: () => Promise<unknown> | void
 }
+
+const PAGE_COMMANDS: {
+  page: HydraPageId
+  label: string
+  aliases: string[]
+  description: string
+}[] = [
+  {
+    page: 'overview',
+    label: 'Open Overview',
+    aliases: ['overview', 'home', 'mission control'],
+    description: 'Jump to the top-level system posture page'
+  },
+  {
+    page: 'workspaces',
+    label: 'Open Workspaces',
+    aliases: ['repos', 'git', 'workspace'],
+    description: 'Jump to repo drift and process orchestration'
+  },
+  {
+    page: 'agents',
+    label: 'Open Agents',
+    aliases: ['swarm', 'agent roster'],
+    description: 'Jump to agent load and coordination context'
+  },
+  {
+    page: 'systems',
+    label: 'Open Systems',
+    aliases: ['network', 'ports', 'security'],
+    description: 'Jump to network, ports, and machine posture'
+  },
+  {
+    page: 'ai',
+    label: 'Open AI',
+    aliases: ['lm studio', 'briefing', 'yennefer'],
+    description: 'Jump to the operator-facing AI loop'
+  },
+  {
+    page: 'radio',
+    label: 'Open FM Radio',
+    aliases: ['radio', 'fm', 'stereo', 'stream'],
+    description: 'Jump to the built-in FM streaming tuner'
+  },
+  {
+    page: 'activity',
+    label: 'Open Activity',
+    aliases: ['logs', 'history', 'timeline'],
+    description: 'Jump to logs, history, and movement across the machine'
+  }
+]
 
 function fuzzyMatch(query: string, target: string): boolean {
   const q = query.toLowerCase()
@@ -33,8 +84,17 @@ export function CommandPalette({
   const state = useSystemStore((s) => s.state)
   const killProcess = useSystemStore((s) => s.killProcess)
   const signalProcess = useSystemStore((s) => s.signalProcess)
+  const setCurrentPage = useNavigationStore((s) => s.setCurrentPage)
 
-  const commands: PaletteCommand[] = []
+  const commands: PaletteCommand[] = PAGE_COMMANDS.map((pageCommand) => ({
+    id: `open-${pageCommand.page}`,
+    label: pageCommand.label,
+    aliases: pageCommand.aliases,
+    description: pageCommand.description,
+    action: () => {
+      setCurrentPage(pageCommand.page)
+    }
+  }))
 
   if (state) {
     const listeningPorts = state.ports.filter((p) => p.state === 'LISTEN')
@@ -141,57 +201,53 @@ export function CommandPalette({
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 flex items-start justify-center pt-[20vh] z-50"
+      className="shell-command-overlay fixed inset-0 z-50 flex items-start justify-center pt-[20vh]"
       onClick={onClose}
     >
       <div
-        className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-[560px] max-h-[400px] overflow-hidden"
+        className="shell-command-panel w-[560px] max-h-[420px] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-4 py-3 border-b border-gray-800">
+        <div className="shell-command-input-wrap px-4 py-3">
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a command... (kill port 3000, freeze next-app, ...)"
-            className="w-full bg-transparent text-white text-sm outline-none placeholder-gray-600"
+            className="shell-command-input"
             autoFocus
           />
         </div>
 
         <div className="max-h-[300px] overflow-y-auto py-1">
           {filtered.length === 0 && (
-            <div className="px-4 py-3 text-gray-600 text-sm">No matching commands</div>
+            <div className="px-4 py-3 text-sm shell-subtle">No matching commands</div>
           )}
           {filtered.map((cmd, idx) => (
             <div
               key={cmd.id}
-              className={`px-4 py-2 cursor-pointer flex items-center justify-between ${
-                idx === selectedIndex
-                  ? 'bg-cyan-950/40 border-l-2 border-cyan-400'
-                  : 'hover:bg-gray-800/50 border-l-2 border-transparent'
-              }`}
+              className={`shell-command-item ${idx === selectedIndex ? 'shell-command-item--active' : ''}`}
               onClick={() => executeCommand(cmd)}
               onMouseEnter={() => setSelectedIndex(idx)}
             >
               <div>
                 <div className="text-sm text-white">{cmd.label}</div>
-                <div className="text-xs text-gray-500">{cmd.description}</div>
+                <div className="text-xs shell-muted">{cmd.description}</div>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="px-4 py-2 border-t border-gray-800 flex items-center gap-4 text-[10px] text-gray-600">
+        <div className="shell-command-footer px-4 py-2 flex items-center gap-4 text-[10px] shell-subtle">
           <span>
-            <kbd className="px-1 py-0.5 bg-gray-800 rounded">up/dn</kbd> navigate
+            <kbd className="shell-command-key">up/dn</kbd> navigate
           </span>
           <span>
-            <kbd className="px-1 py-0.5 bg-gray-800 rounded">Enter</kbd> execute
+            <kbd className="shell-command-key">Enter</kbd> execute
           </span>
           <span>
-            <kbd className="px-1 py-0.5 bg-gray-800 rounded">Esc</kbd> close
+            <kbd className="shell-command-key">Esc</kbd> close
           </span>
         </div>
       </div>

@@ -1,10 +1,11 @@
+import type { CSSProperties, ReactNode } from 'react'
 import { Sparkline } from './Sparkline'
 
 export interface ScorecardProps {
   value: string
   label: string
   trend?: 'up' | 'down' | 'flat'
-  trendWidget?: React.ReactNode
+  trendWidget?: ReactNode
   color: 'green' | 'amber' | 'red' | 'blue' | 'gray'
   sparkData?: number[]
   onClick?: () => void
@@ -44,20 +45,24 @@ export function Scorecard({
   onClick
 }: ScorecardProps): JSX.Element {
   const { text: textColor, hex } = COLOR_MAP[color]
+  const scorecardStyle: CSSProperties = {
+    background: `radial-gradient(circle at 92% 8%, ${hex}22, transparent 28%), var(--hydra-card-bg)`,
+    boxShadow: `0 18px 34px rgba(2, 8, 20, 0.18), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -16px 24px ${hex}16`
+  }
 
   return (
     <div
-      className={`flex-1 bg-gray-900/60 border border-gray-800/50 rounded-lg px-4 py-3 flex flex-col shadow-lg shadow-black/10 hover:border-gray-700/50 transition-all duration-200 overflow-hidden${
+      style={scorecardStyle}
+      className={`shell-scorecard flex-1 px-4 py-3 flex flex-col overflow-hidden${
         onClick ? ' cursor-pointer' : ''
       }`}
-      style={{ borderTopColor: hex, borderTopWidth: '2px' }}
       onClick={onClick}
     >
       <div className="flex items-center gap-1.5">
         <span className={`text-2xl font-bold tabular-nums ${textColor}`}>{value}</span>
         {trendWidget || (trend && <TrendArrow trend={trend} color={color} />)}
       </div>
-      <span className="text-xs text-gray-500 uppercase tracking-wider">{label}</span>
+      <span className="text-xs uppercase tracking-wider shell-subtle">{label}</span>
       {sparkData && sparkData.length >= 2 && (
         <div className="mt-2" style={{ height: '40px' }}>
           <Sparkline data={sparkData} height={40} color={hex} />

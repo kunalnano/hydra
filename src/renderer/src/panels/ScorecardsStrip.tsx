@@ -59,7 +59,7 @@ function SmartTrendArrow({
   sentiment: 'good' | 'bad' | 'neutral'
 }): JSX.Element {
   if (direction === 'flat') {
-    return <span className="text-xs text-gray-600">&mdash;</span>
+    return <span className="text-xs shell-subtle">&mdash;</span>
   }
   const arrow = direction === 'up' ? '\u25B2' : '\u25BC'
   const color =
@@ -99,7 +99,7 @@ export function ScorecardsStrip(): JSX.Element {
   const netTrend = getSmartTrend(netCombinedHistory, false)
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="shell-scorecard-strip flex flex-wrap gap-3">
       <Scorecard
         value={`${Math.round(cpuUsage)}%`}
         label="CPU"
@@ -160,17 +160,17 @@ export function ScorecardsStrip(): JSX.Element {
           value={`${state.battery.percent}%`}
           label={state.battery.charging ? 'Battery ⚡' : 'Battery'}
           color={
-            state.battery.percent <= 20
-              ? 'red'
-              : state.battery.percent <= 50
-                ? 'amber'
-                : 'green'
+            state.battery.percent <= 20 ? 'red' : state.battery.percent <= 50 ? 'amber' : 'green'
           }
         />
       )}
       {ccUsage?.available && (
         <Scorecard
-          value={ccUsage.totalCostUSD >= 1 ? `$${Math.round(ccUsage.totalCostUSD)}` : `$${ccUsage.totalCostUSD.toFixed(2)}`}
+          value={
+            ccUsage.totalCostUSD >= 1
+              ? `$${Math.round(ccUsage.totalCostUSD)}`
+              : `$${ccUsage.totalCostUSD.toFixed(2)}`
+          }
           label="CC Cost"
           color="blue"
           onClick={() => setCurrentPage('systems')}

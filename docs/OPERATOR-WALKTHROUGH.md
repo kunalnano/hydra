@@ -1,6 +1,6 @@
 # HYDRA Operator Walkthrough
 
-Hydra is a page-based desktop shell for watching local AI systems, repo drift, agents, and machine posture without collapsing all of it into one screaming dashboard. This guide covers the current shipped surface in `v2.1.2`.
+Hydra is a page-based desktop shell for watching local AI systems, repo drift, agents, and machine posture without collapsing all of it into one screaming dashboard. This guide covers the current shipped surface in `v3.0.0`.
 
 ## Shell Layout
 
@@ -9,6 +9,7 @@ Hydra keeps a few things visible no matter which page you are on:
 - The top header shows live CPU, memory, network, and a manual `Refresh` action.
 - The scorecards strip keeps machine posture visible: CPU, memory, network, agents, ports, dirty repos, disk, battery, and Claude Code cost.
 - The left navigation rail is the main contract of the app. If a page has its own destination in the nav, it should not also be squatting on another page.
+- The shell skin selector lets you swap between `Deck` and `Orbiter` without breaking the shared chrome language.
 
 ## Pages
 
@@ -47,6 +48,13 @@ Use `AI` for the local-model control loop.
 - The `Live Lattice` maps `Workspaces`, `Agents`, `Ports`, and `Git` onto the sphere.
 - The interface tray below the lattice shows the LM Studio endpoint, lens control, swarm counts, CPU, memory, ports, and current readout.
 - The action dock gives you `Request Briefing`, `Invoke Repair`, and `Invoke Yennefer` without leaving the page.
+
+### FM Radio
+
+Use `FM Radio` when you want a live audio surface inside Hydra instead of another dashboard panel.
+
+- Preset stations, search, play/pause, volume, and connection state all live in one tuner view.
+- You can also load a direct stream URL manually and Hydra will persist the last station and volume.
 
 ### Activity
 
@@ -96,8 +104,8 @@ Hydra keeps local state instead of pretending everything is ephemeral:
 If you are using Hydra as intended, the normal loop is:
 
 1. Start in `Overview`.
-2. Follow the signal to `Workspaces`, `Agents`, `Systems`, or `AI`.
+2. Follow the signal to `Workspaces`, `Agents`, `Systems`, `AI`, or `FM Radio`.
 3. Use the page-local actions instead of trying to solve everything from the top layer.
 4. Come back to `Overview` when you want posture again instead of detail.
 
-That is the whole point of the v2 shell. The side nav is not decorative. It is how the app avoids turning back into a giant panel graveyard.
+That is the whole point of the shell. The side nav is not decorative. It is how the app avoids turning back into a giant panel graveyard.
