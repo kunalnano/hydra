@@ -1,5 +1,16 @@
 # Changelog
 
+## v3.0.0 — 2026-03-18
+
+### Product
+- Recast the Hydra shell around a full chrome system so header, nav, scorecards, panels, insight cards, and the command palette all share the same retro-futurist control-room surface
+- Added persisted `Deck` and `Orbiter` skins, with `Orbiter` becoming the tighter default shell for new sessions
+- Added the new `FM Radio` page with preset station search, tuner controls, loading/error states, and support for custom stream URLs
+
+### Release
+- Starting with `v3.0.0`, Hydra ships under PolyForm Noncommercial 1.0.0 instead of MIT
+- Earlier releases through `v2.1.2` remain available under the terms they were originally distributed under
+
 ## v2.1.2 — 2026-03-15
 
 ### Product

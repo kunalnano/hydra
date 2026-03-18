@@ -1,6 +1,13 @@
 import { create } from 'zustand'
 
-export type HydraPageId = 'overview' | 'workspaces' | 'agents' | 'systems' | 'ai' | 'activity'
+export type HydraPageId =
+  | 'overview'
+  | 'workspaces'
+  | 'agents'
+  | 'systems'
+  | 'ai'
+  | 'radio'
+  | 'activity'
 
 interface NavigationStore {
   currentPage: HydraPageId

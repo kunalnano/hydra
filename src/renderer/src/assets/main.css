@@ -1,16 +1,684 @@
 @import 'tailwindcss';
 
-html, body, #app {
+html,
+body,
+#app {
   height: 100%;
   margin: 0;
   overflow: hidden;
 }
 
 :root {
-  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+  font-family:
+    'SF Pro Display',
+    'SF Pro Text',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color-scheme: dark;
+  --hydra-accent: #8ce8ff;
+  --hydra-shell-text: #f7fbff;
+  --hydra-shell-muted: #d4e4ff;
+  --hydra-shell-subtle: #8ea7cc;
+  --hydra-border-strong: rgba(205, 227, 255, 0.18);
+  --hydra-border-soft: rgba(205, 227, 255, 0.12);
+  --hydra-control-border: rgba(205, 227, 255, 0.16);
+  --hydra-nav-width: 15.25rem;
+  --hydra-shell-bg: radial-gradient(circle at 16% 12%, rgba(176, 214, 255, 0.18), transparent 28%),
+    radial-gradient(circle at 84% 10%, rgba(84, 210, 255, 0.1), transparent 24%),
+    radial-gradient(circle at 56% 100%, rgba(255, 204, 123, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 22%),
+    linear-gradient(180deg, #071120 0%, #12263f 42%, #08131f 100%);
+  --hydra-shell-overlay: repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.025) 0 1px,
+      transparent 1px 13px
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 24%);
+  --hydra-header-bg: linear-gradient(
+    180deg,
+    rgba(238, 246, 255, 0.14),
+    rgba(79, 111, 151, 0.18) 54%,
+    rgba(11, 23, 41, 0.62)
+  );
+  --hydra-header-shadow: 0 16px 38px rgba(2, 8, 20, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -14px 22px rgba(45, 76, 116, 0.18);
+  --hydra-nav-bg: linear-gradient(
+    180deg,
+    rgba(236, 245, 255, 0.12),
+    rgba(74, 107, 148, 0.18) 58%,
+    rgba(10, 21, 38, 0.6)
+  );
+  --hydra-nav-shadow: 0 24px 52px rgba(2, 8, 20, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -18px 28px rgba(38, 70, 110, 0.16);
+  --hydra-surface-bg: linear-gradient(
+    180deg,
+    rgba(240, 247, 255, 0.08),
+    rgba(82, 112, 151, 0.14) 48%,
+    rgba(9, 18, 34, 0.54)
+  );
+  --hydra-surface-shadow: 0 28px 66px rgba(2, 8, 20, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -18px 28px rgba(34, 65, 103, 0.16);
+  --hydra-panel-bg: linear-gradient(
+    180deg,
+    rgba(247, 251, 255, 0.1),
+    rgba(103, 132, 170, 0.14) 46%,
+    rgba(12, 24, 42, 0.6)
+  );
+  --hydra-panel-shadow: 0 20px 40px rgba(2, 8, 20, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -18px 24px rgba(34, 64, 102, 0.14);
+  --hydra-card-bg: linear-gradient(
+    180deg,
+    rgba(247, 251, 255, 0.11),
+    rgba(119, 148, 185, 0.13) 44%,
+    rgba(14, 25, 42, 0.62)
+  );
+  --hydra-card-shadow: 0 18px 34px rgba(2, 8, 20, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -16px 24px rgba(36, 66, 102, 0.14);
+  --hydra-control-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(104, 132, 169, 0.16) 56%,
+    rgba(15, 25, 42, 0.58)
+  );
+  --hydra-control-hover-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(116, 147, 186, 0.2) 56%,
+    rgba(18, 30, 51, 0.64)
+  );
+  --hydra-nav-button-bg: linear-gradient(
+    180deg,
+    rgba(247, 251, 255, 0.1),
+    rgba(100, 132, 170, 0.15) 58%,
+    rgba(11, 22, 39, 0.6)
+  );
+  --hydra-nav-button-hover-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.16),
+    rgba(110, 144, 183, 0.18) 58%,
+    rgba(15, 27, 47, 0.68)
+  );
+  --hydra-nav-button-active-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(125, 187, 224, 0.18) 58%,
+    rgba(18, 42, 64, 0.66)
+  );
+  --hydra-nav-button-shadow: 0 14px 28px rgba(2, 8, 20, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -14px 20px rgba(42, 72, 108, 0.12);
+  --hydra-nav-button-active-shadow: 0 18px 34px rgba(2, 8, 20, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.26), inset 0 -18px 24px rgba(72, 132, 162, 0.14);
+  --hydra-nav-badge-bg: rgba(7, 15, 29, 0.18);
+  --hydra-nav-badge-border: rgba(205, 227, 255, 0.16);
+  --hydra-nav-badge-text: #dff1ff;
+  --hydra-grid-line: rgba(255, 255, 255, 0.022);
+  --hydra-scrollbar-thumb: rgba(139, 171, 207, 0.55);
+  --hydra-scrollbar-thumb-hover: rgba(191, 219, 255, 0.72);
 }
 
-/* Scrollbar styling for dark theme */
+[data-skin='glass'] {
+  --hydra-accent: #b7fff0;
+  --hydra-border-strong: rgba(228, 245, 255, 0.24);
+  --hydra-border-soft: rgba(228, 245, 255, 0.16);
+  --hydra-control-border: rgba(228, 245, 255, 0.2);
+  --hydra-nav-width: 14.85rem;
+  --hydra-shell-bg: radial-gradient(circle at 14% 10%, rgba(224, 245, 255, 0.24), transparent 28%),
+    radial-gradient(circle at 82% 12%, rgba(111, 244, 255, 0.14), transparent 22%),
+    radial-gradient(circle at 56% 100%, rgba(255, 208, 142, 0.12), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 20%),
+    linear-gradient(180deg, #0a1628 0%, #15314d 40%, #091521 100%);
+  --hydra-shell-overlay: repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04) 0 1px,
+      transparent 1px 11px
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 24%);
+  --hydra-header-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(132, 171, 208, 0.22) 50%,
+    rgba(18, 36, 57, 0.6)
+  );
+  --hydra-header-shadow: 0 18px 42px rgba(2, 8, 20, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -16px 24px rgba(75, 130, 152, 0.16);
+  --hydra-nav-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.16),
+    rgba(127, 169, 208, 0.2) 56%,
+    rgba(16, 32, 52, 0.62)
+  );
+  --hydra-nav-shadow: 0 28px 58px rgba(2, 8, 20, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -18px 28px rgba(79, 135, 158, 0.16);
+  --hydra-surface-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(143, 187, 226, 0.16) 46%,
+    rgba(14, 28, 45, 0.52)
+  );
+  --hydra-surface-shadow: 0 28px 72px rgba(2, 8, 20, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -20px 30px rgba(76, 128, 156, 0.16);
+  --hydra-panel-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.14),
+    rgba(145, 186, 222, 0.16) 44%,
+    rgba(14, 26, 43, 0.58)
+  );
+  --hydra-panel-shadow: 0 22px 44px rgba(2, 8, 20, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -18px 26px rgba(77, 130, 156, 0.18);
+  --hydra-card-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.15),
+    rgba(152, 192, 228, 0.16) 42%,
+    rgba(18, 30, 48, 0.58)
+  );
+  --hydra-card-shadow: 0 18px 36px rgba(2, 8, 20, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -16px 24px rgba(74, 127, 154, 0.16);
+  --hydra-control-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(137, 179, 215, 0.18) 54%,
+    rgba(18, 31, 49, 0.56)
+  );
+  --hydra-control-hover-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.24),
+    rgba(151, 194, 229, 0.22) 54%,
+    rgba(22, 37, 57, 0.62)
+  );
+  --hydra-nav-button-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.14),
+    rgba(136, 178, 214, 0.18) 56%,
+    rgba(17, 31, 50, 0.58)
+  );
+  --hydra-nav-button-hover-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(152, 193, 228, 0.2) 56%,
+    rgba(20, 36, 57, 0.64)
+  );
+  --hydra-nav-button-active-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.26),
+    rgba(152, 255, 235, 0.18) 52%,
+    rgba(23, 47, 68, 0.62)
+  );
+  --hydra-nav-button-shadow: 0 14px 30px rgba(2, 8, 20, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -14px 22px rgba(69, 122, 148, 0.14);
+  --hydra-nav-button-active-shadow: 0 18px 38px rgba(2, 8, 20, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36), inset 0 -18px 24px rgba(92, 190, 174, 0.16);
+  --hydra-nav-badge-bg: rgba(255, 255, 255, 0.08);
+  --hydra-nav-badge-border: rgba(228, 245, 255, 0.2);
+  --hydra-nav-badge-text: #effeff;
+  --hydra-grid-line: rgba(255, 255, 255, 0.036);
+  --hydra-scrollbar-thumb: rgba(167, 204, 236, 0.58);
+  --hydra-scrollbar-thumb-hover: rgba(216, 244, 255, 0.78);
+}
+
+body {
+  background: #071120;
+  color: var(--hydra-shell-text);
+}
+
+.hydra-shell {
+  background-image: var(--hydra-shell-overlay), var(--hydra-shell-bg);
+  color: var(--hydra-shell-text);
+}
+
+.shell-loading,
+.shell-header,
+.shell-nav,
+.shell-main,
+.shell-page-header,
+.shell-chip,
+.shell-control-button,
+.shell-mobile-nav-button,
+.shell-segmented-control,
+.shell-command-panel,
+.shell-command-input-wrap,
+.shell-command-footer,
+.shell-panel,
+.shell-scorecard,
+.shell-insight-card,
+.shell-radio-pane,
+.shell-radio-display,
+.shell-radio-stat,
+.shell-radio-form,
+.shell-radio-station {
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+}
+
+.shell-header {
+  background: var(--hydra-header-bg);
+  border-color: var(--hydra-border-strong);
+  box-shadow: var(--hydra-header-shadow);
+}
+
+.shell-nav {
+  width: var(--hydra-nav-width);
+  border: 1px solid var(--hydra-border-strong);
+  border-radius: 2rem;
+  background: var(--hydra-nav-bg);
+  box-shadow: var(--hydra-nav-shadow);
+}
+
+.shell-nav-button {
+  padding: 0.82rem 0.95rem;
+  border: 1px solid transparent;
+  border-radius: 1.55rem;
+  background: var(--hydra-nav-button-bg);
+  box-shadow: var(--hydra-nav-button-shadow);
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.shell-nav-button--inactive:hover {
+  transform: translateY(-1px);
+  background: var(--hydra-nav-button-hover-bg);
+  border-color: var(--hydra-border-soft);
+}
+
+.shell-nav-button--active {
+  background: var(--hydra-nav-button-active-bg);
+  border-color: var(--hydra-border-strong);
+  box-shadow: var(--hydra-nav-button-active-shadow);
+}
+
+.shell-nav-badge {
+  border: 1px solid var(--hydra-nav-badge-border);
+  background: var(--hydra-nav-badge-bg);
+  color: var(--hydra-nav-badge-text);
+}
+
+.shell-nav-badge--active {
+  color: #ffffff;
+}
+
+.shell-main {
+  border: 1px solid var(--hydra-border-strong);
+  border-radius: 2rem;
+  background: var(--hydra-surface-bg);
+  box-shadow: var(--hydra-surface-shadow);
+}
+
+.shell-page-header {
+  border-bottom: 1px solid var(--hydra-border-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.01));
+}
+
+.shell-page-kicker {
+  color: var(--hydra-accent);
+}
+
+.shell-chip {
+  border: 1px solid var(--hydra-control-border);
+  background: var(--hydra-control-bg);
+  color: var(--hydra-shell-muted);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 10px 20px rgba(2, 8, 20, 0.12);
+}
+
+.shell-control-button,
+.shell-mobile-nav-button {
+  border: 1px solid var(--hydra-control-border);
+  border-radius: 999px;
+  background: var(--hydra-control-bg);
+  color: var(--hydra-shell-muted);
+  box-shadow:
+    0 12px 24px rgba(2, 8, 20, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.shell-control-button:hover,
+.shell-mobile-nav-button:hover {
+  transform: translateY(-1px);
+  background: var(--hydra-control-hover-bg);
+  color: #ffffff;
+}
+
+.shell-mobile-nav-button--active,
+.shell-segmented-button--active {
+  background: var(--hydra-nav-button-active-bg);
+  box-shadow: var(--hydra-nav-button-active-shadow);
+}
+
+.shell-segmented-control {
+  display: flex;
+  gap: 0.25rem;
+  border: 1px solid var(--hydra-control-border);
+  border-radius: 999px;
+  padding: 0.24rem;
+  background: var(--hydra-control-bg);
+  box-shadow:
+    0 10px 20px rgba(2, 8, 20, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.shell-segmented-button {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--hydra-shell-subtle);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.34rem 0.85rem;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.shell-segmented-button:hover {
+  color: #ffffff;
+}
+
+.shell-segmented-button--active {
+  color: var(--hydra-accent);
+  border-color: var(--hydra-border-soft);
+}
+
+.shell-scorecard-strip {
+  gap: 0.85rem;
+}
+
+.shell-scorecard,
+.shell-panel,
+.shell-insight-card,
+.shell-radio-pane,
+.shell-command-panel {
+  position: relative;
+  border: 1px solid var(--hydra-border-strong);
+}
+
+.shell-scorecard::after,
+.shell-panel::after,
+.shell-insight-card::after,
+.shell-radio-pane::after,
+.shell-command-panel::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 24%);
+  pointer-events: none;
+}
+
+.shell-scorecard {
+  min-width: 148px;
+  border-radius: 1.55rem;
+  background: var(--hydra-card-bg);
+  box-shadow: var(--hydra-card-shadow);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease;
+}
+
+.shell-scorecard:hover {
+  transform: translateY(-1px);
+  border-color: var(--hydra-border-strong);
+}
+
+.shell-panel {
+  border-radius: 1.8rem;
+  background: var(--hydra-panel-bg);
+  box-shadow: var(--hydra-panel-shadow);
+}
+
+.shell-panel-header,
+.shell-panel-body {
+  position: relative;
+  z-index: 1;
+}
+
+.shell-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem 0.85rem;
+  border-bottom: 1px solid var(--hydra-border-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+.shell-panel-title {
+  color: var(--hydra-shell-muted);
+}
+
+.shell-panel-body {
+  padding: 1rem;
+}
+
+.shell-insight-card {
+  padding: 1rem;
+  border-radius: 1.65rem;
+  background: var(--hydra-card-bg);
+  box-shadow: var(--hydra-card-shadow);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease;
+}
+
+.shell-insight-card--interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--hydra-border-strong);
+}
+
+.shell-command-overlay {
+  background: linear-gradient(180deg, rgba(4, 8, 18, 0.76), rgba(4, 8, 18, 0.58));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.shell-command-panel {
+  border-radius: 1.8rem;
+  background: var(--hydra-panel-bg);
+  box-shadow: 0 26px 58px rgba(2, 8, 20, 0.28);
+}
+
+.shell-command-input-wrap {
+  border-bottom: 1px solid var(--hydra-border-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+.shell-command-input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-size: 0.92rem;
+  outline: none;
+}
+
+.shell-command-input::placeholder,
+.shell-input::placeholder {
+  color: var(--hydra-shell-subtle);
+}
+
+.shell-command-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.shell-command-item:hover,
+.shell-command-item--active {
+  border-left-color: var(--hydra-accent);
+  background: linear-gradient(90deg, rgba(140, 232, 255, 0.12), rgba(255, 255, 255, 0.02));
+}
+
+.shell-command-footer {
+  border-top: 1px solid var(--hydra-border-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.05));
+}
+
+.shell-command-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.2rem;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid var(--hydra-control-border);
+  border-radius: 999px;
+  background: var(--hydra-control-bg);
+  color: var(--hydra-shell-muted);
+}
+
+.shell-radio-pane {
+  min-height: 0;
+  padding: 1rem;
+  border-radius: 1.75rem;
+  background: var(--hydra-card-bg);
+  box-shadow: var(--hydra-card-shadow);
+}
+
+.shell-radio-browser {
+  display: flex;
+  flex-direction: column;
+}
+
+.shell-radio-display,
+.shell-radio-stat,
+.shell-radio-form {
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--hydra-border-soft);
+  border-radius: 1.45rem;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.02) 40%,
+    rgba(0, 0, 0, 0.08)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 12px 22px rgba(2, 8, 20, 0.1);
+}
+
+.shell-radio-display,
+.shell-radio-form {
+  padding: 1rem;
+}
+
+.shell-radio-stat {
+  padding: 0.9rem 1rem;
+}
+
+.shell-radio-station {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 1.35rem;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.02) 42%,
+    rgba(0, 0, 0, 0.08)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 12px 22px rgba(2, 8, 20, 0.08);
+  text-align: left;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.shell-radio-station:hover {
+  transform: translateY(-1px);
+  border-color: var(--hydra-border-strong);
+}
+
+.shell-radio-station--active {
+  border-color: var(--hydra-accent);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.14),
+    rgba(140, 232, 255, 0.12) 42%,
+    rgba(0, 0, 0, 0.08)
+  );
+}
+
+.shell-link {
+  color: var(--hydra-accent);
+  text-decoration: none;
+}
+
+.shell-link:hover {
+  text-decoration: underline;
+}
+
+.shell-input {
+  width: 100%;
+  border: 1px solid var(--hydra-control-border);
+  border-radius: 1rem;
+  background: rgba(7, 15, 29, 0.16);
+  color: #ffffff;
+  padding: 0.8rem 0.95rem;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.shell-input:focus,
+.shell-command-input:focus {
+  outline: none;
+}
+
+.shell-slider {
+  accent-color: var(--hydra-accent);
+}
+
+.shell-radio-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.32rem;
+  min-height: 68px;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--hydra-border-soft);
+  border-radius: 999px;
+  background: rgba(5, 11, 22, 0.18);
+}
+
+.shell-radio-bar {
+  width: 0.38rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), var(--hydra-accent));
+  opacity: 0.42;
+  transform-origin: bottom;
+  animation: radio-pulse 1.3s ease-in-out infinite paused;
+}
+
+.shell-radio-bars--playing .shell-radio-bar {
+  animation-play-state: running;
+}
+
+.shell-muted {
+  color: var(--hydra-shell-muted);
+}
+
+.shell-subtle {
+  color: var(--hydra-shell-subtle);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -21,28 +689,42 @@ html, body, #app {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 3px;
+  background: var(--hydra-scrollbar-thumb);
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+  background: var(--hydra-scrollbar-thumb-hover);
 }
 
-/* Panel dot pulse for live panels */
 @keyframes dot-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes radio-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scaleY(0.38);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
 }
 
 .panel-dot-live {
   animation: dot-pulse 2s ease-in-out infinite;
 }
 
-/* Subtle CRT grid background */
 .crt-grid {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-image: linear-gradient(var(--hydra-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hydra-grid-line) 1px, transparent 1px);
+  background-size: 42px 42px;
 }
