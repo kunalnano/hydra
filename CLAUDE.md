@@ -133,7 +133,7 @@ src/
 | Platform detection    | ✅     | platform.ts (macOS/Linux/Windows guards)                                     |
 | Desktop notifications | ✅     | notifications.ts (Electron Notification API, 30s throttle)                   |
 | Notification UI       | ✅     | Notifications.tsx (severity grouping, dismiss, badges)                       |
-| Packaging             | ✅     | electron-builder.yml (.dmg + .AppImage), LICENSE (MIT)                       |
+| Packaging             | ✅     | electron-builder.yml (.dmg + .AppImage), LICENSE (PolyForm Noncommercial 1.0.0) |
 | Auto-updater stub     | ✅     | updater.ts (ready to wire to GitHub releases)                                |
 
 **Total: ~6,000 lines TypeScript, 100 tests passing**

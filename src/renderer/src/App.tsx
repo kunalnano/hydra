@@ -20,6 +20,8 @@ import { CCUsagePanel } from './panels/CCUsage'
 import { WorkspacesPanel } from './panels/Workspaces'
 import { FMRadioPanel } from './panels/FMRadio'
 import { HYDRA_SKINS, useSkinStore } from './stores/skin'
+import { SkinGlobe } from './components/SkinGlobe'
+import { getAudioElement } from './stores/audio-engine'
 import type { SystemState } from '../../shared/types'
 
 interface PageMeta {
@@ -64,7 +66,7 @@ const PAGES: PageMeta[] = [
     id: 'radio',
     label: 'FM Radio',
     kicker: 'Stereo relay',
-    description: 'Free-streaming FM presets, direct URL loading, and a built-in desktop tuner.'
+    description: 'Free-streaming FM presets, a local MP3 library, direct URL loading, and a built-in desktop tuner.'
   },
   {
     id: 'activity',
@@ -139,8 +141,7 @@ function DashPanel({
 }): JSX.Element {
   const accentColor = PANEL_ACCENT_HEX[title] || '#6b7280'
   const panelStyle: CSSProperties = {
-    background: `radial-gradient(circle at 92% 0%, ${accentColor}20, transparent 26%), var(--hydra-panel-bg)`,
-    boxShadow: `0 20px 40px rgba(2, 8, 20, 0.2), inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -18px 26px ${accentColor}18`
+    background: `radial-gradient(circle at 92% 0%, ${accentColor}14, transparent 26%), var(--hydra-panel-bg)`
   }
 
   return (
@@ -153,7 +154,7 @@ function DashPanel({
           <span
             className={`h-2 w-2 rounded-full shadow-[0_0_12px_currentColor] ${PANEL_DOTS[title] || 'bg-gray-600'}`}
           />
-          <h2 className="shell-panel-title text-xs font-semibold uppercase tracking-[0.24em]">
+          <h2 className="shell-panel-title text-[10px] font-semibold uppercase tracking-[0.16em]">
             {title}
           </h2>
         </div>
@@ -217,31 +218,68 @@ function getShellHealth(state: SystemState | null): {
   }
 }
 
-function SkinSelector(): JSX.Element {
+function SkinCard({ skin, active, onSelect }: {
+  skin: (typeof HYDRA_SKINS)[number]; active: boolean; onSelect: () => void
+}): JSX.Element {
+  return (
+    <button onClick={onSelect} className={`shell-skin-card ${active ? 'shell-skin-card--active' : ''}`}>
+      <div className="shell-skin-preview">
+        {skin.palette.map((color, i) => (
+          <div key={i} style={{ background: color, flex: i === 0 ? 3 : 1 }} />
+        ))}
+      </div>
+      <div className="shell-skin-card-body">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-white">{skin.label}</span>
+          {active && <span className="shell-skin-badge">Active</span>}
+        </div>
+        <p className="text-xs shell-muted mt-1">{skin.blurb}</p>
+      </div>
+    </button>
+  )
+}
+
+function SkinSelectorPanel({ onClose }: { onClose: () => void }): JSX.Element {
   const activeSkin = useSkinStore((s) => s.activeSkin)
   const setActiveSkin = useSkinStore((s) => s.setActiveSkin)
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
   return (
-    <div className="shell-segmented-control" role="group" aria-label="Choose shell skin">
-      {HYDRA_SKINS.map((skin) => {
-        const active = skin.id === activeSkin
-        return (
-          <button
-            key={skin.id}
-            type="button"
-            onClick={() => setActiveSkin(skin.id)}
-            className={`shell-segmented-button ${active ? 'shell-segmented-button--active' : ''}`}
-            title={skin.blurb}
-          >
-            {skin.label}
-          </button>
-        )
-      })}
+    <div className="shell-command-overlay fixed inset-0 z-50" onClick={onClose}>
+      <div className="shell-skin-panel" onClick={(e) => e.stopPropagation()}>
+        <SkinGlobe />
+        <div className="shell-skin-panel-header">
+          <h3>Shell Skin</h3>
+          <p>Choose the visual identity for your HYDRA shell.</p>
+        </div>
+        <div className="shell-skin-grid">
+          {HYDRA_SKINS.map((skin) => (
+            <SkinCard key={skin.id} skin={skin} active={skin.id === activeSkin}
+              onSelect={() => { setActiveSkin(skin.id); onClose() }} />
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
 
-function Header(): JSX.Element {
+function SkinChip({ onOpen }: { onOpen: () => void }): JSX.Element {
+  const activeSkin = useSkinStore((s) => s.activeSkin)
+  const skinMeta = HYDRA_SKINS.find((s) => s.id === activeSkin)
+  return (
+    <button onClick={onOpen} className="shell-control-button px-3 py-1.5 text-xs font-medium flex items-center gap-2">
+      <span className="w-2 h-2 rounded-full" style={{ background: 'var(--hydra-accent)' }} />
+      {skinMeta?.label ?? 'Skin'}
+    </button>
+  )
+}
+
+function Header({ onOpenSkinSelector }: { onOpenSkinSelector: () => void }): JSX.Element {
   const state = useSystemStore((s) => s.state)
   const refresh = useSystemStore((s) => s.refresh)
   const { cpuHistory, memHistory, netInHistory, netOutHistory } = useTimeSeriesStore()
@@ -254,13 +292,13 @@ function Header(): JSX.Element {
   const isFresh = state ? Date.now() - state.timestamp < 5000 : false
 
   return (
-    <header className="shell-header px-5 py-3 flex items-center justify-between relative shrink-0 border-b">
+    <header className="shell-header chrome-brushed px-4 py-2 flex items-center justify-between relative shrink-0 border-b">
       <div className="flex items-center gap-3">
         <div className={`w-2.5 h-2.5 rounded-full ${health.dot} shadow-md ${health.glow}`} />
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold text-white tracking-[0.28em]">HYDRA</h1>
-            <span className="text-[11px] shell-subtle">V2 shell</span>
+            <h1 className="text-base font-semibold text-white tracking-[0.16em] font-[family-name:var(--hydra-font-mono)]">HYDRA</h1>
+            <span className="text-[10px] shell-subtle font-[family-name:var(--hydra-font-mono)]">V3</span>
           </div>
           <div className="text-[11px] shell-subtle">{health.label}</div>
         </div>
@@ -314,8 +352,7 @@ function Header(): JSX.Element {
 
       <div className="flex items-center gap-3">
         <div className="hidden sm:flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-[0.24em] shell-subtle">Skin</span>
-          <SkinSelector />
+          <SkinChip onOpen={onOpenSkinSelector} />
         </div>
         <button
           type="button"
@@ -362,8 +399,7 @@ function InsightCard({
   }
   const toneMeta = tones[tone]
   const cardStyle: CSSProperties = {
-    background: `radial-gradient(circle at 90% 10%, ${toneMeta.hex}22, transparent 34%), var(--hydra-card-bg)`,
-    boxShadow: `0 18px 36px rgba(2, 8, 20, 0.18), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -18px 22px ${toneMeta.hex}18`
+    background: `radial-gradient(circle at 90% 10%, ${toneMeta.hex}14, transparent 34%), var(--hydra-card-bg)`
   }
 
   return (
@@ -371,15 +407,15 @@ function InsightCard({
       type="button"
       onClick={onClick}
       style={cardStyle}
-      className={`shell-insight-card w-full text-left ${onClick ? 'shell-insight-card--interactive' : ''}`}
+      className={`shell-insight-card w-full text-left ${onClick ? 'shell-insight-card--interactive cursor-pointer' : ''}`}
     >
-      <div className="text-[10px] uppercase tracking-[0.2em] shell-subtle">{eyebrow}</div>
-      <div className="pt-2 flex items-end justify-between gap-3">
+      <div className="text-[9px] uppercase tracking-[0.14em] shell-subtle">{eyebrow}</div>
+      <div className="pt-1.5 flex items-end justify-between gap-2">
         <div>
-          <div className="text-2xl font-semibold text-white">{value}</div>
-          <div className={`text-sm ${toneMeta.text}`}>{title}</div>
+          <div className="display-well inline-block px-2 py-1 text-xl font-semibold">{value}</div>
+          <div className={`mt-1 text-xs ${toneMeta.text}`}>{title}</div>
         </div>
-        <div className="max-w-[18rem] text-right text-xs shell-muted">{detail}</div>
+        <div className="max-w-[16rem] text-right text-[11px] shell-muted">{detail}</div>
       </div>
     </button>
   )
@@ -389,14 +425,13 @@ function PageHeader({ meta }: { meta: PageMeta }): JSX.Element {
   const state = useSystemStore((s) => s.state)
 
   return (
-    <div className="shell-page-header px-5 py-4">
-      <div className="flex items-start justify-between gap-4">
+    <div className="shell-page-header px-4 py-2">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="shell-page-kicker text-[10px] uppercase tracking-[0.25em]">
+          <div className="shell-page-kicker text-[9px] uppercase tracking-[0.16em]">
             {meta.kicker}
           </div>
-          <h2 className="text-2xl font-semibold text-white pt-1">{meta.label}</h2>
-          <p className="pt-1 max-w-2xl text-sm shell-subtle">{meta.description}</p>
+          <h2 className="text-lg font-semibold text-white">{meta.label}</h2>
         </div>
         {state && (
           <div className="hidden md:flex items-center gap-2 text-[11px]">
@@ -688,16 +723,14 @@ function ShellNav({
 }): JSX.Element {
   return (
     <>
-      <aside className="shell-nav hidden xl:flex shrink-0 flex-col p-3">
-        <div className="px-3 pb-3 border-b border-white/10">
-          <div className="shell-page-kicker text-[10px] uppercase tracking-[0.25em]">
+      <aside className="shell-nav hidden xl:flex shrink-0 flex-col p-2">
+        <div className="px-2 pb-2">
+          <div className="shell-page-kicker text-[9px] uppercase tracking-[0.14em]">
             Navigation
           </div>
-          <div className="pt-2 text-sm shell-subtle">
-            Persistent posture stays global. Step into a page only when you need to act.
-          </div>
         </div>
-        <nav className="pt-3 space-y-2.5">
+        <div className="chrome-ribbed mx-2" />
+        <nav className="pt-2 space-y-1.5 px-1">
           {PAGES.map((page) => {
             const active = page.id === currentPage
             return (
@@ -776,9 +809,11 @@ function App(): JSX.Element {
   const currentPage = useNavigationStore((s) => s.currentPage)
   const setCurrentPage = useNavigationStore((s) => s.setCurrentPage)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [skinOpen, setSkinOpen] = useState(false)
 
   useEffect(() => {
     initialize()
+    getAudioElement()
   }, [initialize])
 
   useEffect(() => {
@@ -793,6 +828,10 @@ function App(): JSX.Element {
       if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
         event.preventDefault()
         setPaletteOpen((prev) => !prev)
+      }
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 's' || event.key === 'S')) {
+        event.preventDefault()
+        setSkinOpen((prev) => !prev)
       }
     }
     window.addEventListener('keydown', handler)
@@ -820,7 +859,7 @@ function App(): JSX.Element {
       className="hydra-shell crt-grid h-screen flex flex-col overflow-hidden"
       data-skin={activeSkin}
     >
-      <Header />
+      <Header onOpenSkinSelector={() => setSkinOpen(true)} />
 
       <div className="shrink-0 px-4 pt-3 overflow-x-auto">
         <ScorecardsStrip />
@@ -843,6 +882,7 @@ function App(): JSX.Element {
       </div>
 
       <CommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      {skinOpen && <SkinSelectorPanel onClose={() => setSkinOpen(false)} />}
     </div>
   )
 }

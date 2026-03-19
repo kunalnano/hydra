@@ -1,420 +1,572 @@
 import { useEffect, useRef, useState } from 'react'
-import { CUSTOM_RADIO_STREAM_ID, DEFAULT_RADIO_STATION_ID, useRadioStore } from '../stores/radio'
+import {
+  CUSTOM_RADIO_STREAM_ID,
+  DEFAULT_RADIO_STATION_ID,
+  type LocalAudioFile,
+  useRadioStore
+} from '../stores/radio'
+import * as engine from '../stores/audio-engine'
+import { FM_STATIONS, type RadioStation, type StationCategory } from './fm-stations'
 
-type RadioStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error'
+type PlaylistEntryKind = 'station' | 'local' | 'custom'
 
-interface RadioStation {
+interface PlaylistEntry {
   id: string
-  callSign: string
-  frequency: string
-  name: string
-  location: string
-  genre: string
-  tagline: string
-  streamUrl: string
-  format: string
-  website: string
-  sourcePage: string
+  kind: PlaylistEntryKind
+  label: string
+  title: string
+  subtitle: string
+  badge: string
+  searchText: string
+  sourceUrl: string
+  station?: RadioStation
+  localFile?: LocalAudioFile
 }
 
-const FM_STATIONS: RadioStation[] = [
-  {
-    id: 'wbgo-jazz',
-    callSign: 'WBGO',
-    frequency: '88.3 FM',
-    name: 'Jazz 88.3',
-    location: 'Newark / New York City',
-    genre: 'Jazz',
-    tagline: 'Straight-ahead jazz, soul, and host-driven sets.',
-    streamUrl: 'https://ais-sa8.cdnstream1.com/3629_128.mp3',
-    format: 'MP3 128',
-    website: 'https://www.wbgo.org',
-    sourcePage: 'https://www.wbgo.org/how-to-listen-online'
-  },
-  {
-    id: 'kexp',
-    callSign: 'KEXP',
-    frequency: '90.3 FM',
-    name: 'Seattle',
-    location: 'Seattle',
-    genre: 'Eclectic',
-    tagline: 'Curated indie, post-punk, electronic, and left-field rotation.',
-    streamUrl: 'https://kexp.streamguys1.com/kexp160.aac',
-    format: 'AAC 160',
-    website: 'https://www.kexp.org',
-    sourcePage: 'https://www.kexp.org/mobile/kexp-livestreams/'
-  },
-  {
-    id: 'kutx',
-    callSign: 'KUTX',
-    frequency: '98.9 FM',
-    name: 'Austin Music',
-    location: 'Austin',
-    genre: 'Alternative',
-    tagline: 'Austin AAA and local scene staples with a warmer daytime flow.',
-    streamUrl: 'https://streams.kut.org/4428_192.mp3?aw_0_1st.playerid=kutx-free',
-    format: 'MP3 192',
-    website: 'https://kutx.org',
-    sourcePage: 'https://kutx.org/streams/'
-  },
-  {
-    id: 'wwoz',
-    callSign: 'WWOZ',
-    frequency: '90.7 FM',
-    name: 'New Orleans',
-    location: 'New Orleans',
-    genre: 'Community',
-    tagline: 'New Orleans jazz, brass, funk, and neighborhood energy.',
-    streamUrl: 'https://wwoz-sc.streamguys1.com/wwoz-hi.mp3',
-    format: 'MP3',
-    website: 'https://www.wwoz.org',
-    sourcePage: 'https://www.wwoz.org/listen/player/'
-  },
-  {
-    id: 'kcrw',
-    callSign: 'KCRW',
-    frequency: '89.9 FM',
-    name: 'Simulcast',
-    location: 'Santa Monica / Los Angeles',
-    genre: 'Eclectic',
-    tagline: 'Public-radio eclecticism with music blocks and magazine energy.',
-    streamUrl: 'https://streams.kcrw.com/kcrw_mp3',
-    format: 'MP3',
-    website: 'https://www.kcrw.com',
-    sourcePage: 'https://media.kcrw.com/pls/kcrwsimulcast.pls'
-  }
+const FILTER_BANDS: Array<{ key: StationCategory | 'all'; short: string; label: string }> = [
+  { key: 'all', short: 'ALL', label: 'All' },
+  { key: 'jazz', short: 'JAZ', label: 'Jazz' },
+  { key: 'eclectic', short: 'ECL', label: 'Eclectic' },
+  { key: 'ambient', short: 'AMB', label: 'Ambient' },
+  { key: 'soul', short: 'RNB', label: 'Soul / R&B' },
+  { key: 'alt', short: 'ALT', label: 'Alternative' },
+  { key: 'community', short: 'COM', label: 'Community' },
+  { key: 'hacker', short: 'HAX', label: 'Hacker' }
 ]
 
-function resolveActiveStation(
-  selectedStationId: string,
-  customStationName: string,
-  customStreamUrl: string
-): RadioStation | null {
-  if (selectedStationId === CUSTOM_RADIO_STREAM_ID && customStreamUrl) {
-    return {
-      id: CUSTOM_RADIO_STREAM_ID,
-      callSign: 'Custom',
-      frequency: 'Direct URL',
-      name: customStationName || 'Personal relay',
-      location: 'Manual load',
-      genre: 'Imported',
-      tagline: 'User-supplied station or stream endpoint.',
-      streamUrl: customStreamUrl,
-      format: 'Custom',
-      website: customStreamUrl,
-      sourcePage: customStreamUrl
+function fallbackFileUrl(path: string): string {
+  if (path.startsWith('/')) {
+    return `file://${encodeURI(path).replace(/#/g, '%23')}`
+  }
+  return encodeURI(`file://${path}`).replace(/#/g, '%23')
+}
+
+function buildStationEntry(station: RadioStation): PlaylistEntry {
+  return {
+    id: station.id,
+    kind: 'station',
+    label: station.callSign,
+    title: station.name,
+    subtitle: `${station.frequency} · ${station.location}`,
+    badge: 'LIVE',
+    searchText: `${station.callSign} ${station.name} ${station.location} ${station.genre} ${station.tagline}`.toLowerCase(),
+    sourceUrl: station.streamUrl,
+    station
+  }
+}
+
+function buildLocalEntry(file: LocalAudioFile): PlaylistEntry {
+  return {
+    id: file.id,
+    kind: 'local',
+    label: 'FILE',
+    title: file.name,
+    subtitle: 'Local library',
+    badge: getFileExtension(file.name),
+    searchText: `${file.name} ${file.path}`.toLowerCase(),
+    sourceUrl: file.sourceUrl ?? fallbackFileUrl(file.path),
+    localFile: file
+  }
+}
+
+function buildCustomEntry(name: string, url: string): PlaylistEntry | null {
+  if (!url) return null
+  return {
+    id: CUSTOM_RADIO_STREAM_ID,
+    kind: 'custom',
+    label: 'URL',
+    title: name || 'Personal relay',
+    subtitle: 'Direct stream URL',
+    badge: 'URL',
+    searchText: `${name} ${url}`.toLowerCase(),
+    sourceUrl: url
+  }
+}
+
+function mediaExtensionHint(value: string): string | null {
+  try {
+    const parsed = new URL(value)
+    const ext = parsed.pathname.split('.').pop()?.toLowerCase() ?? ''
+    return ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'flac'].includes(ext) ? ext : null
+  } catch {
+    const ext = value.split('.').pop()?.toLowerCase() ?? ''
+    return ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'flac'].includes(ext) ? ext : null
+  }
+}
+
+function entryExtensionHint(entry: PlaylistEntry): string | undefined {
+  if (entry.kind === 'local') {
+    return mediaExtensionHint(entry.localFile?.path ?? entry.sourceUrl) ?? 'mp3'
+  }
+
+  const urlExtension = mediaExtensionHint(entry.sourceUrl)
+  if (urlExtension) return urlExtension
+
+  if (entry.station) {
+    const formatToken = entry.station.format.split(' ')[0]?.toLowerCase()
+    if (['mp3', 'm4a', 'aac', 'wav', 'ogg', 'flac'].includes(formatToken)) {
+      return formatToken
     }
   }
 
-  return FM_STATIONS.find((station) => station.id === selectedStationId) || null
+  return entry.kind === 'custom' ? 'mp3' : undefined
 }
 
-function isDirectStreamUrl(value: string): boolean {
+function relayCacheKey(entry: PlaylistEntry): string {
+  const extensionHint = entryExtensionHint(entry) ?? 'none'
+  return entry.kind === 'local' && entry.localFile
+    ? `local:${entry.localFile.path}:${extensionHint}`
+    : `remote:${entry.sourceUrl}:${extensionHint}`
+}
+
+function isValidUrl(value: string): boolean {
   try {
-    const url = new URL(value)
-    return url.protocol === 'http:' || url.protocol === 'https:'
+    const parsed = new URL(value)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
   } catch {
     return false
   }
 }
 
-function getStatusCopy(status: RadioStatus, error: string | null, stationName: string): string {
-  if (error) return error
-
-  switch (status) {
-    case 'loading':
-      return `Tuning ${stationName}...`
-    case 'playing':
-      return `${stationName} is live.`
-    case 'paused':
-      return `${stationName} is loaded and ready.`
-    case 'error':
-      return `${stationName} would not open.`
-    default:
-      return `Select a station and press play.`
+function streamHost(url: string): string {
+  try {
+    return new URL(url).host.replace(/^www\./, '')
+  } catch {
+    return url
   }
 }
 
-function getStreamHost(streamUrl: string): string {
-  try {
-    return new URL(streamUrl).host.replace(/^www\./, '')
-  } catch {
-    return streamUrl
+function formatClock(seconds: number): string {
+  const whole = Math.max(0, Math.floor(seconds))
+  const minutes = Math.floor(whole / 60)
+  const remainingSeconds = whole % 60
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
+function getFileExtension(name: string): string {
+  const parts = name.split('.')
+  if (parts.length < 2) return 'FILE'
+  return parts[parts.length - 1].toUpperCase()
+}
+
+function getBitrateLabel(entry: PlaylistEntry | null): string {
+  if (!entry) return '--'
+  if (entry.kind === 'local') return 'LOCAL'
+  if (entry.kind === 'custom') return 'URL'
+  const match = entry.station?.format.match(/(\d+)/)
+  return match ? `${match[1]} kbps` : entry.station?.format ?? 'LIVE'
+}
+
+function getCodecLabel(entry: PlaylistEntry | null): string {
+  if (!entry) return '--'
+  if (entry.kind === 'local') return getFileExtension(entry.localFile?.name ?? '')
+  if (entry.kind === 'custom') return 'HTTP'
+  return entry.station?.format.split(' ')[0] ?? 'STREAM'
+}
+
+function getStatusLine(entry: PlaylistEntry | null, status: engine.AudioStatus, error: string | null): string {
+  if (error) return error
+  if (!entry) return 'Pick a station or press ADD MP3s to load your own files.'
+  if (status === 'loading') return `Tuning ${entry.label}...`
+  if (status === 'playing') return `${entry.title} is on air.`
+  if (status === 'paused') return `${entry.title} is cued.`
+  return 'Ready.'
+}
+
+function getBandLevel(key: StationCategory | 'all', activeCategory: StationCategory | null): number {
+  if (key === 'all') return activeCategory === null ? 78 : 34
+  if (activeCategory === key) return 82
+
+  const levels: Record<StationCategory, number> = {
+    jazz: 42,
+    eclectic: 64,
+    soul: 58,
+    ambient: 71,
+    community: 47,
+    alt: 53,
+    hacker: 61,
+    classical: 45
   }
+
+  return levels[key]
 }
 
 export function FMRadioPanel(): JSX.Element {
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const currentStationRef = useRef<RadioStation | null>(null)
-  const lastLoadedStationId = useRef<string | null>(null)
-  const autoplayAfterSelection = useRef(false)
-
-  const selectedStationId = useRadioStore((s) => s.selectedStationId)
-  const setSelectedStationId = useRadioStore((s) => s.setSelectedStationId)
+  const stationId = useRadioStore((s) => s.selectedStationId)
+  const setStationId = useRadioStore((s) => s.setSelectedStationId)
   const volume = useRadioStore((s) => s.volume)
   const setVolume = useRadioStore((s) => s.setVolume)
   const customStationName = useRadioStore((s) => s.customStationName)
   const customStreamUrl = useRadioStore((s) => s.customStreamUrl)
   const setCustomStation = useRadioStore((s) => s.setCustomStation)
+  const localFiles = useRadioStore((s) => s.localFiles)
+  const addLocalFile = useRadioStore((s) => s.addLocalFile)
+  const removeLocalFile = useRadioStore((s) => s.removeLocalFile)
 
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState<RadioStatus>('idle')
-  const [error, setError] = useState<string | null>(null)
-  const [customNameDraft, setCustomNameDraft] = useState(customStationName)
-  const [customUrlDraft, setCustomUrlDraft] = useState(customStreamUrl)
+  const [status, setStatus] = useState<engine.AudioStatus>(engine.getStatus())
+  const [error, setError] = useState<string | null>(engine.getError())
+  const [nameDraft, setNameDraft] = useState(customStationName)
+  const [urlDraft, setUrlDraft] = useState(customStreamUrl)
+  const [category, setCategory] = useState<StationCategory | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [durationSeconds, setDurationSeconds] = useState<number | null>(null)
+  const relayCacheRef = useRef(new Map<string, string>())
+  const relayRequestRef = useRef(0)
+  const didInitialCueRef = useRef(false)
 
-  const activeStation = resolveActiveStation(selectedStationId, customStationName, customStreamUrl)
-  const statusCopy = getStatusCopy(status, error, activeStation?.callSign ?? 'Hydra FM')
-  const visibleStations = FM_STATIONS.filter((station) => {
-    const search =
-      `${station.callSign} ${station.name} ${station.location} ${station.genre} ${station.tagline}`.toLowerCase()
-    return search.includes(query.trim().toLowerCase())
+  const playlistEntries: PlaylistEntry[] = []
+  for (const file of localFiles) {
+    playlistEntries.push(buildLocalEntry(file))
+  }
+  const customEntry = buildCustomEntry(customStationName, customStreamUrl)
+  if (customEntry) {
+    playlistEntries.push(customEntry)
+  }
+  for (const station of FM_STATIONS) {
+    playlistEntries.push(buildStationEntry(station))
+  }
+
+  const activeEntry = playlistEntries.find((entry) => entry.id === stationId) ?? null
+  const visibleEntries = playlistEntries.filter((entry) => {
+    if (entry.kind === 'station' && category && entry.station?.category !== category) {
+      return false
+    }
+    if (!query.trim()) return true
+    return entry.searchText.includes(query.trim().toLowerCase())
   })
 
-  useEffect(() => {
-    currentStationRef.current = activeStation
-  }, [activeStation])
+  const currentTrackIndex = Math.max(
+    0,
+    playlistEntries.findIndex((entry) => entry.id === stationId)
+  )
+  const activeStation = activeEntry?.station ?? null
+  const activeLocalFile = activeEntry?.localFile ?? null
+  const timerLabel =
+    activeEntry?.kind === 'local' && durationSeconds !== null
+      ? `${formatClock(elapsedSeconds)} / ${formatClock(durationSeconds)}`
+      : status === 'playing'
+        ? 'LIVE'
+        : '--:--'
+
+  useEffect(
+    () =>
+      engine.onStatusChange((nextStatus, nextError) => {
+        setStatus(nextStatus)
+        setError(nextError)
+      }),
+    []
+  )
 
   useEffect(() => {
-    setCustomNameDraft(customStationName)
+    setNameDraft(customStationName)
   }, [customStationName])
 
   useEffect(() => {
-    setCustomUrlDraft(customStreamUrl)
+    setUrlDraft(customStreamUrl)
   }, [customStreamUrl])
 
   useEffect(() => {
-    if (!activeStation) {
-      setSelectedStationId(DEFAULT_RADIO_STATION_ID)
-    }
-  }, [activeStation, setSelectedStationId])
-
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    audio.volume = volume
+    engine.setVolume(volume)
   }, [volume])
 
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    const onLoadStart = (): void => {
-      setStatus('loading')
-      setError(null)
+    const syncPlaybackClock = (): void => {
+      const next = engine.getPlaybackTime()
+      setElapsedSeconds(next.currentTime)
+      setDurationSeconds(next.duration)
     }
 
-    const onWaiting = (): void => {
-      setStatus('loading')
+    syncPlaybackClock()
+    const timer = window.setInterval(syncPlaybackClock, status === 'playing' ? 500 : 1000)
+    return () => window.clearInterval(timer)
+  }, [stationId, status])
+
+  async function resolvePlaybackUrl(entry: PlaylistEntry): Promise<string> {
+    const cacheKey = relayCacheKey(entry)
+    const cached = relayCacheRef.current.get(cacheKey)
+    if (cached) return cached
+    const extensionHint = entryExtensionHint(entry)
+
+    const relayUrl =
+      entry.kind === 'local' && entry.localFile
+        ? await window.hydra.resolveRadioSource({
+            kind: 'local',
+            value: entry.localFile.path,
+            extensionHint
+          })
+        : await window.hydra.resolveRadioSource({
+            kind: 'remote',
+            value: entry.sourceUrl,
+            extensionHint
+          })
+
+    relayCacheRef.current.set(cacheKey, relayUrl)
+    return relayUrl
+  }
+
+  async function cueEntry(
+    entry: PlaylistEntry,
+    options: { autoplay?: boolean; forceReload?: boolean } = {}
+  ): Promise<void> {
+    const { autoplay = true, forceReload = false } = options
+    const requestId = ++relayRequestRef.current
+
+    setStationId(entry.id)
+    setError(null)
+
+    let playbackUrl: string
+    try {
+      playbackUrl = await resolvePlaybackUrl(entry)
+    } catch (nextError) {
+      if (requestId !== relayRequestRef.current) return
+      const message = nextError instanceof Error ? nextError.message : 'Unknown relay error.'
+      engine.stop()
+      setError(`Relay setup failed. ${message}`)
+      return
     }
 
-    const onPlaying = (): void => {
-      setStatus('playing')
-      setError(null)
+    if (requestId !== relayRequestRef.current) return
+
+    const sameTrack =
+      engine.getCurrentTrackId() === entry.id && engine.getCurrentTrackSrc() === playbackUrl
+
+    if (forceReload) {
+      if (sameTrack) {
+        engine.reload(playbackUrl)
+      } else {
+        engine.loadTrack(entry.id, playbackUrl)
+        if (autoplay) {
+          await engine.play()
+        }
+      }
+      return
     }
 
-    const onPause = (): void => {
-      setStatus((current) => (current === 'error' ? current : 'paused'))
+    if (!sameTrack) {
+      engine.loadTrack(entry.id, playbackUrl)
     }
 
-    const onError = (): void => {
-      const station = currentStationRef.current
-      setStatus('error')
-      setError(
-        `Hydra could not decode ${station?.callSign ?? 'that stream'}. Try another preset or paste a direct MP3, AAC, or HLS URL.`
-      )
+    if (!autoplay) return
+
+    if (sameTrack && engine.getStatus() === 'error') {
+      engine.reload(playbackUrl)
+      return
     }
 
-    audio.addEventListener('loadstart', onLoadStart)
-    audio.addEventListener('waiting', onWaiting)
-    audio.addEventListener('playing', onPlaying)
-    audio.addEventListener('pause', onPause)
-    audio.addEventListener('error', onError)
-
-    return () => {
-      audio.removeEventListener('loadstart', onLoadStart)
-      audio.removeEventListener('waiting', onWaiting)
-      audio.removeEventListener('playing', onPlaying)
-      audio.removeEventListener('pause', onPause)
-      audio.removeEventListener('error', onError)
-    }
-  }, [])
+    await engine.play()
+  }
 
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio || !activeStation) return
-
-    if (lastLoadedStationId.current !== activeStation.id) {
-      lastLoadedStationId.current = activeStation.id
-      setError(null)
-      setStatus('idle')
-      audio.pause()
-      audio.src = activeStation.streamUrl
-      audio.load()
+    if (!activeEntry) {
+      setStationId(DEFAULT_RADIO_STATION_ID)
+      return
     }
 
-    if (autoplayAfterSelection.current) {
-      autoplayAfterSelection.current = false
-      setError(null)
-      setStatus('loading')
-      void audio.play().catch(() => {
-        setStatus('error')
-        setError(
-          `Playback did not start for ${activeStation.callSign}. Press play again if the stream host blocked the first attempt.`
-        )
-      })
+    if (didInitialCueRef.current) return
+    didInitialCueRef.current = true
+    void cueEntry(activeEntry, { autoplay: false })
+  }, [activeEntry, setStationId])
+
+  function handleSelect(id: string): void {
+    const entry = playlistEntries.find((candidate) => candidate.id === id)
+    if (!entry) return
+    void cueEntry(entry)
+  }
+
+  function handleTogglePlayback(): void {
+    if (!activeEntry) {
+      const fallbackEntry = playlistEntries.find((entry) => entry.id === DEFAULT_RADIO_STATION_ID)
+      if (fallbackEntry) void cueEntry(fallbackEntry)
+      return
     }
-  }, [activeStation])
 
-  const startPlayback = async (): Promise<void> => {
-    const audio = audioRef.current
-    if (!audio || !activeStation) return
+    if (status === 'playing') {
+      engine.pause()
+      return
+    }
 
-    setError(null)
-    setStatus('loading')
+    if (engine.getCurrentTrackId() !== activeEntry.id || !engine.getCurrentTrackSrc()) {
+      void cueEntry(activeEntry)
+      return
+    }
 
+    if (status === 'error') {
+      void cueEntry(activeEntry, { forceReload: true })
+      return
+    }
+
+    void engine.play()
+  }
+
+  function handleStop(): void {
+    engine.stop(true)
+  }
+
+  function handleReload(): void {
+    if (!activeEntry) return
+    void cueEntry(activeEntry, { forceReload: true })
+  }
+
+  function stepTrack(direction: -1 | 1): void {
+    if (playlistEntries.length === 0) return
+    const nextIndex = (currentTrackIndex + direction + playlistEntries.length) % playlistEntries.length
+    const nextEntry = playlistEntries[nextIndex]
+    if (nextEntry) void cueEntry(nextEntry)
+  }
+
+  function handleTuneChange(index: number): void {
+    const nextEntry = playlistEntries[index]
+    if (!nextEntry) return
+    void cueEntry(nextEntry)
+  }
+
+  function handleCustomLoad(): void {
+    const nextUrl = urlDraft.trim()
+    if (!isValidUrl(nextUrl)) {
+      setError('Paste a full stream URL starting with http:// or https://.')
+      return
+    }
+
+    const nextName = nameDraft.trim() || 'Personal relay'
+    setCustomStation(nextName, nextUrl)
+    const nextEntry = buildCustomEntry(nextName, nextUrl)
+    if (nextEntry) {
+      void cueEntry(nextEntry, { forceReload: true })
+    }
+  }
+
+  async function handleAddDisk(): Promise<void> {
     try {
-      await audio.play()
+      const files = await window.hydra.openAudioFiles()
+      for (const file of files) {
+        addLocalFile(file.name, file.path, file.sourceUrl)
+      }
+
+      if (files.length === 0) return
+
+      const nextLocalFiles = useRadioStore.getState().localFiles
+      const newestLocalFile = nextLocalFiles[nextLocalFiles.length - 1]
+      if (newestLocalFile) {
+        void cueEntry(buildLocalEntry(newestLocalFile))
+      }
     } catch {
-      setStatus('error')
-      setError(
-        `Playback did not start for ${activeStation.callSign}. Press play again or swap to another preset.`
-      )
+      setError('Could not open the file picker.')
     }
-  }
-
-  const handleSelectStation = (stationId: string): void => {
-    if (stationId === selectedStationId && lastLoadedStationId.current === stationId) {
-      void startPlayback()
-      return
-    }
-
-    autoplayAfterSelection.current = true
-    setSelectedStationId(stationId)
-  }
-
-  const handleTogglePlayback = (): void => {
-    const audio = audioRef.current
-
-    if (!audio) return
-
-    if (!activeStation) {
-      handleSelectStation(DEFAULT_RADIO_STATION_ID)
-      return
-    }
-
-    if (!audio.paused) {
-      audio.pause()
-      return
-    }
-
-    void startPlayback()
-  }
-
-  const handleReload = (): void => {
-    const audio = audioRef.current
-
-    if (!audio || !activeStation) return
-
-    setError(null)
-    setStatus('loading')
-    audio.pause()
-    audio.src = activeStation.streamUrl
-    audio.load()
-    void startPlayback()
-  }
-
-  const handleCustomLoad = (): void => {
-    const trimmedUrl = customUrlDraft.trim()
-    const trimmedName = customNameDraft.trim()
-
-    if (!isDirectStreamUrl(trimmedUrl)) {
-      setStatus('error')
-      setError('Paste a full direct stream URL starting with http:// or https://.')
-      return
-    }
-
-    autoplayAfterSelection.current = true
-    setCustomStation(trimmedName || 'Personal relay', trimmedUrl)
-    setError(null)
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.8fr)]">
-      <section className="shell-radio-pane">
-        <audio ref={audioRef} preload="none" />
-
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.3em] shell-page-kicker">
-              Stereo relay
-            </div>
-            <h3 className="mt-2 text-3xl font-semibold text-white">
-              {activeStation?.callSign ?? 'Hydra FM'}
-            </h3>
-            <p className="mt-2 max-w-xl text-sm shell-muted">
-              {activeStation
-                ? `${activeStation.name} · ${activeStation.location} · ${activeStation.genre}`
-                : 'A free-streaming FM relay deck with presets and direct URL loading.'}
-            </p>
-          </div>
-
-          <div className="shell-chip rounded-full px-4 py-1.5 text-[11px] uppercase tracking-[0.2em]">
-            {status === 'playing' ? 'On air' : status === 'loading' ? 'Buffering' : 'Standby'}
+    <div className="winamp-radio">
+      <section className="winamp-window winamp-main-window">
+        <div className="winamp-titlebar">
+          <span className="winamp-titlebar-label">HydraAmp Classic · FM / MP3 Deck</span>
+          <div className="winamp-titlebar-actions" aria-hidden="true">
+            <span />
+            <span />
+            <span />
           </div>
         </div>
 
-        <div className="shell-radio-display mt-5">
-          <div className="flex flex-wrap items-start justify-between gap-5">
-            <div className="min-w-[220px]">
-              <div className="text-[10px] uppercase tracking-[0.26em] shell-subtle">Now tuned</div>
-              <div className="mt-3 text-4xl font-semibold tracking-tight text-white">
-                {activeStation?.frequency ?? '88.3 FM'}
+        <div className="winamp-main-body">
+          <div className="winamp-main-topline">
+            <div className="winamp-led-panel">
+              <div className="winamp-led-row">
+                <span className="winamp-led-token">{activeEntry?.label ?? 'HYDRA'}</span>
+                <span className="winamp-led-token">{getBitrateLabel(activeEntry)}</span>
+                <span className="winamp-led-token">{getCodecLabel(activeEntry)}</span>
+                <span className="winamp-led-token">{status === 'playing' ? 'STEREO' : 'READY'}</span>
               </div>
-              <div className="mt-2 text-base font-medium text-white/90">
-                {activeStation?.name ?? 'Choose a station'}
+              <div className="winamp-led-title">{activeEntry?.title ?? 'Winamp-style stereo relay'}</div>
+              <div className="winamp-led-subtitle">
+                {activeStation?.frequency ??
+                  (activeLocalFile ? 'LOCAL FILE' : activeEntry?.kind === 'custom' ? 'DIRECT URL' : '88.3 FM')}
+                {' · '}
+                {activeEntry?.subtitle ?? 'FM presets, manual streams, and your own MP3s'}
               </div>
-              <div className="mt-2 text-sm leading-relaxed shell-muted">
-                {activeStation?.tagline ??
-                  'Pick a preset on the right or load a direct stream URL below.'}
-              </div>
+              <div className="winamp-led-status">{getStatusLine(activeEntry, status, error)}</div>
             </div>
 
-            <div
-              className={`shell-radio-bars ${status === 'playing' ? 'shell-radio-bars--playing' : ''}`}
-              aria-hidden="true"
-            >
-              {Array.from({ length: 12 }, (_, index) => (
+            <div className="winamp-vu-panel" aria-hidden="true">
+              {Array.from({ length: 16 }, (_, index) => (
                 <span
                   key={index}
-                  className="shell-radio-bar"
+                  className={`winamp-vu-bar ${status === 'playing' ? 'winamp-vu-bar--active' : ''}`}
                   style={{
-                    animationDelay: `${index * 90}ms`,
-                    height: `${22 + (index % 5) * 9}px`
+                    height: `${24 + ((index * 11) % 36)}px`,
+                    animationDelay: `${index * 65}ms`
                   }}
                 />
               ))}
             </div>
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center gap-3">
+          <div className="winamp-readout-strip">
+            <div className="winamp-readout-cell">
+              <span className="winamp-readout-label">Time</span>
+              <strong>{timerLabel}</strong>
+            </div>
+            <div className="winamp-readout-cell">
+              <span className="winamp-readout-label">Source</span>
+              <strong>{activeEntry ? streamHost(activeEntry.sourceUrl) : '--'}</strong>
+            </div>
+            <div className="winamp-readout-cell">
+              <span className="winamp-readout-label">Library</span>
+              <strong>{playlistEntries.length}</strong>
+            </div>
+          </div>
+
+          <div className="winamp-transport-row">
             <button
               type="button"
+              className="winamp-round-button"
+              onClick={() => stepTrack(-1)}
+              title="Previous"
+            >
+              ◀◀
+            </button>
+            <button
+              type="button"
+              className="winamp-round-button"
               onClick={handleTogglePlayback}
-              className="shell-control-button min-w-[132px] px-4 py-2 text-sm font-semibold text-white"
+              title={status === 'playing' ? 'Pause' : 'Play'}
             >
-              {status === 'playing' ? 'Pause stream' : 'Play stream'}
+              {status === 'playing' ? '❚❚' : '▶'}
             </button>
             <button
               type="button"
-              onClick={handleReload}
-              className="shell-control-button px-4 py-2 text-sm"
+              className="winamp-round-button"
+              onClick={handleStop}
+              title="Stop"
             >
-              Reload tuner
+              ■
             </button>
-            <div className="flex items-center gap-3 rounded-full border border-white/10 px-3 py-2">
-              <span className="text-[11px] uppercase tracking-[0.22em] shell-subtle">Volume</span>
+            <button
+              type="button"
+              className="winamp-round-button"
+              onClick={() => stepTrack(1)}
+              title="Next"
+            >
+              ▶▶
+            </button>
+            <button
+              type="button"
+              className="winamp-round-button winamp-round-button--accent"
+              onClick={handleReload}
+              title="Reload"
+            >
+              ↻
+            </button>
+
+            <div className="winamp-transport-spacer" />
+
+            <button type="button" className="winamp-action-button" onClick={() => void handleAddDisk()}>
+              Add MP3s
+            </button>
+          </div>
+
+          <div className="winamp-slider-grid">
+            <label className="winamp-slider-row">
+              <span className="winamp-slider-label">Volume</span>
               <input
                 type="range"
                 min={0}
@@ -422,178 +574,164 @@ export function FMRadioPanel(): JSX.Element {
                 step={0.01}
                 value={volume}
                 onChange={(event) => setVolume(Number(event.target.value))}
-                className="shell-slider w-32"
+                className="winamp-slider"
               />
-              <span className="min-w-[3ch] text-right text-xs font-medium shell-muted">
-                {Math.round(volume * 100)}%
-              </span>
-            </div>
+              <span className="winamp-slider-value">{Math.round(volume * 100)}%</span>
+            </label>
+
+            <label className="winamp-slider-row">
+              <span className="winamp-slider-label">Tune</span>
+              <input
+                type="range"
+                min={0}
+                max={Math.max(playlistEntries.length - 1, 0)}
+                step={1}
+                value={currentTrackIndex}
+                onChange={(event) => handleTuneChange(Number(event.target.value))}
+                className="winamp-slider"
+              />
+              <span className="winamp-slider-value">{currentTrackIndex + 1}</span>
+            </label>
           </div>
 
-          <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-black/10 px-4 py-3 text-sm shell-muted">
-            {statusCopy}
-          </div>
-        </div>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div className="shell-radio-stat">
-            <span className="text-[10px] uppercase tracking-[0.24em] shell-subtle">Transport</span>
-            <div className="mt-2 text-lg font-semibold text-white">
-              {activeStation?.format ?? 'MP3 / AAC'}
-            </div>
-            <div className="mt-1 text-xs shell-muted">Direct stream, no account required.</div>
-          </div>
-
-          <div className="shell-radio-stat">
-            <span className="text-[10px] uppercase tracking-[0.24em] shell-subtle">
-              Source host
-            </span>
-            <div className="mt-2 text-lg font-semibold text-white">
-              {activeStation ? getStreamHost(activeStation.streamUrl) : 'stream host'}
-            </div>
-            <div className="mt-1 text-xs shell-muted">
-              Hydra sends the URL straight to the audio deck.
-            </div>
-          </div>
-
-          <div className="shell-radio-stat">
-            <span className="text-[10px] uppercase tracking-[0.24em] shell-subtle">Library</span>
-            <div className="mt-2 text-lg font-semibold text-white">
-              {FM_STATIONS.length} presets
-            </div>
-            <div className="mt-1 text-xs shell-muted">
-              Curated from official station-owned stream pages.
-            </div>
-          </div>
-        </div>
-
-        <div className="shell-radio-form mt-4">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.24em] shell-page-kicker">
-                Manual tune
-              </div>
-              <p className="mt-2 max-w-xl text-sm shell-muted">
-                Load any direct MP3, AAC, or HLS stream. Hydra will remember the last custom relay
-                and your volume.
-              </p>
-            </div>
-
-            {selectedStationId === CUSTOM_RADIO_STREAM_ID && (
-              <div className="shell-chip rounded-full px-4 py-1.5 text-[11px] uppercase tracking-[0.2em]">
-                Custom selected
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,0.42fr)_minmax(0,1fr)_auto]">
+          <div className="winamp-manual-strip">
             <input
               type="text"
-              value={customNameDraft}
-              onChange={(event) => setCustomNameDraft(event.target.value)}
-              placeholder="Station name (optional)"
-              className="shell-input"
+              value={nameDraft}
+              onChange={(event) => setNameDraft(event.target.value)}
+              placeholder="Direct stream name"
+              className="winamp-textbox"
             />
             <input
               type="url"
-              value={customUrlDraft}
-              onChange={(event) => setCustomUrlDraft(event.target.value)}
+              value={urlDraft}
+              onChange={(event) => setUrlDraft(event.target.value)}
               placeholder="https://example.com/live.mp3"
-              className="shell-input"
+              className="winamp-textbox winamp-textbox--wide"
             />
-            <button
-              type="button"
-              onClick={handleCustomLoad}
-              className="shell-control-button px-4 py-2 text-sm font-medium"
-            >
-              Load custom
+            <button type="button" className="winamp-action-button" onClick={handleCustomLoad}>
+              Load URL
             </button>
           </div>
-
-          {activeStation && (
-            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs shell-muted">
-              <a
-                href={activeStation.website}
-                target="_blank"
-                rel="noreferrer"
-                className="shell-link"
-              >
-                Station site
-              </a>
-              <a
-                href={activeStation.sourcePage}
-                target="_blank"
-                rel="noreferrer"
-                className="shell-link"
-              >
-                Stream source
-              </a>
-            </div>
-          )}
         </div>
       </section>
 
-      <section className="shell-radio-pane shell-radio-browser">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.24em] shell-page-kicker">
-              Station browser
-            </div>
-            <p className="mt-2 text-sm shell-muted">Search by call sign, city, or format.</p>
-          </div>
-          <div className="shell-chip rounded-full px-3 py-1 text-[11px]">
-            {visibleStations.length} visible
-          </div>
+      <section className="winamp-window winamp-eq-window">
+        <div className="winamp-titlebar">
+          <span className="winamp-titlebar-label">Genre Equalizer</span>
+          <div className="winamp-mini-pill">{category ? category.toUpperCase() : 'AUTO'}</div>
         </div>
 
-        <div className="shell-radio-form mt-4">
+        <div className="winamp-eq-body">
+          {FILTER_BANDS.map((band) => {
+            const active = band.key === 'all' ? category === null : category === band.key
+            return (
+              <button
+                key={band.key}
+                type="button"
+                className={`winamp-band ${active ? 'winamp-band--active' : ''}`}
+                onClick={() => setCategory(band.key === 'all' ? null : band.key)}
+                title={band.label}
+              >
+                <span className="winamp-band-track" />
+                <span
+                  className="winamp-band-thumb"
+                  style={{ bottom: `${getBandLevel(band.key, category)}%` }}
+                />
+                <span className="winamp-band-label">{band.short}</span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="winamp-window winamp-playlist-window">
+        <div className="winamp-titlebar">
+          <span className="winamp-titlebar-label">Playlist Editor</span>
+          <div className="winamp-mini-pill">{visibleEntries.length} Items</div>
+        </div>
+
+        <div className="winamp-playlist-toolbar">
+          <button type="button" className="winamp-action-button" onClick={() => void handleAddDisk()}>
+            Add MP3s
+          </button>
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search stations..."
-            className="shell-input"
+            placeholder="Search stations or local files"
+            className="winamp-textbox winamp-textbox--wide"
           />
         </div>
 
-        <div className="mt-4 space-y-3 overflow-y-auto pr-1">
-          {visibleStations.length === 0 && (
-            <div className="rounded-[1.25rem] border border-white/10 bg-black/10 px-4 py-4 text-sm shell-muted">
-              No presets match that search.
-            </div>
+        <div className="winamp-playlist-screen">
+          {localFiles.length === 0 && (
+            <button
+              type="button"
+              className="winamp-library-banner"
+              onClick={() => void handleAddDisk()}
+            >
+              Add MP3s from disk to build your own playlist.
+            </button>
           )}
 
-          {visibleStations.map((station) => {
-            const isActive = station.id === selectedStationId
+          {visibleEntries.length === 0 && (
+            <div className="winamp-empty-state">No stations or files match the current filter.</div>
+          )}
+
+          {visibleEntries.map((entry, index) => {
+            const active = entry.id === stationId
+            const localFile = entry.localFile
 
             return (
-              <button
-                key={station.id}
-                type="button"
-                onClick={() => handleSelectStation(station.id)}
-                className={`shell-radio-station ${isActive ? 'shell-radio-station--active' : ''}`}
+              <div
+                key={entry.id}
+                className={`winamp-playlist-row ${active ? 'winamp-playlist-row--active' : ''}`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[11px] uppercase tracking-[0.24em] shell-subtle">
-                      {station.frequency}
-                    </div>
-                    <div className="mt-1 text-lg font-semibold text-white">{station.callSign}</div>
-                  </div>
-                  <span className="shell-chip rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.18em]">
-                    {station.genre}
+                <button
+                  type="button"
+                  onClick={() => handleSelect(entry.id)}
+                  className="winamp-playlist-hit"
+                >
+                  <span className="winamp-playlist-index">{String(index + 1).padStart(2, '0')}.</span>
+                  <span className="winamp-playlist-main">
+                    <span className="winamp-playlist-title">
+                      {entry.label} · {entry.title}
+                    </span>
+                    <span className="winamp-playlist-detail">{entry.subtitle}</span>
                   </span>
-                </div>
-
-                <div className="mt-3 text-sm font-medium text-white/90">{station.name}</div>
-                <p className="mt-2 text-sm leading-relaxed shell-muted">{station.tagline}</p>
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-xs shell-subtle">
-                  <span>{station.location}</span>
-                  <span>{station.format}</span>
-                </div>
-              </button>
+                  <span className="winamp-playlist-badge">{entry.badge}</span>
+                </button>
+                {entry.kind === 'local' && localFile ? (
+                  <button
+                    type="button"
+                    className="winamp-playlist-remove"
+                    onClick={() => removeLocalFile(localFile.id)}
+                    title="Remove from local library"
+                  >
+                    ×
+                  </button>
+                ) : null}
+              </div>
             )
           })}
+        </div>
+
+        <div className="winamp-playlist-footer">
+          <div className="winamp-footer-copy">
+            {activeStation ? activeStation.tagline : 'Stations stream live. Local files stay in your private library.'}
+          </div>
+          {activeStation ? (
+            <div className="winamp-footer-links">
+              <a href={activeStation.website} target="_blank" rel="noreferrer" className="winamp-footer-link">
+                Site
+              </a>
+              <a href={activeStation.sourcePage} target="_blank" rel="noreferrer" className="winamp-footer-link">
+                Source
+              </a>
+              {!activeStation.verified ? <span className="winamp-warning-pill">Unverified</span> : null}
+            </div>
+          ) : null}
         </div>
       </section>
     </div>

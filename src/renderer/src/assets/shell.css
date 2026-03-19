@@ -1,0 +1,465 @@
+/* ─────────────────────────────────────────────
+   Shell structural classes — Winamp chrome system
+   Hard bevels, brushed metal, recessed displays
+   ───────────────────────────────────────────── */
+
+body {
+  background: #0c1520;
+  color: var(--hydra-shell-text);
+}
+
+.hydra-shell {
+  background: var(--hydra-shell-bg);
+  background-image: var(--hydra-shell-overlay);
+  background-blend-mode: normal;
+  color: var(--hydra-shell-text);
+}
+
+/* ── Brushed metal texture (horizontal micro-lines) ── */
+.chrome-brushed::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0, rgba(255, 255, 255, 0.025) 1px, transparent 1px, transparent 3px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Chrome ribbed divider (grooved decorative strip) ── */
+.chrome-ribbed {
+  height: 6px;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0, rgba(255, 255, 255, 0.06) 1px, rgba(0, 0, 0, 0.15) 1px, rgba(0, 0, 0, 0.15) 2px, transparent 2px, transparent 4px);
+}
+
+/* ── Display well (recessed LED readout) ── */
+.display-well {
+  background: var(--hydra-well-bg);
+  border: 1px solid var(--hydra-well-border);
+  border-radius: var(--hydra-radius-sm);
+  box-shadow: var(--hydra-well-shadow);
+  font-family: var(--hydra-font-mono);
+  color: var(--hydra-accent);
+}
+
+/* ── Header (chrome tier, solid brushed strip) ── */
+.shell-header {
+  position: relative;
+  background: var(--hydra-header-bg);
+  border-color: var(--hydra-border-strong);
+  box-shadow: var(--hydra-header-shadow);
+}
+
+/* ── Nav sidebar (surface tier) ── */
+.shell-nav {
+  width: var(--hydra-nav-width);
+  border: 1px solid var(--hydra-border-strong);
+  border-radius: var(--hydra-radius-lg);
+  background: var(--hydra-nav-bg);
+  box-shadow: var(--hydra-nav-shadow);
+  position: relative;
+}
+
+/* ── Nav buttons (card tier, embossed) ── */
+.shell-nav-button {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid transparent;
+  border-radius: var(--hydra-radius-md);
+  background: var(--hydra-nav-button-bg);
+  box-shadow: var(--hydra-nav-button-shadow);
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.shell-nav-button--inactive:hover {
+  transform: translateY(-1px);
+  background: var(--hydra-nav-button-hover-bg);
+  border-color: var(--hydra-border-soft);
+}
+
+.shell-nav-button--active {
+  background: var(--hydra-nav-button-active-bg);
+  border-color: var(--hydra-accent);
+  box-shadow: var(--hydra-nav-button-active-shadow);
+}
+
+/* ── Nav badge ── */
+.shell-nav-badge {
+  border: 1px solid var(--hydra-nav-badge-border);
+  background: var(--hydra-nav-badge-bg);
+  color: var(--hydra-nav-badge-text);
+  font-family: var(--hydra-font-mono);
+}
+
+.shell-nav-badge--active {
+  color: var(--hydra-accent);
+}
+
+/* ── Main content area (surface tier) ── */
+.shell-main {
+  border: 1px solid var(--hydra-border-strong);
+  border-radius: var(--hydra-radius-lg);
+  background: var(--hydra-surface-bg);
+  box-shadow: var(--hydra-surface-shadow);
+}
+
+/* ── Page header (thin chrome strip) ── */
+.shell-page-header {
+  border-bottom: 1px solid var(--hydra-border-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.05));
+}
+
+.shell-page-kicker {
+  color: var(--hydra-accent);
+}
+
+/* ── Chip (control tier) ── */
+.shell-chip {
+  border: 1px solid var(--hydra-control-border);
+  border-radius: var(--hydra-radius-sm);
+  background: var(--hydra-control-bg);
+  color: var(--hydra-shell-muted);
+  box-shadow:
+    inset 1px 1px 0 rgba(200, 220, 240, 0.12),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.20);
+}
+
+/* ── Control buttons & mobile nav pills (embossed) ── */
+.shell-control-button,
+.shell-mobile-nav-button {
+  border: 1px solid var(--hydra-control-border);
+  border-radius: var(--hydra-radius-sm);
+  background: var(--hydra-control-bg);
+  color: var(--hydra-shell-muted);
+  box-shadow:
+    inset 1px 1px 0 rgba(200, 220, 240, 0.18),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: transform 120ms ease, background 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.shell-control-button:hover,
+.shell-mobile-nav-button:hover {
+  transform: translateY(-1px);
+  background: var(--hydra-control-hover-bg);
+  color: #ffffff;
+}
+
+.shell-control-button:active {
+  transform: translateY(1px);
+  box-shadow: var(--hydra-control-pressed-shadow);
+}
+
+.shell-mobile-nav-button--active,
+.shell-segmented-button--active {
+  background: var(--hydra-nav-button-active-bg);
+  box-shadow: var(--hydra-control-pressed-shadow);
+  color: var(--hydra-accent);
+}
+
+/* ── Segmented control ── */
+.shell-segmented-control {
+  display: flex;
+  gap: 2px;
+  border: 1px solid var(--hydra-control-border);
+  border-radius: 999px;
+  padding: 2px;
+  background: var(--hydra-control-bg);
+  box-shadow:
+    inset 1px 1px 0 rgba(200, 220, 240, 0.10),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.20);
+}
+
+.shell-segmented-button {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--hydra-shell-subtle);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  letter-spacing: 0.08em;
+  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.shell-segmented-button:hover {
+  color: #ffffff;
+}
+
+.shell-segmented-button--active {
+  color: var(--hydra-accent);
+  background: var(--hydra-nav-button-active-bg);
+  box-shadow: var(--hydra-control-pressed-shadow);
+}
+
+/* ── Scorecards strip ── */
+.shell-scorecard-strip {
+  gap: 0.5rem;
+}
+
+/* ── Shared border + top-edge shine for raised elements ── */
+.shell-scorecard,
+.shell-panel,
+.shell-insight-card,
+.shell-radio-pane,
+.shell-command-panel {
+  position: relative;
+  border: 1px solid var(--hydra-border-strong);
+}
+
+.shell-panel::after,
+.shell-radio-pane::after,
+.shell-command-panel::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: rgba(200, 220, 240, 0.15);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* ── Scorecard (card tier + display well for value) ── */
+.shell-scorecard {
+  min-width: 130px;
+  border-radius: var(--hydra-radius-md);
+  background: var(--hydra-card-bg);
+  box-shadow: var(--hydra-card-shadow);
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+
+.shell-scorecard:hover {
+  transform: translateY(-1px);
+}
+
+/* ── Panel (panel tier) ── */
+.shell-panel {
+  border-radius: var(--hydra-radius-lg);
+  background: var(--hydra-panel-bg);
+  box-shadow: var(--hydra-panel-shadow);
+}
+
+.shell-panel-header,
+.shell-panel-body {
+  position: relative;
+  z-index: 1;
+}
+
+.shell-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--hydra-border-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.04));
+}
+
+.shell-panel-title {
+  color: var(--hydra-shell-muted);
+  letter-spacing: 0.16em;
+}
+
+.shell-panel-body {
+  padding: 0.75rem;
+}
+
+/* ── Insight card (card tier, interactive) ── */
+.shell-insight-card {
+  padding: 0.75rem;
+  border-radius: var(--hydra-radius-md);
+  background: var(--hydra-card-bg);
+  box-shadow: var(--hydra-card-shadow);
+  border: 1px solid var(--hydra-border-strong);
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+
+.shell-insight-card--interactive:hover {
+  transform: translateY(-1px);
+  border-color: var(--hydra-accent);
+}
+
+/* ── Command palette (overlay — CAN use blur) ── */
+.shell-command-overlay {
+  background: rgba(8, 12, 20, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.shell-command-panel {
+  border-radius: var(--hydra-radius-lg);
+  background: var(--hydra-panel-bg);
+  box-shadow: var(--hydra-panel-shadow);
+}
+
+.shell-command-input-wrap {
+  border-bottom: 1px solid var(--hydra-border-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.03));
+}
+
+.shell-command-input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-family: var(--hydra-font-mono);
+  outline: none;
+}
+
+.shell-command-input::placeholder,
+.shell-input::placeholder {
+  color: var(--hydra-shell-subtle);
+}
+
+.shell-command-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.shell-command-item:hover,
+.shell-command-item--active {
+  border-left-color: var(--hydra-accent);
+  background: linear-gradient(90deg, rgba(0, 212, 255, 0.08), transparent);
+}
+
+.shell-command-footer {
+  border-top: 1px solid var(--hydra-border-soft);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.03), rgba(255, 255, 255, 0.01));
+}
+
+.shell-command-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid var(--hydra-control-border);
+  border-radius: var(--hydra-radius-sm);
+  background: var(--hydra-control-bg);
+  color: var(--hydra-shell-muted);
+  font-family: var(--hydra-font-mono);
+  font-size: 0.65rem;
+}
+
+/* ── Input (recessed control, like display well but interactive) ── */
+.shell-input {
+  width: 100%;
+  border: 1px solid var(--hydra-control-border);
+  border-radius: var(--hydra-radius-sm);
+  background: #0a1018;
+  color: #ffffff;
+  font-family: var(--hydra-font-mono);
+  padding: 0.55rem 0.75rem;
+  outline: none;
+  box-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.35),
+    inset -1px -1px 0 rgba(180, 210, 240, 0.06);
+}
+
+.shell-input:focus {
+  border-color: var(--hydra-accent);
+  outline: none;
+}
+
+.shell-command-input:focus {
+  outline: none;
+}
+
+.shell-slider {
+  accent-color: var(--hydra-accent);
+}
+
+/* ── Text utility ── */
+.shell-muted { color: var(--hydra-shell-muted); }
+.shell-subtle { color: var(--hydra-shell-subtle); }
+
+.shell-link {
+  color: var(--hydra-accent);
+  text-decoration: none;
+}
+
+.shell-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Forge skin: kill all backdrop-filter, use opaque black body ── */
+[data-skin='forge'] body { background: #000000; }
+[data-skin='forge'] .shell-header { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* ── Skin selector panel ── */
+.shell-skin-panel {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%; max-width: 540px;
+  border: 1px solid var(--hydra-border-strong);
+  border-radius: var(--hydra-radius-lg);
+  background: var(--hydra-panel-bg);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  z-index: 60;
+  overflow: hidden;
+}
+
+.shell-skin-panel-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--hydra-border-soft);
+}
+
+.shell-skin-panel-header h3 {
+  font-size: 1rem; font-weight: 600; color: white;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+.shell-skin-panel-header p {
+  font-size: 0.75rem; color: var(--hydra-shell-subtle); margin-top: 0.25rem;
+}
+
+.shell-skin-grid {
+  padding: 1.25rem 1.5rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+
+.shell-skin-card {
+  display: flex; overflow: hidden;
+  border: 1px solid var(--hydra-border-soft);
+  border-radius: var(--hydra-radius-md);
+  background: var(--hydra-card-bg);
+  transition: transform 160ms ease, border-color 160ms ease;
+  text-align: left; cursor: pointer;
+}
+
+.shell-skin-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--hydra-border-strong);
+}
+
+.shell-skin-card--active {
+  border-color: var(--hydra-accent);
+}
+
+.shell-skin-preview {
+  width: 64px; display: flex; flex-direction: column; flex-shrink: 0;
+}
+
+.shell-skin-preview > div { min-height: 0; flex: 1; }
+
+.shell-skin-card-body { padding: 0.75rem 1rem; flex: 1; }
+
+.shell-skin-globe {
+  width: 100%;
+  height: 200px;
+  display: block;
+  border-bottom: 1px solid var(--hydra-border-soft);
+}
+
+.shell-skin-badge {
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.15em;
+  color: var(--hydra-accent); border: 1px solid var(--hydra-accent);
+  border-radius: 999px; padding: 0.15rem 0.5rem; font-weight: 600;
+}
