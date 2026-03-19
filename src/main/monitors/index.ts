@@ -1,4 +1,5 @@
 import { ipcMain, type BrowserWindow } from 'electron'
+import { setTimeout as delay } from 'timers/promises'
 import { getProcesses, groupProcesses } from './processes'
 import { getPorts } from './ports'
 import { detectAgents } from './agents'
@@ -115,6 +116,20 @@ let monitorConfig = loadConfig()
 
 let latestGitRepos: SystemState['gitRepos'] = []
 
+async function withTimeout<T>(label: string, operation: Promise<T>, fallback: T, ms = 4000): Promise<T> {
+  try {
+    return await Promise.race([
+      operation,
+      delay(ms).then(() => {
+        throw new Error(`${label} timed out after ${ms}ms`)
+      })
+    ])
+  } catch (error) {
+    console.error(`[monitor:${label}]`, error)
+    return fallback
+  }
+}
+
 function refreshAndBroadcastCCUsage(
   mainWindow: BrowserWindow,
   options: { forceLive?: boolean } = {}
@@ -127,9 +142,10 @@ function refreshAndBroadcastCCUsage(
 }
 
 async function collectSystemState(): Promise<SystemState> {
-  const [processes, ports] = await Promise.all([
-    getProcesses(),
-    getPorts()
+  const [processes, ports, availableMemory] = await Promise.all([
+    withTimeout('processes', getProcesses(), []),
+    withTimeout('ports', getPorts(), []),
+    withTimeout('memory', getAvailableMemory(), freemem())
   ])
 
   const processGroups = groupProcesses(processes)
@@ -145,7 +161,6 @@ async function collectSystemState(): Promise<SystemState> {
 
   const cpuInfo = cpus()
   const totalMemory = totalmem()
-  const availableMemory = await getAvailableMemory()
 
   const state: SystemState = {
     timestamp: Date.now(),

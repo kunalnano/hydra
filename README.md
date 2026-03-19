@@ -1,10 +1,10 @@
-# HYDRA v3.0.0 — Operator Shell For Local AI Systems
+# HYDRA v3.1.0 — Operator Shell For Local AI Systems
 
 Hydra is a desktop ops shell for developers running AI agents, local services, and multi-machine model workflows. It keeps overall system status visible while giving each domain its own page instead of forcing everything into one dense dashboard.
 
-Latest release: `v3.0.0`
+Latest release: `v3.1.0`
 
-Version 3.0.0 refreshes the shell with the new `Deck` and `Orbiter` skins, adds a dedicated `FM Radio` page, and starts Hydra's PolyForm Noncommercial release line. Earlier releases through `v2.1.2` remain under the terms they originally shipped with.
+Version 3.1.0 pushes the shell further into a tighter retro-control-room direction, adds a dedicated Winamp-style `FM Radio` deck with a built-in relay and local MP3 loading, and continues Hydra's PolyForm Noncommercial release line. Earlier releases through `v2.1.2` remain under the terms they originally shipped with.
 
 ![Hydra v2 Overview](docs/screenshots/dashboard-v2-overview.png)
 ![Hydra v2 AI Page](docs/screenshots/dashboard-v2-ai.png)
@@ -20,7 +20,7 @@ The overview screen is Hydra's calmer control layer: persistent scorecards acros
 - Persistent scorecards keep CPU, memory, ports, repo drift, battery, and Claude Code cost visible at all times
 - The navigation rail gives each operating surface its own home: `Overview`, `Workspaces`, `Agents`, `Systems`, `AI`, `FM Radio`, and `Activity`
 - The shell is built so you can move from "something looks off" to the exact page that can act on it without losing context
-- `Deck` and `Orbiter` give the shell two coherent skins instead of a one-off theme toggle
+- `Deck`, `Orbiter`, and `Forge` give the shell three coherent skins instead of a one-off theme toggle
 
 ### AI Page
 
@@ -43,13 +43,13 @@ Hydra's biggest shell shift is structural, not cosmetic. The app now behaves lik
 - `FM Radio` adds a lightweight live-stream tuner with station presets and manual stream loading
 - `Activity` isolates logs, timelines, and historical movement so they stop crowding operational controls
 
-## What Changed In v3.0.0
+## What Changed In v3.1.0
 
-- Rebuilt the shell chrome so navigation, page framing, scorecards, command surfaces, and cards all share the same titanium-and-aqua control-room language
-- Added a persisted skin system with `Deck` and `Orbiter`, with `Orbiter` becoming the smaller, tighter default presentation
-- Added the `FM Radio` page with station presets, search, play/pause, volume, custom streams, and persisted tuner state
-- Kept the refreshed shell responsive across desktop and mobile widths instead of only skinning the top rail
-- Moved Hydra onto PolyForm Noncommercial 1.0.0 for all releases starting at `v3.0.0`
+- Reworked the shell into a more compact machine-chrome presentation with cleaner panel hierarchy, a live skin globe, and less of the old flat dashboard framing
+- Expanded the skin system to `Deck`, `Orbiter`, and `Forge`, with persisted shell-wide tokens instead of isolated one-off effects
+- Rebuilt `FM Radio` as a Winamp-inspired stereo relay with presets, search, transport controls, direct stream loading, and obvious local MP3 import
+- Added a main-process audio relay so presets, custom streams, and local files play through Hydra instead of depending on fragile direct renderer streaming
+- Fixed Electron launch visibility and loopback media policy issues so the shell and FM deck come up reliably on the desktop
 
 ## What Landed In v2
 
