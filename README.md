@@ -7,12 +7,13 @@ Latest tagged release: `v3.1.0` on March 18, 2026.
 The captures below reflect the current mainline shell. They were taken with `Secure View` enabled so local hosts, paths, and LM Studio endpoints stay redacted.
 
 ![Hydra Mainline Showcase](docs/screenshots/hydra-mainline-showcase.gif)
-![Hydra AI Secure View](docs/screenshots/hydra-mainline-ai-secure.png)
-![Hydra FM Radio Forge](docs/screenshots/hydra-v3-radio-forge.png)
-![Hydra Staff of Gandalf Secure View](docs/screenshots/hydra-mainline-gandalf-secure.png)
+![Hydra AI Full View](docs/screenshots/hydra-mainline-ai-full.png)
+![Hydra FM Radio Forge](docs/screenshots/hydra-mainline-radio-forge.png)
+![Hydra Systems Forge](docs/screenshots/hydra-mainline-systems-forge.png)
 
 Operator walkthrough: [docs/OPERATOR-WALKTHROUGH.md](docs/OPERATOR-WALKTHROUGH.md)
 Tagged release notes: [docs/releases/v3.1.0.md](docs/releases/v3.1.0.md)
+Journey so far: [docs/wiki/journey-so-far.md](docs/wiki/journey-so-far.md)
 
 ## See The Shell
 
