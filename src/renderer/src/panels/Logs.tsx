@@ -17,9 +17,9 @@ export function LogsPanel(): JSX.Element {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    window.hydra.getLogSources().then(setSources)
+    window.helm.getLogSources().then(setSources)
 
-    const unsubscribe = window.hydra.onLogLines((newLines) => {
+    const unsubscribe = window.helm.onLogLines((newLines) => {
       setLines((prev) => {
         const updated = [...prev, ...newLines]
         return updated.slice(-MAX_LINES)
@@ -47,7 +47,7 @@ export function LogsPanel(): JSX.Element {
         <div className="text-center">
           <div>No log sources found</div>
           <div className="text-xs mt-1 text-gray-700">
-            Logs will appear from ~/.claude/projects/*/logs/ or /tmp/hydra-*.log
+            Logs will appear from ~/.claude/projects/*/logs/ or /tmp/helm-*.log
           </div>
         </div>
       </div>

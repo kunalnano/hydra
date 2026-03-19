@@ -3,7 +3,7 @@ import { readFile, stat } from 'fs/promises'
 import { basename, join } from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import type { HydraConfig, LogLine } from '../../shared/types'
+import type { HelmConfig, LogLine } from '../../shared/types'
 
 const execAsync = promisify(exec)
 
@@ -108,11 +108,11 @@ async function watchLogFile(filePath: string): Promise<void> {
   watchedFiles.set(filePath, watched)
 }
 
-async function discoverLogFiles(config?: HydraConfig): Promise<string[]> {
+async function discoverLogFiles(config?: HelmConfig): Promise<string[]> {
   const home = process.env.HOME || ''
   const defaultPatterns = [
     join(home, '.claude', 'projects', '*', 'logs', '*.log'),
-    '/tmp/hydra-*.log'
+    '/tmp/helm-*.log'
   ]
 
   const files: string[] = []
@@ -142,7 +142,7 @@ async function discoverLogFiles(config?: HydraConfig): Promise<string[]> {
 
 export async function startLogMonitoring(
   callback: LogCallback,
-  config?: HydraConfig
+  config?: HelmConfig
 ): Promise<string[]> {
   logCallback = callback
 

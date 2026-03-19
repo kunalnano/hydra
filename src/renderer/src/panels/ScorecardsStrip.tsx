@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react'
 import { useSystemStore } from '../stores/system'
 import { useTimeSeriesStore } from '../stores/timeseries'
 import { useNavigationStore } from '../stores/navigation'
 import { Scorecard, type ScorecardProps } from '../components/Scorecard'
-import type { CCUsageState } from '../../../shared/types'
 
 function getAverage(history: number[]): number {
   if (history.length === 0) return 0
@@ -71,13 +69,6 @@ export function ScorecardsStrip(): JSX.Element {
   const state = useSystemStore((s) => s.state)
   const { cpuHistory, memHistory, netInHistory, netOutHistory } = useTimeSeriesStore()
   const setCurrentPage = useNavigationStore((s) => s.setCurrentPage)
-  const [ccUsage, setCCUsage] = useState<CCUsageState | null>(null)
-
-  useEffect(() => {
-    window.hydra.getCCUsage().then(setCCUsage)
-    const unsub = window.hydra.onCCUsageUpdate(setCCUsage)
-    return unsub
-  }, [])
 
   const cpuUsage = state?.cpu.usage ?? 0
   const memUsage = state?.memory.usagePercent ?? 0
@@ -86,6 +77,7 @@ export function ScorecardsStrip(): JSX.Element {
   const totalBandwidth = netIn + netOut
 
   const netCombinedHistory = netInHistory.map((v, i) => v + (netOutHistory[i] ?? 0))
+  const hasNetData = netCombinedHistory.some((v) => v > 0)
 
   const totalAgents = state?.agents.length ?? 0
   const engagedAgents =
@@ -96,7 +88,13 @@ export function ScorecardsStrip(): JSX.Element {
 
   const cpuTrend = getSmartTrend(cpuHistory, true)
   const memTrend = getSmartTrend(memHistory, true)
-  const netTrend = getSmartTrend(netCombinedHistory, false)
+  const netTrend = hasNetData ? getSmartTrend(netCombinedHistory, false) : { direction: 'flat' as TrendDirection, sentiment: 'neutral' as const }
+
+  const networkLabel = hasNetData
+    ? totalBandwidth > 0
+      ? 'Network'
+      : 'Network (quiet)'
+    : 'Network (no data)'
 
   return (
     <div className="shell-scorecard-strip flex flex-wrap gap-3">
@@ -122,13 +120,14 @@ export function ScorecardsStrip(): JSX.Element {
       />
       <Scorecard
         value={formatRate(totalBandwidth)}
-        label="Network"
-        color="blue"
+        label={networkLabel}
+        color={hasNetData ? 'blue' : 'gray'}
         sparkData={netCombinedHistory}
         trend={netTrend.direction}
         trendWidget={
           <SmartTrendArrow direction={netTrend.direction} sentiment={netTrend.sentiment} />
         }
+        onClick={() => setCurrentPage('grid')}
       />
       <Scorecard
         value={`${totalAgents}`}
@@ -146,7 +145,7 @@ export function ScorecardsStrip(): JSX.Element {
         value={dirtyRepos > 0 ? `${dirtyRepos}/${totalRepos}` : `${totalRepos}`}
         label={dirtyRepos > 0 ? 'Dirty Repos' : 'Git Repos'}
         color={dirtyRepos > 0 ? 'amber' : 'green'}
-        onClick={() => setCurrentPage('workspaces')}
+        onClick={() => setCurrentPage('fleet')}
       />
       {state?.disk && (
         <Scorecard
@@ -162,18 +161,6 @@ export function ScorecardsStrip(): JSX.Element {
           color={
             state.battery.percent <= 20 ? 'red' : state.battery.percent <= 50 ? 'amber' : 'green'
           }
-        />
-      )}
-      {ccUsage?.available && (
-        <Scorecard
-          value={
-            ccUsage.totalCostUSD >= 1
-              ? `$${Math.round(ccUsage.totalCostUSD)}`
-              : `$${ccUsage.totalCostUSD.toFixed(2)}`
-          }
-          label="CC Cost"
-          color="blue"
-          onClick={() => setCurrentPage('systems')}
         />
       )}
     </div>

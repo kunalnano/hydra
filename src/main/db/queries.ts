@@ -3,7 +3,7 @@ import type {
   SystemState,
   AutoHealEvent,
   BriefingResult,
-  HydraNotification,
+  HelmNotification,
   SecurityPosture,
   PostureHistoryEntry,
   TimelineEventRecord
@@ -100,14 +100,14 @@ export function getRecentBriefings(limit: number): BriefingResult[] {
   }))
 }
 
-export function insertNotification(notif: HydraNotification): void {
+export function insertNotification(notif: HelmNotification): void {
   const db = getDb()
   db.prepare(
     'INSERT OR REPLACE INTO notifications (id, title, body, level, timestamp, dismissed) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(notif.id, notif.title, notif.body, notif.level, notif.timestamp, notif.dismissed ? 1 : 0)
 }
 
-export function getNotifications(limit: number): HydraNotification[] {
+export function getNotifications(limit: number): HelmNotification[] {
   const db = getDb()
   const rows = db
     .prepare(
@@ -125,7 +125,7 @@ export function getNotifications(limit: number): HydraNotification[] {
     id: row.id,
     title: row.title,
     body: row.body,
-    level: row.level as HydraNotification['level'],
+    level: row.level as HelmNotification['level'],
     timestamp: row.timestamp,
     dismissed: row.dismissed === 1
   }))

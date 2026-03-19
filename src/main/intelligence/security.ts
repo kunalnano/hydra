@@ -92,7 +92,7 @@ export const SCAN_COMMANDS = [
     command: 'survey',
     description: 'Full security assessment',
     get args(): string {
-      return `${localNetworkTarget} -o /tmp/hydra-scan-report.md`
+      return `${localNetworkTarget} -o /tmp/helm-scan-report.md`
     }
   },
   {

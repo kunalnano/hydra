@@ -21,7 +21,7 @@ import type {
   SystemState,
   AutoHealEvent,
   BriefingResult,
-  HydraNotification,
+  HelmNotification,
   SecurityPosture
 } from '../../shared/types'
 
@@ -151,7 +151,7 @@ describe('SQLite persistence', () => {
 
   describe('notifications', () => {
     it('should insert and retrieve a notification', () => {
-      const notif: HydraNotification = {
+      const notif: HelmNotification = {
         id: 'test-1',
         title: 'High CPU',
         body: 'CPU is at 95%',
@@ -167,7 +167,7 @@ describe('SQLite persistence', () => {
     })
 
     it('should dismiss a notification', () => {
-      const notif: HydraNotification = {
+      const notif: HelmNotification = {
         id: 'test-dismiss',
         title: 'Alert',
         body: 'Something happened',
@@ -182,7 +182,7 @@ describe('SQLite persistence', () => {
     })
 
     it('should handle upsert via INSERT OR REPLACE', () => {
-      const notif: HydraNotification = {
+      const notif: HelmNotification = {
         id: 'upsert-test',
         title: 'Original',
         body: 'Original body',

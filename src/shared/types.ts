@@ -265,7 +265,7 @@ export interface AutoHealEvent {
   message: string
 }
 
-export interface HydraNotification {
+export interface HelmNotification {
   id: string
   title: string
   body: string
@@ -373,7 +373,7 @@ export interface PostureHistoryEntry {
 
 export type YenneferStyle = 'adaptive' | 'throughput' | 'creative' | 'strict'
 
-export interface HydraConfig {
+export interface HelmConfig {
   apiKey?: string
   gitRepoPaths: string[]
   monitorInterval: number

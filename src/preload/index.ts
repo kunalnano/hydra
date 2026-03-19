@@ -5,13 +5,13 @@ import type {
   LogLine,
   BriefingResult,
   AutoHealEvent,
-  HydraNotification,
+  HelmNotification,
   LmStudioHealResult,
   NetworkState,
   FirewallState,
   SecurityScanResult,
   SecurityPosture,
-  HydraConfig,
+  HelmConfig,
   GitCommit,
   PostureHistoryEntry,
   GitActionResult,
@@ -72,8 +72,8 @@ const api = {
     }
   },
 
-  onNotification: (callback: (notif: HydraNotification) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, notif: HydraNotification): void =>
+  onNotification: (callback: (notif: HelmNotification) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, notif: HelmNotification): void =>
       callback(notif)
     ipcRenderer.on(IPC_CHANNELS.NOTIFICATION, handler)
     return (): void => {
@@ -149,9 +149,9 @@ const api = {
   queryNotifications: (limit: number): Promise<unknown[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_NOTIFICATIONS, limit),
 
-  getConfig: (): Promise<HydraConfig> => ipcRenderer.invoke(IPC_CHANNELS.CONFIG_GET),
+  getConfig: (): Promise<HelmConfig> => ipcRenderer.invoke(IPC_CHANNELS.CONFIG_GET),
 
-  saveConfig: (config: HydraConfig): Promise<void> =>
+  saveConfig: (config: HelmConfig): Promise<void> =>
     ipcRenderer.invoke(IPC_CHANNELS.CONFIG_SAVE, config),
 
   getCommitHistory: (repoPath: string, limit: number): Promise<GitCommit[]> =>
@@ -207,6 +207,6 @@ const api = {
   } | null> => ipcRenderer.invoke(IPC_CHANNELS.SESSION_DELTA)
 }
 
-contextBridge.exposeInMainWorld('hydra', api)
+contextBridge.exposeInMainWorld('helm', api)
 
-export type HydraAPI = typeof api
+export type HelmAPI = typeof api

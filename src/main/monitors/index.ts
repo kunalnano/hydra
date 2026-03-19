@@ -43,7 +43,7 @@ import {
 import type {
   SystemState,
   AutoHealEvent,
-  HydraNotification,
+  HelmNotification,
   NetworkState,
   FirewallState,
   DiskState,
@@ -90,7 +90,7 @@ let monitorInterval: ReturnType<typeof setInterval> | null = null
 let latestState: SystemState | null = null
 let previousState: PreviousState | null = null
 let healHistory: AutoHealEvent[] = []
-let notifications: HydraNotification[] = []
+let notifications: HelmNotification[] = []
 let trayCallback: ((state: SystemState) => void) | null = null
 let latestNetwork: NetworkState | null = null
 let latestFirewall: FirewallState | null = null
@@ -241,7 +241,7 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
           } catch {
             /* DB write failed — continue */
           }
-          const notif: HydraNotification = {
+          const notif: HelmNotification = {
             id: `${event.timestamp}-${event.rule}`,
             title: event.rule.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
             body: event.message,
@@ -259,7 +259,7 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
             mainWindow.webContents.send(IPC_CHANNELS.NOTIFICATION, notif)
           }
           if (notif.level === 'critical') {
-            showDesktopNotification(`HYDRA: ${notif.title}`, notif.body)
+            showDesktopNotification(`HELM: ${notif.title}`, notif.body)
           }
         }
       }

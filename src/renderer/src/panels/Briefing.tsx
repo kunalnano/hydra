@@ -69,7 +69,7 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
   }, [])
 
   const refreshConfig = useCallback(async (): Promise<void> => {
-    const cfg = await window.hydra.getConfig()
+    const cfg = await window.helm.getConfig()
     if (cfg.lmStudioUrl) setLmStudioUrl(cfg.lmStudioUrl)
     if (cfg.yenneferEnabled === false) setYenneferEnabled(false)
     if (cfg.yenneferStyle) setYenneferStyle(cfg.yenneferStyle)
@@ -92,7 +92,7 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
     setError(null)
     setNotice(null)
     try {
-      const result = await window.hydra.requestBriefing()
+      const result = await window.helm.requestBriefing()
       if (result) {
         setBriefing(result)
         pulseCore('speaking')
@@ -112,7 +112,7 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
     setError(null)
     setNotice(null)
     try {
-      const result = await window.hydra.healLmStudio()
+      const result = await window.helm.healLmStudio()
       if (result.url) setLmStudioUrl(result.url)
       if (result.success) {
         setNotice(result.message)
@@ -133,7 +133,7 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
     setError(null)
     setNotice(null)
     try {
-      const result = await window.hydra.requestYennefer()
+      const result = await window.helm.requestYennefer()
       if (result) {
         setBriefing(result)
         pulseCore('speaking')
@@ -149,14 +149,14 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
   }, [refreshConfig])
 
   useEffect(() => {
-    const unsub = window.hydra.onBriefingShortcut(() => {
+    const unsub = window.helm.onBriefingShortcut(() => {
       requestBriefing()
     })
     return unsub
   }, [requestBriefing])
 
   useEffect(() => {
-    const unsub = window.hydra.onYenneferShortcut(() => {
+    const unsub = window.helm.onYenneferShortcut(() => {
       invokeYennefer()
     })
     return unsub
@@ -168,8 +168,8 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
     setNotice(null)
     setError(null)
     try {
-      const current = await window.hydra.getConfig()
-      await window.hydra.saveConfig({ ...current, yenneferStyle: nextStyle })
+      const current = await window.helm.getConfig()
+      await window.helm.saveConfig({ ...current, yenneferStyle: nextStyle })
       setNotice(`Yennefer lens set to ${nextStyle}.`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save Yennefer lens')

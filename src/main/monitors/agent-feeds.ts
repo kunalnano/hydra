@@ -7,7 +7,7 @@ import type {
   AgentInfo,
   AgentStatus,
   AgentType,
-  HydraConfig,
+  HelmConfig,
   TimelineEventRecord,
   TimelineEventType
 } from '../../shared/types'
@@ -54,7 +54,7 @@ export interface IngestibleTraceTimelineEvent extends TimelineEventRecord {
   ingestKey: string
 }
 
-export function getAgentFeedDirectories(config?: HydraConfig): string[] {
+export function getAgentFeedDirectories(config?: HelmConfig): string[] {
   const candidates =
     config?.agentFeedPaths && config.agentFeedPaths.length > 0
       ? config.agentFeedPaths
@@ -69,7 +69,7 @@ export function getAgentFeedDirectories(config?: HydraConfig): string[] {
   return [...unique].filter((dir) => existsSync(dir))
 }
 
-export function loadExternalAgents(config?: HydraConfig, now = Date.now()): AgentInfo[] {
+export function loadExternalAgents(config?: HelmConfig, now = Date.now()): AgentInfo[] {
   const agentsById = new Map<string, AgentInfo>()
 
   for (const directory of getAgentFeedDirectories(config)) {
@@ -95,7 +95,7 @@ export function loadExternalAgents(config?: HydraConfig, now = Date.now()): Agen
 }
 
 export function loadExternalAgentTimelineEvents(
-  config?: HydraConfig
+  config?: HelmConfig
 ): IngestibleTraceTimelineEvent[] {
   const events: IngestibleTraceTimelineEvent[] = []
 

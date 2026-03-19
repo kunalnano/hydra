@@ -47,7 +47,7 @@ export function SessionDeltaBanner(): JSX.Element {
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
-    window.hydra.getSessionDelta().then((d: typeof delta) => setDelta(d))
+    window.helm.getSessionDelta().then((d: typeof delta) => setDelta(d))
   }, [])
 
   if (!delta || dismissed || delta.missingWorkspaces.length === 0) return <></>
@@ -80,12 +80,12 @@ export function TimelinePanel(): JSX.Element {
   const [events, setEvents] = useState<TimelineEvent[]>([])
 
   useEffect(() => {
-    window.hydra.getTimelineEvents(50).then((evts: unknown[]) => {
+    window.helm.getTimelineEvents(50).then((evts: unknown[]) => {
       setEvents(evts as TimelineEvent[])
     })
 
     const interval = setInterval(() => {
-      window.hydra.getTimelineEvents(50).then((evts: unknown[]) => {
+      window.helm.getTimelineEvents(50).then((evts: unknown[]) => {
         setEvents(evts as TimelineEvent[])
       })
     }, 10000)

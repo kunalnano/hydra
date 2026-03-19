@@ -30,7 +30,7 @@ export function GitHistoryPanel(): JSX.Element {
     try {
       const allCommits: GitCommit[] = []
       for (const repo of state.gitRepos) {
-        const repoCommits = await window.hydra.getCommitHistory(repo.path, 20)
+        const repoCommits = await window.helm.getCommitHistory(repo.path, 20)
         allCommits.push(...repoCommits)
       }
       allCommits.sort((a, b) => b.timestamp - a.timestamp)

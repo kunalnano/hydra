@@ -56,8 +56,8 @@ function titleCase(v: string): string { return v[0].toUpperCase() + v.slice(1) }
 function MetricPill({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }): JSX.Element {
   return (
     <div className={`rounded-[4px] border px-3 py-2 ${emphasis ? 'border-amber-400/30 bg-amber-900/20' : 'border-white/10 bg-black/20'}`}>
-      <div className="text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--hydra-font-mono)]">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-gray-100 font-[family-name:var(--hydra-font-mono)]">{value}</div>
+      <div className="text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--helm-font-mono)]">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-gray-100 font-[family-name:var(--helm-font-mono)]">{value}</div>
     </div>
   )
 }
@@ -66,7 +66,7 @@ function ActionNode({ label, detail, accent, disabled, onClick }: { label: strin
   return (
     <button onClick={onClick} disabled={disabled}
       className={`rounded-[4px] border px-3 py-3 text-left transition-all ${disabled ? 'cursor-not-allowed border-white/10 bg-white/5 text-gray-500' : `border-white/10 ${accent} hover:-translate-y-0.5 hover:border-white/20`}`}>
-      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] font-[family-name:var(--hydra-font-mono)]">{label}</div>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] font-[family-name:var(--helm-font-mono)]">{label}</div>
       <div className="mt-1 text-xs text-gray-300">{detail}</div>
     </button>
   )
@@ -402,12 +402,12 @@ export function AICoreNode({
         <div className="relative overflow-hidden rounded-[4px] border border-white/10 bg-black p-4">
           <div className="relative flex items-start justify-between gap-4">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--hydra-font-mono)]">SYS.CORE.ENTITY</div>
-              <div className={`mt-1 text-sm font-semibold ${theme.text} font-[family-name:var(--hydra-font-mono)]`}>{theme.label}</div>
+              <div className="text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--helm-font-mono)]">SYS.CORE.ENTITY</div>
+              <div className={`mt-1 text-sm font-semibold ${theme.text} font-[family-name:var(--helm-font-mono)]`}>{theme.label}</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--hydra-font-mono)]">MECH.ORGANISM</div>
-              <div className="mt-1 text-xs text-gray-400 font-[family-name:var(--hydra-font-mono)]">plates // antennas // reactor</div>
+              <div className="text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--helm-font-mono)]">MECH.ORGANISM</div>
+              <div className="mt-1 text-xs text-gray-400 font-[family-name:var(--helm-font-mono)]">plates // antennas // reactor</div>
             </div>
           </div>
 
@@ -423,27 +423,27 @@ export function AICoreNode({
               <div className="absolute inset-0 pointer-events-none">
                 <div className="pointer-events-auto absolute inset-x-3 bottom-2 flex flex-wrap items-end justify-between gap-2">
                   <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-                    <div className="rounded-[2px] border border-white/10 bg-black/70 px-2 py-0.5 text-[8px] uppercase tracking-[0.14em] text-gray-400 font-[family-name:var(--hydra-font-mono)]">Mech Entity</div>
+                    <div className="rounded-[2px] border border-white/10 bg-black/70 px-2 py-0.5 text-[8px] uppercase tracking-[0.14em] text-gray-400 font-[family-name:var(--helm-font-mono)]">Mech Entity</div>
                     {kindCounts.workspace > 0 && (
-                      <span className="flex items-center gap-1 rounded-[2px] border border-white/10 bg-black/65 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-gray-400 font-[family-name:var(--hydra-font-mono)]">
+                      <span className="flex items-center gap-1 rounded-[2px] border border-white/10 bg-black/65 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-gray-400 font-[family-name:var(--helm-font-mono)]">
                         <span className="inline-block h-1.5 w-1.5 rounded-[1px]" style={{ background: KIND_COLORS.workspace }} />
                         WS {kindCounts.workspace}
                       </span>
                     )}
                     {kindCounts.agent > 0 && (
-                      <span className="flex items-center gap-1 rounded-[2px] border border-white/10 bg-black/65 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-gray-400 font-[family-name:var(--hydra-font-mono)]">
+                      <span className="flex items-center gap-1 rounded-[2px] border border-white/10 bg-black/65 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-gray-400 font-[family-name:var(--helm-font-mono)]">
                         <span className="inline-block h-1.5 w-1.5 rounded-[1px]" style={{ background: KIND_COLORS.agent }} />
                         AG {kindCounts.agent}
                       </span>
                     )}
                     {kindCounts.port > 0 && (
-                      <span className="flex items-center gap-1 rounded-[2px] border border-white/10 bg-black/65 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-gray-400 font-[family-name:var(--hydra-font-mono)]">
+                      <span className="flex items-center gap-1 rounded-[2px] border border-white/10 bg-black/65 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-gray-400 font-[family-name:var(--helm-font-mono)]">
                         <span className="inline-block h-1.5 w-1.5 rounded-[1px]" style={{ background: KIND_COLORS.port }} />
                         PT {kindCounts.port}
                       </span>
                     )}
                     {kindCounts.git > 0 && (
-                      <span className="flex items-center gap-1 rounded-[2px] border border-white/10 bg-black/65 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-gray-400 font-[family-name:var(--hydra-font-mono)]">
+                      <span className="flex items-center gap-1 rounded-[2px] border border-white/10 bg-black/65 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-gray-400 font-[family-name:var(--helm-font-mono)]">
                         <span className="inline-block h-1.5 w-1.5 rounded-[1px]" style={{ background: KIND_COLORS.git }} />
                         GIT {kindCounts.git}
                       </span>
@@ -452,14 +452,14 @@ export function AICoreNode({
                   <div className="flex flex-wrap items-center justify-end gap-1.5">
                     {onToggleMono && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); onToggleMono() }}
-                        className={`rounded-[2px] border px-2 py-0.5 text-[8px] uppercase tracking-[0.12em] font-[family-name:var(--hydra-font-mono)] transition-colors ${mono ? 'border-white/25 bg-white/15 text-white' : 'border-white/10 bg-black/60 text-gray-500 hover:text-gray-300'}`}>
+                        className={`rounded-[2px] border px-2 py-0.5 text-[8px] uppercase tracking-[0.12em] font-[family-name:var(--helm-font-mono)] transition-colors ${mono ? 'border-white/25 bg-white/15 text-white' : 'border-white/10 bg-black/60 text-gray-500 hover:text-gray-300'}`}>
                         {mono ? 'mono' : 'color'}
                       </button>
                     )}
-                    <div className="rounded-[2px] border border-white/10 bg-black/70 px-2 py-0.5 text-[8px] uppercase tracking-[0.14em] text-gray-400 font-[family-name:var(--hydra-font-mono)]">live</div>
+                    <div className="rounded-[2px] border border-white/10 bg-black/70 px-2 py-0.5 text-[8px] uppercase tracking-[0.14em] text-gray-400 font-[family-name:var(--helm-font-mono)]">live</div>
                     <div className="flex items-center gap-1.5 rounded-[2px] border border-white/10 bg-black/70 px-2 py-0.5">
                       <span className={`h-1.5 w-1.5 rounded-[1px] ${theme.text} bg-current shadow-[0_0_8px_currentColor]`} />
-                      <span className={`text-[8px] uppercase tracking-[0.12em] font-[family-name:var(--hydra-font-mono)] ${theme.text}`}>{titleCase(yenneferStyle)}</span>
+                      <span className={`text-[8px] uppercase tracking-[0.12em] font-[family-name:var(--helm-font-mono)] ${theme.text}`}>{titleCase(yenneferStyle)}</span>
                     </div>
                   </div>
                 </div>
@@ -471,21 +471,21 @@ export function AICoreNode({
         <div className="rounded-[4px] border border-white/10 bg-black/25 p-4">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,0.62fr)_minmax(0,0.95fr)_minmax(0,0.72fr)]">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--hydra-font-mono)]">Interface</div>
-              <div className="mt-1 text-sm font-semibold text-gray-100 font-[family-name:var(--hydra-font-mono)]">{titleCase(yenneferStyle)} Lens</div>
-              <div className="mt-1 truncate text-xs text-gray-500 font-[family-name:var(--hydra-font-mono)]" title={lmStudioUrl}>{endpoint}</div>
+              <div className="text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--helm-font-mono)]">Interface</div>
+              <div className="mt-1 text-sm font-semibold text-gray-100 font-[family-name:var(--helm-font-mono)]">{titleCase(yenneferStyle)} Lens</div>
+              <div className="mt-1 truncate text-xs text-gray-500 font-[family-name:var(--helm-font-mono)]" title={lmStudioUrl}>{endpoint}</div>
               {privacyMode && (
-                <div className="mt-2 inline-flex items-center gap-1 rounded-[2px] border border-emerald-300/20 bg-emerald-500/10 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-emerald-100 font-[family-name:var(--hydra-font-mono)]">
+                <div className="mt-2 inline-flex items-center gap-1 rounded-[2px] border border-emerald-300/20 bg-emerald-500/10 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-emerald-100 font-[family-name:var(--helm-font-mono)]">
                   <span className="h-1.5 w-1.5 rounded-[1px] bg-emerald-300 shadow-[0_0_6px_rgba(110,231,183,0.85)]" />
                   Secure View
                 </div>
               )}
               {onSetYenneferStyle && (
                 <div className="mt-3">
-                  <label className="block text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--hydra-font-mono)]">Lens Control</label>
+                  <label className="block text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--helm-font-mono)]">Lens Control</label>
                   <select value={yenneferStyle} disabled={lensDisabled}
                     onChange={(e) => onSetYenneferStyle(e.target.value as YenneferStyle)}
-                    className="mt-2 w-full rounded-[4px] border border-white/10 bg-black/30 px-3 py-2 text-xs text-gray-200 font-[family-name:var(--hydra-font-mono)] transition-colors disabled:cursor-not-allowed disabled:text-gray-500">
+                    className="mt-2 w-full rounded-[4px] border border-white/10 bg-black/30 px-3 py-2 text-xs text-gray-200 font-[family-name:var(--helm-font-mono)] transition-colors disabled:cursor-not-allowed disabled:text-gray-500">
                     <option value="adaptive">Adaptive</option>
                     <option value="throughput">Throughput</option>
                     <option value="creative">Creative</option>
@@ -501,8 +501,8 @@ export function AICoreNode({
               <MetricPill label="Ports" value={`${listenerCount} listeners`} />
             </div>
             <div className="rounded-[4px] border border-white/10 bg-black/20 p-3">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--hydra-font-mono)]">Readout</div>
-              <div className={`mt-2 text-sm font-semibold ${theme.text} font-[family-name:var(--hydra-font-mono)]`}>{theme.label}</div>
+              <div className="text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--helm-font-mono)]">Readout</div>
+              <div className={`mt-2 text-sm font-semibold ${theme.text} font-[family-name:var(--helm-font-mono)]`}>{theme.label}</div>
               <p className="mt-2 text-xs leading-relaxed text-gray-300">{theme.detail}</p>
             </div>
           </div>

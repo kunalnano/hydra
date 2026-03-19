@@ -290,12 +290,12 @@ export function FMRadioPanel(): JSX.Element {
 
     const relayUrl =
       entry.kind === 'local' && entry.localFile
-        ? await window.hydra.resolveRadioSource({
+        ? await window.helm.resolveRadioSource({
             kind: 'local',
             value: entry.localFile.path,
             extensionHint
           })
-        : await window.hydra.resolveRadioSource({
+        : await window.helm.resolveRadioSource({
             kind: 'remote',
             value: entry.sourceUrl,
             extensionHint
@@ -438,7 +438,7 @@ export function FMRadioPanel(): JSX.Element {
 
   async function handleAddDisk(): Promise<void> {
     try {
-      const files = await window.hydra.openAudioFiles()
+      const files = await window.helm.openAudioFiles()
       for (const file of files) {
         addLocalFile(file.name, file.path, file.sourceUrl)
       }
@@ -471,7 +471,7 @@ export function FMRadioPanel(): JSX.Element {
           <div className="winamp-main-topline">
             <div className="winamp-led-panel">
               <div className="winamp-led-row">
-                <span className="winamp-led-token">{activeEntry?.label ?? 'HYDRA'}</span>
+                <span className="winamp-led-token">{activeEntry?.label ?? 'HELM'}</span>
                 <span className="winamp-led-token">{getBitrateLabel(activeEntry)}</span>
                 <span className="winamp-led-token">{getCodecLabel(activeEntry)}</span>
                 <span className="winamp-led-token">{status === 'playing' ? 'STEREO' : 'READY'}</span>

@@ -31,7 +31,7 @@ import {
 import { IPC_CHANNELS } from '../shared/types'
 import { loadConfig, saveConfig } from './config'
 import { getRadioRelayUrl, stopRadioRelayServer } from './radio-relay'
-import type { HydraConfig, SystemState } from '../shared/types'
+import type { HelmConfig, SystemState } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -54,7 +54,7 @@ function createWindow(): void {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    title: 'HYDRA — Mission Control',
+    title: 'HELM — Mission Control',
     show: false,
     paintWhenInitiallyHidden: true,
     backgroundColor: '#111827',
@@ -108,9 +108,9 @@ function createWindow(): void {
       const health = evaluateSystemHealth(state)
       tray.setImage(createTrayIcon(health))
       const tooltips = {
-        green: 'HYDRA — All systems nominal',
-        yellow: 'HYDRA — Warning: attention needed',
-        red: 'HYDRA — Critical: immediate attention required'
+        green: 'HELM — All systems nominal',
+        yellow: 'HELM — Warning: attention needed',
+        red: 'HELM — Critical: immediate attention required'
       }
       tray.setToolTip(tooltips[health])
     }
@@ -165,11 +165,11 @@ function evaluateSystemHealth(state: SystemState): 'green' | 'yellow' | 'red' {
 
 function createTray(): void {
   tray = new Tray(createTrayIcon('green'))
-  tray.setToolTip('HYDRA — All systems nominal')
+  tray.setToolTip('HELM — All systems nominal')
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Show HYDRA',
+      label: 'Show HELM',
       click: () => {
         if (mainWindow) {
           mainWindow.show()
@@ -189,7 +189,7 @@ function createTray(): void {
       }
     },
     { type: 'separator' },
-    { role: 'quit', label: 'Quit HYDRA' }
+    { role: 'quit', label: 'Quit HELM' }
   ])
 
   tray.setContextMenu(contextMenu)
@@ -233,7 +233,7 @@ app.whenReady().then(() => {
 
   // Config IPC handler
   ipcMain.handle(IPC_CHANNELS.CONFIG_GET, () => loadConfig())
-  ipcMain.handle(IPC_CHANNELS.CONFIG_SAVE, (_event, config: HydraConfig) => saveConfig(config))
+  ipcMain.handle(IPC_CHANNELS.CONFIG_SAVE, (_event, config: HelmConfig) => saveConfig(config))
 
   // Git commit history IPC handler
   ipcMain.handle(IPC_CHANNELS.GIT_COMMIT_HISTORY, (_event, repoPath: string, limit: number) =>

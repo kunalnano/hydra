@@ -46,7 +46,7 @@ export function Scorecard({
 }: ScorecardProps): JSX.Element {
   const { hex } = COLOR_MAP[color]
   const scorecardStyle: CSSProperties = {
-    background: `radial-gradient(circle at 92% 8%, ${hex}10, transparent 28%), var(--hydra-card-bg)`
+    background: `radial-gradient(circle at 92% 8%, ${hex}10, transparent 28%), var(--helm-card-bg)`
   }
 
   return (

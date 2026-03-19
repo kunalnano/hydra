@@ -36,7 +36,7 @@ export function NetworkPanel(): JSX.Element {
   const { netInHistory, netOutHistory } = useTimeSeriesStore()
 
   useEffect(() => {
-    const unsub = window.hydra.onNetworkState((state) => {
+    const unsub = window.helm.onNetworkState((state) => {
       setNetworkState(state)
       setProcessHistory((prev) => {
         const next = { ...prev }
@@ -49,7 +49,7 @@ export function NetworkPanel(): JSX.Element {
       })
     })
 
-    window.hydra.getFirewallRules().then(setFirewallState)
+    window.helm.getFirewallRules().then(setFirewallState)
 
     return unsub
   }, [])

@@ -17,7 +17,7 @@ export const PROTECTED_PROCESSES = [
   'launchd',
   'systemd',
   'Electron',
-  'HYDRA',
+  'HELM',
   'hydra'
 ]
 
