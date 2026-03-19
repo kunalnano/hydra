@@ -1,15 +1,16 @@
 # HYDRA Operator Walkthrough
 
-Hydra is a page-based desktop shell for watching local AI systems, repo drift, agents, and machine posture without collapsing all of it into one screaming dashboard. This guide covers the current shipped surface in `v3.1.0`.
+Hydra is a page-based desktop shell for watching local AI systems, repo drift, agents, and machine posture without collapsing all of it into one screaming dashboard. This guide covers the current mainline shell; the latest tagged release is `v3.1.0`.
 
 ## Shell Layout
 
 Hydra keeps a few things visible no matter which page you are on:
 
-- The top header shows live CPU, memory, network, and a manual `Refresh` action.
+- The top header shows the `Hydra Wire`, `Secure View`, skin selection, and a manual `Refresh` action.
 - The scorecards strip keeps machine posture visible: CPU, memory, network, agents, ports, dirty repos, disk, battery, and Claude Code cost.
 - The left navigation rail is the main contract of the app. If a page has its own destination in the nav, it should not also be squatting on another page.
 - The shell skin selector lets you swap between `Deck`, `Orbiter`, and `Forge` without breaking the shared chrome language.
+- `Secure View` is the safe demo switch. It redacts local endpoints and machine-specific paths in visible operator surfaces.
 
 ## Pages
 
@@ -39,21 +40,22 @@ Use `Agents` when you want the real roster, not a vague badge.
 Use `Systems` for supporting infrastructure and machine-adjacent telemetry.
 
 - Network, ports, security posture, and Claude Code usage all live here.
+- `Staff of Gandalf` now behaves like a dedicated command deck instead of a plain utility panel.
 - `CC Usage` supports `Refresh Live` to rescan Claude session logs when cached cost data is stale.
 
 ### AI
 
 Use `AI` for the local-model control loop.
 
-- The `Live Lattice` maps `Workspaces`, `Agents`, `Ports`, and `Git` onto the sphere.
-- The interface tray below the lattice shows the LM Studio endpoint, lens control, swarm counts, CPU, memory, ports, and current readout.
+- The mech entity maps `Workspaces`, `Agents`, `Ports`, and `Git` into plates, antennas, and reactor activity.
+- The interface tray below the entity shows the LM Studio endpoint, lens control, swarm counts, CPU, memory, ports, and current readout.
 - The action dock gives you `Request Briefing`, `Invoke Repair`, and `Invoke Yennefer` without leaving the page.
 
 ### FM Radio
 
 Use `FM Radio` when you want a live audio surface inside Hydra instead of another dashboard panel.
 
-- Preset stations, search, play/pause, volume, and connection state all live in one tuner view.
+- Preset stations, search, play/pause, volume, connection state, and the built-in relay all live in one tuner view.
 - You can also load a direct stream URL manually and Hydra will persist the last station and volume.
 
 ### Activity

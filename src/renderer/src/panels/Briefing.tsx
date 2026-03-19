@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import type { BriefingResult, BriefingAlert, YenneferStyle } from '../../../shared/types'
 import { useSystemStore } from '../stores/system'
+import { maskEndpoint, redactSensitiveText, usePrivacyStore } from '../stores/privacy'
 import { AICoreNode, type AICoreMode } from './AICoreNode'
 
 const SEVERITY_STYLES: Record<BriefingAlert['severity'], string> = {
@@ -34,6 +35,7 @@ interface BriefingPanelProps {
 
 export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.Element {
   const systemState = useSystemStore((s) => s.state)
+  const privacyMode = usePrivacyStore((s) => s.privacyMode)
   const [briefing, setBriefing] = useState<BriefingResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [yenneferLoading, setYenneferLoading] = useState(false)
@@ -201,6 +203,24 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
   })()
 
   const isFull = variant === 'full'
+  const displayLmStudioUrl = privacyMode ? maskEndpoint(lmStudioUrl) : lmStudioUrl
+  const displayBriefing = useMemo(() => {
+    if (!briefing) return null
+    if (!privacyMode) return briefing
+
+    return {
+      ...briefing,
+      summary: redactSensitiveText(briefing.summary),
+      alerts: briefing.alerts.map((alert) => ({
+        ...alert,
+        message: redactSensitiveText(alert.message),
+        source: redactSensitiveText(alert.source)
+      })),
+      suggestions: briefing.suggestions.map((suggestion) => redactSensitiveText(suggestion))
+    }
+  }, [briefing, privacyMode])
+  const displayError = error ? (privacyMode ? redactSensitiveText(error) : error) : null
+  const displayNotice = notice ? (privacyMode ? redactSensitiveText(notice) : notice) : null
 
   return (
     <div className={isFull ? 'space-y-3 text-sm' : 'h-full flex flex-col text-sm'}>
@@ -215,7 +235,8 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
             memoryUsage={memoryUsage}
             listenerCount={listenerCount}
             yenneferStyle={yenneferStyle}
-            lmStudioUrl={lmStudioUrl}
+            lmStudioUrl={displayLmStudioUrl}
+            privacyMode={privacyMode}
             disabled={loading || yenneferLoading || healing}
             processes={systemState?.processes}
             agents={systemState?.agents}
@@ -278,25 +299,30 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
       )}
 
       {isFull ? (
-        briefing && (
+        displayBriefing && (
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/8 bg-black/10 px-3 py-2">
-            <div className="min-w-0 flex-1 text-[10px] text-gray-600 font-mono truncate" title={lmStudioUrl}>
-              → {lmStudioUrl}
+            <div className="min-w-0 flex-1 text-[10px] text-gray-600 font-mono truncate" title={displayLmStudioUrl}>
+              → {displayLmStudioUrl}
             </div>
+            {privacyMode && (
+              <span className="rounded-full border border-emerald-300/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-emerald-200">
+                Secure View
+              </span>
+            )}
             <span className="text-[10px] text-gray-600 font-mono">
-              {new Date(briefing.timestamp).toLocaleTimeString()}
+              {new Date(displayBriefing.timestamp).toLocaleTimeString()}
             </span>
           </div>
         )
       ) : (
         <>
           <div className="flex items-center justify-between gap-3 pb-2">
-            <div className="text-[10px] text-gray-600 font-mono truncate" title={lmStudioUrl}>
-              → {lmStudioUrl}
+            <div className="text-[10px] text-gray-600 font-mono truncate" title={displayLmStudioUrl}>
+              → {displayLmStudioUrl}
             </div>
-            {briefing && (
+            {displayBriefing && (
               <span className="text-xs text-gray-600 font-mono">
-                {new Date(briefing.timestamp).toLocaleTimeString()}
+                {new Date(displayBriefing.timestamp).toLocaleTimeString()}
               </span>
             )}
           </div>
@@ -325,10 +351,10 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
         </>
       )}
 
-      {error && <div className="text-red-400 text-xs mb-2">{error}</div>}
-      {notice && <div className="text-emerald-400 text-xs mb-2">{notice}</div>}
+      {displayError && <div className="text-red-400 text-xs mb-2">{displayError}</div>}
+      {displayNotice && <div className="text-emerald-400 text-xs mb-2">{displayNotice}</div>}
 
-      {!isFull && !briefing && !loading && !error && (
+      {!isFull && !displayBriefing && !loading && !displayError && (
         <div
           className="text-gray-600 text-xs flex-1 flex items-center justify-center"
         >
@@ -336,7 +362,7 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
         </div>
       )}
 
-      {briefing && (
+      {displayBriefing && (
         <div
           className={
             isFull
@@ -345,12 +371,12 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
           }
         >
           {/* Summary */}
-          <p className="text-gray-300 leading-relaxed">{briefing.summary}</p>
+          <p className="text-gray-300 leading-relaxed">{displayBriefing.summary}</p>
 
           {/* Alerts */}
-          {briefing.alerts.length > 0 && (
+          {displayBriefing.alerts.length > 0 && (
             <div className="space-y-1.5">
-              {briefing.alerts.map((alert, i) => (
+              {displayBriefing.alerts.map((alert, i) => (
                 <div
                   key={i}
                   className={`text-xs px-2 py-1.5 rounded border flex items-start gap-2 ${SEVERITY_STYLES[alert.severity]}`}
@@ -372,10 +398,10 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
           )}
 
           {/* Suggestions */}
-          {briefing.suggestions.length > 0 && (
+          {displayBriefing.suggestions.length > 0 && (
             <div className="space-y-1">
               <div className="text-gray-500 text-xs uppercase tracking-wider">Suggestions</div>
-              {briefing.suggestions.map((s, i) => (
+              {displayBriefing.suggestions.map((s, i) => (
                 <div
                   key={i}
                   className="text-gray-400 text-xs pl-3 border-l-2 border-cyan-900/50 flex gap-2"
