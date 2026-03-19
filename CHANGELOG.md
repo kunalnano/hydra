@@ -1,16 +1,40 @@
 # Changelog
 
+Entries are ordered newest first. `Unreleased` covers mainline work after the latest tagged release, and tagged dates are written in America/Chicago local time.
+
+## Unreleased
+
+### Shell
+- Added `Secure View` so demos and screenshots can redact local hosts, filesystem paths, and LM Studio endpoints without manually doctoring images
+- Replaced the old micro-metric header cluster with a live operator wire so the top band reads like one intentional shell surface
+
+### Panels
+- Reworked the AI page presentation around a protected mech-entity hero shot and a cleaner interface tray
+- Rebuilt `Staff of Gandalf` as a more graphical security command deck with a stronger hero, scan cards, and a dedicated terminal frame
+
+### Docs
+- Refreshed README showcase media with sanitized AI and security captures plus a new mainline showcase GIF
+- Added dedicated `v3.1.0` release notes under `docs/releases/` and aligned the GitHub release body to the same content
+
 ## v3.1.0 — 2026-03-18
 
-### Product
-- Reworked the Hydra shell into a tighter machine-chrome presentation with refined panels, updated AI visuals, and a live skin globe in the header
-- Expanded the skin system to `Deck`, `Orbiter`, and `Forge`, with persisted shell-wide theming instead of partial surface swaps
-- Rebuilt `FM Radio` as a Winamp-style stereo relay with transport controls, genre sliders, playlist framing, and clearer local MP3 import
+### Shell
+- Reworked Hydra into a tighter machine-chrome shell with clearer hierarchy across header, nav, scorecards, panels, and the command palette
+- Expanded the skin system to `Deck`, `Orbiter`, and `Forge`, with persisted shell-wide theming instead of isolated treatment changes
+- Tightened the AI page presentation so the visualizer and action tray read like one instrument instead of a pile of neighboring widgets
 
-### Playback
+### FM Radio
+- Added a dedicated `FM Radio` page with a Winamp-style stereo relay layout, presets, search, transport controls, manual stream loading, and local MP3 import
 - Added a main-process localhost radio relay so remote streams, manual URLs, and local files play through a stable Electron media path
 - Added native audio-file picking, persisted local-library entries, and a singleton audio engine so playback survives navigation
+
+### Reliability
 - Allowed loopback media in the renderer CSP and tightened window startup so the FM deck and shell surface appear reliably on launch
+- Fixed Electron launch visibility and autoplay-policy issues that were blocking radio playback and, in some cases, leaving Hydra visually absent on startup
+
+### License
+- Starting with `v3.0.0`, Hydra ships under PolyForm Noncommercial 1.0.0 instead of MIT
+- Earlier releases through `v2.1.2` remain available under the terms they were originally distributed under
 
 ## v3.0.0 — 2026-03-18
 

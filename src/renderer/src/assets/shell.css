@@ -50,6 +50,69 @@ body {
   box-shadow: var(--hydra-header-shadow);
 }
 
+.shell-ticker {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--hydra-border-soft);
+  border-radius: var(--hydra-radius-sm);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 38%),
+    rgba(0, 0, 0, 0.18);
+  box-shadow:
+    inset 1px 1px 0 rgba(200, 220, 240, 0.08),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.shell-ticker::before,
+.shell-ticker::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2.5rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.shell-ticker::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(17, 28, 44, 0.95), transparent);
+}
+
+.shell-ticker::after {
+  right: 0;
+  background: linear-gradient(270deg, rgba(17, 28, 44, 0.95), transparent);
+}
+
+.shell-ticker-track {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  gap: 1.75rem;
+  padding: 0.45rem 1.25rem;
+  animation: hydra-ticker 28s linear infinite;
+}
+
+.shell-ticker:hover .shell-ticker-track {
+  animation-play-state: paused;
+}
+
+.shell-ticker-item {
+  position: relative;
+  white-space: nowrap;
+  color: var(--hydra-shell-muted);
+  font-family: var(--hydra-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.shell-ticker-item::before {
+  content: '||';
+  margin-right: 0.9rem;
+  color: var(--hydra-accent);
+}
+
 /* ── Nav sidebar (surface tier) ── */
 .shell-nav {
   width: var(--hydra-nav-width);

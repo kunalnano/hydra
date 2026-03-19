@@ -28,6 +28,11 @@ body,
   50% { opacity: 1; transform: scaleY(1); }
 }
 
+@keyframes hydra-ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 .panel-dot-live {
   animation: dot-pulse 2s ease-in-out infinite;
 }

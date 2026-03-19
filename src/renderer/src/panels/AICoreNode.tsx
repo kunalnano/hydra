@@ -36,7 +36,7 @@ const KIND_COLORS: Record<EntityKind, string> = {
 interface AICoreNodeProps {
   mode: AICoreMode; mono?: boolean; activeAgents: number; totalAgents: number
   cpuUsage: number; memoryUsage: number; listenerCount: number
-  yenneferStyle: YenneferStyle; lmStudioUrl: string; disabled: boolean
+  yenneferStyle: YenneferStyle; lmStudioUrl: string; privacyMode?: boolean; disabled: boolean
   processes?: ProcessGroup[]; agents?: AgentInfo[]; ports?: PortInfo[]; gitRepos?: GitRepoInfo[]
   onInvokeYennefer: () => void; onRequestBriefing: () => void; onRepair: () => void
   onToggleMono?: () => void; onSetYenneferStyle?: (s: YenneferStyle) => void; lensDisabled?: boolean
@@ -295,7 +295,7 @@ function renderFrame(ctx: CanvasRenderingContext2D, w: number, h: number, time: 
 
 export function AICoreNode({
   mode, mono = false, activeAgents, totalAgents, cpuUsage, memoryUsage, listenerCount,
-  yenneferStyle, lmStudioUrl, disabled,
+  yenneferStyle, lmStudioUrl, privacyMode = false, disabled,
   processes, agents, ports, gitRepos,
   onInvokeYennefer, onRequestBriefing, onRepair, onToggleMono, onSetYenneferStyle, lensDisabled = false
 }: AICoreNodeProps): JSX.Element {
@@ -474,6 +474,12 @@ export function AICoreNode({
               <div className="text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--hydra-font-mono)]">Interface</div>
               <div className="mt-1 text-sm font-semibold text-gray-100 font-[family-name:var(--hydra-font-mono)]">{titleCase(yenneferStyle)} Lens</div>
               <div className="mt-1 truncate text-xs text-gray-500 font-[family-name:var(--hydra-font-mono)]" title={lmStudioUrl}>{endpoint}</div>
+              {privacyMode && (
+                <div className="mt-2 inline-flex items-center gap-1 rounded-[2px] border border-emerald-300/20 bg-emerald-500/10 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-emerald-100 font-[family-name:var(--hydra-font-mono)]">
+                  <span className="h-1.5 w-1.5 rounded-[1px] bg-emerald-300 shadow-[0_0_6px_rgba(110,231,183,0.85)]" />
+                  Secure View
+                </div>
+              )}
               {onSetYenneferStyle && (
                 <div className="mt-3">
                   <label className="block text-[10px] uppercase tracking-[0.16em] text-gray-500 font-[family-name:var(--hydra-font-mono)]">Lens Control</label>

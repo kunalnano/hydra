@@ -1,8 +1,6 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { useSystemStore } from './stores/system'
-import { useTimeSeriesStore } from './stores/timeseries'
 import { useNavigationStore, type HydraPageId } from './stores/navigation'
-import { Sparkline } from './components/Sparkline'
 import { AgentsPanel } from './panels/Agents'
 import { PortsPanel } from './panels/Ports'
 import { GitStatusPanel } from './panels/GitStatus'
@@ -20,6 +18,7 @@ import { CCUsagePanel } from './panels/CCUsage'
 import { WorkspacesPanel } from './panels/Workspaces'
 import { FMRadioPanel } from './panels/FMRadio'
 import { HYDRA_SKINS, useSkinStore } from './stores/skin'
+import { usePrivacyStore } from './stores/privacy'
 import { SkinGlobe } from './components/SkinGlobe'
 import { getAudioElement } from './stores/audio-engine'
 import type { SystemState } from '../../shared/types'
@@ -170,12 +169,6 @@ function DashPanel({
   )
 }
 
-function formatBytes(bytesPerSec: number): string {
-  if (bytesPerSec < 1024) return `${Math.round(bytesPerSec)} B/s`
-  if (bytesPerSec < 1024 * 1024) return `${(bytesPerSec / 1024).toFixed(1)} KB/s`
-  return `${(bytesPerSec / (1024 * 1024)).toFixed(1)} MB/s`
-}
-
 function getUsageTone(percent: number): 'green' | 'amber' | 'red' {
   if (percent >= 85) return 'red'
   if (percent >= 60) return 'amber'
@@ -216,6 +209,40 @@ function getShellHealth(state: SystemState | null): {
     glow: 'shadow-green-400/50',
     label: 'Systems nominal'
   }
+}
+
+function buildTickerItems(
+  state: SystemState | null,
+  currentPage: HydraPageId,
+  privacyMode: boolean
+): string[] {
+  const pageMeta = PAGES.find((page) => page.id === currentPage)
+
+  if (!state) {
+    return [
+      'BOOTLINE // MONITORS WARMING',
+      'YENNEFER CHANNEL // STANDBY',
+      privacyMode ? 'SECURE VIEW // ENGAGED' : 'SECURE VIEW // OPEN'
+    ]
+  }
+
+  const engagedAgents = state.agents.filter(
+    (agent) => agent.status === 'active' || agent.status === 'busy'
+  ).length
+  const dirtyRepos = state.gitRepos.filter((repo) => repo.dirty).length
+  const listeners = state.ports.filter((port) => port.state === 'LISTEN').length
+  const batteryStatus =
+    state.battery?.hasBattery === true ? `${Math.round(state.battery.percent)}% BATTERY` : 'DESKTOP POWER'
+
+  return [
+    `${pageMeta?.label.toUpperCase() ?? 'HYDRA'} CHANNEL // ${pageMeta?.kicker.toUpperCase() ?? 'MISSION CONTROL'}`,
+    `${engagedAgents}/${state.agents.length} AGENTS IN MOTION`,
+    `${dirtyRepos} DIRTY REPOS // ${listeners} LISTENERS`,
+    `${Math.round(state.cpu.usage)}% CPU // ${Math.round(state.memory.usagePercent)}% MEMORY`,
+    'FM RELAY // PRESETS + LOCAL MP3 LIBRARY',
+    batteryStatus,
+    privacyMode ? 'SECURE VIEW // ENDPOINTS REDACTED' : 'SECURE VIEW // LOCAL DETAILS VISIBLE'
+  ]
 }
 
 function SkinCard({ skin, active, onSelect }: {
@@ -279,21 +306,73 @@ function SkinChip({ onOpen }: { onOpen: () => void }): JSX.Element {
   )
 }
 
-function Header({ onOpenSkinSelector }: { onOpenSkinSelector: () => void }): JSX.Element {
+function PrivacyChip(): JSX.Element {
+  const privacyMode = usePrivacyStore((s) => s.privacyMode)
+  const togglePrivacyMode = usePrivacyStore((s) => s.togglePrivacyMode)
+
+  return (
+    <button
+      type="button"
+      onClick={togglePrivacyMode}
+      title={
+        privacyMode
+          ? 'Secure View is on. Local paths, hosts, and endpoints are redacted.'
+          : 'Secure View is off. Local paths, hosts, and endpoints may be visible.'
+      }
+      className="shell-control-button px-3 py-1.5 text-xs font-medium flex items-center gap-2"
+    >
+      <span
+        className={`h-2 w-2 rounded-full ${
+          privacyMode
+            ? 'bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.8)]'
+            : 'bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.8)]'
+        }`}
+      />
+      {privacyMode ? 'Secure On' : 'Secure Off'}
+    </button>
+  )
+}
+
+function HeaderTicker({
+  currentPage,
+  privacyMode
+}: {
+  currentPage: HydraPageId
+  privacyMode: boolean
+}): JSX.Element {
+  const state = useSystemStore((s) => s.state)
+  const items = buildTickerItems(state, currentPage, privacyMode)
+  const tickerItems = [...items, ...items]
+
+  return (
+    <div className="shell-ticker hidden min-w-0 flex-1 lg:flex">
+      <div className="shell-ticker-track">
+        {tickerItems.map((item, index) => (
+          <span key={`${item}-${index}`} className="shell-ticker-item">
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Header({
+  currentPage,
+  onOpenSkinSelector
+}: {
+  currentPage: HydraPageId
+  onOpenSkinSelector: () => void
+}): JSX.Element {
   const state = useSystemStore((s) => s.state)
   const refresh = useSystemStore((s) => s.refresh)
-  const { cpuHistory, memHistory, netInHistory, netOutHistory } = useTimeSeriesStore()
-
-  const cpuUsage = state?.cpu.usage ?? 0
-  const memUsage = state?.memory.usagePercent ?? 0
-  const netIn = state?.network?.totalBytesInPerSec ?? 0
-  const netOut = state?.network?.totalBytesOutPerSec ?? 0
+  const privacyMode = usePrivacyStore((s) => s.privacyMode)
   const health = getShellHealth(state)
   const isFresh = state ? Date.now() - state.timestamp < 5000 : false
 
   return (
-    <header className="shell-header chrome-brushed px-4 py-2 flex items-center justify-between relative shrink-0 border-b">
-      <div className="flex items-center gap-3">
+    <header className="shell-header chrome-brushed px-4 py-2 flex items-center gap-4 relative shrink-0 border-b">
+      <div className="flex shrink-0 items-center gap-3">
         <div className={`w-2.5 h-2.5 rounded-full ${health.dot} shadow-md ${health.glow}`} />
         <div>
           <div className="flex items-center gap-2">
@@ -304,54 +383,11 @@ function Header({ onOpenSkinSelector }: { onOpenSkinSelector: () => void }): JSX
         </div>
       </div>
 
-      <div className="hidden xl:flex items-center gap-5 text-sm">
-        <div className="flex items-center gap-1.5 shell-muted">
-          <span className="text-xs">CPU</span>
-          <div className="w-24 h-6">
-            <Sparkline data={cpuHistory} color="#4ade80" filled={false} width={96} height={24} />
-          </div>
-          <span className="text-white font-mono text-xs tabular-nums">{cpuUsage.toFixed(0)}%</span>
-        </div>
-        <div className="flex items-center gap-1.5 shell-muted">
-          <span className="text-xs">MEM</span>
-          <div className="w-24 h-6">
-            <Sparkline data={memHistory} color="#a78bfa" filled={false} width={96} height={24} />
-          </div>
-          <span className="text-white font-mono text-xs tabular-nums">{memUsage.toFixed(0)}%</span>
-        </div>
-        <div className="flex items-center gap-2 shell-muted">
-          <span className="text-xs">NET</span>
-          <div className="flex flex-col text-[10px] font-mono tabular-nums leading-tight">
-            <span className="text-green-400">
-              <span className="shell-subtle">&#8593;</span> {formatBytes(netOut)}
-            </span>
-            <span className="text-blue-400">
-              <span className="shell-subtle">&#8595;</span> {formatBytes(netIn)}
-            </span>
-          </div>
-          <div className="w-12 h-6">
-            <Sparkline
-              data={netInHistory.map((value, index) => value + (netOutHistory[index] ?? 0))}
-              color="#60a5fa"
-              filled={false}
-              width={48}
-              height={24}
-            />
-          </div>
-        </div>
-        {state?.isLateNight && (
-          <div
-            className="flex items-center gap-1 shell-subtle"
-            title="Late night mode — non-critical alerts suppressed"
-          >
-            <span className="text-indigo-400 text-sm">◐</span>
-            <span className="text-[10px] uppercase tracking-wider">Night</span>
-          </div>
-        )}
-      </div>
+      <HeaderTicker currentPage={currentPage} privacyMode={privacyMode} />
 
-      <div className="flex items-center gap-3">
+      <div className="ml-auto flex shrink-0 items-center gap-3">
         <div className="hidden sm:flex items-center gap-2">
+          <PrivacyChip />
           <SkinChip onOpen={onOpenSkinSelector} />
         </div>
         <button
@@ -859,7 +895,7 @@ function App(): JSX.Element {
       className="hydra-shell crt-grid h-screen flex flex-col overflow-hidden"
       data-skin={activeSkin}
     >
-      <Header onOpenSkinSelector={() => setSkinOpen(true)} />
+      <Header currentPage={currentPage} onOpenSkinSelector={() => setSkinOpen(true)} />
 
       <div className="shrink-0 px-4 pt-3 overflow-x-auto">
         <ScorecardsStrip />
