@@ -1,16 +1,18 @@
-# HYDRA v3.1.0 — Operator Shell For Local AI Systems
+# HYDRA — Operator Shell For Local AI Systems
 
 Hydra is a desktop ops shell for developers running AI agents, local services, and multi-machine model workflows. It keeps overall system status visible while giving each domain its own page instead of forcing everything into one dense dashboard.
 
-Latest release: `v3.1.0`
+Latest tagged release: `v3.1.0` on March 18, 2026.
 
-Version 3.1.0 pushes the shell further into a tighter retro-control-room direction, adds a dedicated Winamp-style `FM Radio` deck with a built-in relay and local MP3 loading, and continues Hydra's PolyForm Noncommercial release line. Earlier releases through `v2.1.2` remain under the terms they originally shipped with.
+The captures below reflect the current mainline shell. They were taken with `Secure View` enabled so local hosts, paths, and LM Studio endpoints stay redacted.
 
-![Hydra v3 Showcase](docs/screenshots/hydra-v3-showcase.gif)
-![Hydra v3 FM Radio Forge](docs/screenshots/hydra-v3-radio-forge.png)
-![Hydra v3 Systems Forge](docs/screenshots/hydra-v3-systems-forge.png)
+![Hydra Mainline Showcase](docs/screenshots/hydra-mainline-showcase.gif)
+![Hydra AI Secure View](docs/screenshots/hydra-mainline-ai-secure.png)
+![Hydra FM Radio Forge](docs/screenshots/hydra-v3-radio-forge.png)
+![Hydra Staff of Gandalf Secure View](docs/screenshots/hydra-mainline-gandalf-secure.png)
 
 Operator walkthrough: [docs/OPERATOR-WALKTHROUGH.md](docs/OPERATOR-WALKTHROUGH.md)
+Tagged release notes: [docs/releases/v3.1.0.md](docs/releases/v3.1.0.md)
 
 ## See The Shell
 
@@ -25,12 +27,12 @@ The overview screen is Hydra's calmer control layer: persistent scorecards acros
 
 ### AI Page
 
-The AI page is now intentionally singular: the Live Lattice gets the full runway, the interface tray sits directly beneath it, and the page stays focused on the local model loop instead of repeating panels that already live elsewhere in the shell.
+The AI page is now intentionally singular: the Yennefer mech entity gets the full runway, the interface tray sits directly beneath it, and the page stays focused on the local model loop instead of repeating panels that already live elsewhere in the shell.
 
-- The Live Lattice maps real workstation entities to the globe: `Workspaces`, `Agents`, `Ports`, and `Git` each get their own node color
-- The labeled legend makes the color story readable instead of leaving you to guess what the dots mean
-- `Request Briefing`, `Invoke Repair`, and `Invoke Yennefer` stay attached to the visualizer so the page behaves like an instrument, not just a decoration
-- The LM Studio endpoint, lens control, live swarm metrics, and readout now live in the interface tray beneath the globe instead of squeezing the lattice sideways
+- The mech entity maps live workstation entities into armor, antennas, and reactor motion instead of another generic globe
+- `Request Briefing`, `Invoke Repair`, and `Invoke Yennefer` stay attached to the entity so the page behaves like an instrument, not just a decoration
+- The LM Studio endpoint, lens control, live swarm metrics, and current readout live in the interface tray beneath the entity instead of squeezing it sideways
+- `Secure View` can redact local endpoints and host details for demos, screenshots, and recordings
 
 ## Navigation Flow
 
@@ -40,9 +42,16 @@ Hydra's biggest shell shift is structural, not cosmetic. The app now behaves lik
 - `Workspaces` handles repo drift, process orchestration, and command-center sorting
 - `Agents` focuses on live agent state and swarm load without dragging in unrelated infrastructure noise
 - `Systems` keeps ports, network, security, and CC usage together
-- `AI` gives the operator-facing local model loop its own space, anchored by the Live Lattice visualizer
+- `AI` gives the operator-facing local model loop its own space, anchored by the mech entity visualizer
 - `FM Radio` adds a lightweight live-stream tuner with station presets and manual stream loading
 - `Activity` isolates logs, timelines, and historical movement so they stop crowding operational controls
+
+## Mainline Since v3.1.0
+
+- Added `Secure View` so demos and screenshots can redact local hosts, LM Studio endpoints, and filesystem details
+- Rebuilt the center header band as a live operator wire instead of another tiny sparkline cluster
+- Reworked `Staff of Gandalf` into a more graphical command deck with a stronger hero surface and scan terminal framing
+- Refreshed the README showcase media around the AI page, FM Radio deck, and sanitized security surface
 
 ## What Changed In v3.1.0
 
