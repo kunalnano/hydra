@@ -6,8 +6,9 @@ Latest release: `v3.1.0`
 
 Version 3.1.0 pushes the shell further into a tighter retro-control-room direction, adds a dedicated Winamp-style `FM Radio` deck with a built-in relay and local MP3 loading, and continues Hydra's PolyForm Noncommercial release line. Earlier releases through `v2.1.2` remain under the terms they originally shipped with.
 
-![Hydra v2 Overview](docs/screenshots/dashboard-v2-overview.png)
-![Hydra v2 AI Page](docs/screenshots/dashboard-v2-ai.png)
+![Hydra v3 Showcase](docs/screenshots/hydra-v3-showcase.gif)
+![Hydra v3 FM Radio Forge](docs/screenshots/hydra-v3-radio-forge.png)
+![Hydra v3 Systems Forge](docs/screenshots/hydra-v3-systems-forge.png)
 
 Operator walkthrough: [docs/OPERATOR-WALKTHROUGH.md](docs/OPERATOR-WALKTHROUGH.md)
 
