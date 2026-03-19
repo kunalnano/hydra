@@ -1,0 +1,259 @@
+/* ─────────────────────────────────────────────
+   HYDRA Design Tokens — Winamp Chrome System
+   Tiers: Shell Chrome → Surface → Panel → Card → Display Well → Control → Overlay
+   Shape: lg (0.75rem) · md (0.5rem) · sm (0.25rem) · pill (999px)
+   ───────────────────────────────────────────── */
+
+:root {
+  font-family:
+    'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --hydra-font-mono: 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', monospace;
+  color-scheme: dark;
+
+  /* ── Accent ── */
+  --hydra-accent: #00d4ff;
+  --hydra-accent-warm: #ffb347;
+  --hydra-shell-text: #f0f4f8;
+  --hydra-shell-muted: #c0d0e0;
+  --hydra-shell-subtle: #6e84a0;
+
+  /* ── Borders ── */
+  --hydra-border-strong: rgba(100, 140, 180, 0.18);
+  --hydra-border-soft: rgba(80, 120, 160, 0.10);
+  --hydra-control-border: rgba(60, 90, 120, 0.25);
+
+  /* ── Shape system (tight, Winamp-like) ── */
+  --hydra-radius-lg: 0.75rem;
+  --hydra-radius-md: 0.5rem;
+  --hydra-radius-sm: 0.25rem;
+
+  /* ── Layout ── */
+  --hydra-nav-width: 13.5rem;
+
+  /* ── Shell chrome (outermost) ── */
+  --hydra-shell-bg: linear-gradient(180deg, #1e2d42, #141f30 40%, #0c1520);
+  --hydra-shell-overlay:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 30%);
+
+  /* ── Header (chrome + brushed metal) ── */
+  --hydra-header-bg: linear-gradient(180deg, #28394e, #1c2a3e 50%, #131e2e);
+  --hydra-header-shadow:
+    inset 1px 1px 0 rgba(180, 210, 240, 0.12),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.35);
+
+  /* ── Surface tier (nav, main area) ── */
+  --hydra-nav-bg: linear-gradient(180deg, #1f2e45, #182538 50%, #111c2c);
+  --hydra-nav-shadow:
+    inset 1px 1px 0 rgba(180, 210, 240, 0.12),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+  --hydra-surface-bg: linear-gradient(180deg, #1f2e45, #182538 50%, #111c2c);
+  --hydra-surface-shadow:
+    inset 1px 1px 0 rgba(180, 210, 240, 0.10),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.22),
+    0 3px 10px rgba(0, 0, 0, 0.3);
+
+  /* ── Panel tier ── */
+  --hydra-panel-bg: linear-gradient(180deg, #1c2a40, #162236 50%, #101a28);
+  --hydra-panel-shadow:
+    inset 1px 1px 0 rgba(180, 210, 240, 0.10),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.30),
+    0 4px 14px rgba(0, 0, 0, 0.35);
+
+  /* ── Card tier ── */
+  --hydra-card-bg: linear-gradient(180deg, #222f44, #1a2638 50%, #131e2c);
+  --hydra-card-shadow:
+    inset 1px 1px 0 rgba(200, 220, 240, 0.14),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.28),
+    0 3px 10px rgba(0, 0, 0, 0.3);
+
+  /* ── Display well (recessed LED readout) ── */
+  --hydra-well-bg: linear-gradient(180deg, #080d16, #0c1018 50%, #0a0e14);
+  --hydra-well-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.4),
+    inset -1px -1px 0 rgba(180, 210, 240, 0.08);
+  --hydra-well-border: rgba(0, 0, 0, 0.3);
+
+  /* ── Control tier ── */
+  --hydra-control-bg: linear-gradient(180deg, #2a3a52, #1e2c40);
+  --hydra-control-hover-bg: linear-gradient(180deg, #303f58, #243346);
+  --hydra-control-pressed-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.30),
+    inset -1px -1px 0 rgba(180, 210, 240, 0.10);
+
+  /* ── Nav button variants ── */
+  --hydra-nav-button-bg: linear-gradient(180deg, #242f42, #1a2538 50%, #141e2c);
+  --hydra-nav-button-hover-bg: linear-gradient(180deg, #2a3548, #1e2a3e);
+  --hydra-nav-button-active-bg: linear-gradient(180deg, #1a2538, #162034 50%, #101a28);
+  --hydra-nav-button-shadow:
+    inset 1px 1px 0 rgba(180, 210, 240, 0.12),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.25);
+  --hydra-nav-button-active-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.20),
+    inset -1px -1px 0 rgba(180, 210, 240, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.2);
+
+  /* ── Nav badge ── */
+  --hydra-nav-badge-bg: rgba(0, 0, 0, 0.25);
+  --hydra-nav-badge-border: rgba(60, 90, 120, 0.25);
+  --hydra-nav-badge-text: #b0c8e0;
+
+  /* ── Grid & scrollbar ── */
+  --hydra-grid-line: rgba(255, 255, 255, 0.012);
+  --hydra-scrollbar-thumb: rgba(100, 140, 180, 0.40);
+  --hydra-scrollbar-thumb-hover: rgba(140, 180, 220, 0.55);
+}
+
+/* ── ORBITER SKIN — warmer chrome, teal accent ── */
+[data-skin='glass'] {
+  --hydra-accent: #00ffc8;
+  --hydra-accent-warm: #ffc86e;
+  --hydra-shell-muted: #c0ddd0;
+  --hydra-shell-subtle: #6e9a8a;
+
+  --hydra-border-strong: rgba(80, 160, 140, 0.18);
+  --hydra-border-soft: rgba(70, 140, 120, 0.10);
+  --hydra-control-border: rgba(50, 100, 90, 0.25);
+
+  --hydra-shell-bg: linear-gradient(180deg, #1e2e38, #141f28 40%, #0c1518);
+  --hydra-shell-overlay:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 30%);
+
+  --hydra-header-bg: linear-gradient(180deg, #283842, #1c2a32 50%, #131e24);
+  --hydra-header-shadow:
+    inset 1px 1px 0 rgba(180, 230, 210, 0.14),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.35);
+
+  --hydra-nav-bg: linear-gradient(180deg, #1f2e38, #182530 50%, #111c24);
+  --hydra-nav-shadow:
+    inset 1px 1px 0 rgba(180, 230, 210, 0.12),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+  --hydra-surface-bg: linear-gradient(180deg, #1f2e38, #182530 50%, #111c24);
+  --hydra-surface-shadow:
+    inset 1px 1px 0 rgba(180, 230, 210, 0.10),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.22),
+    0 3px 10px rgba(0, 0, 0, 0.3);
+
+  --hydra-panel-bg: linear-gradient(180deg, #1c2a36, #16222e 50%, #101a22);
+  --hydra-panel-shadow:
+    inset 1px 1px 0 rgba(180, 230, 210, 0.10),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.30),
+    0 4px 14px rgba(0, 0, 0, 0.35);
+
+  --hydra-card-bg: linear-gradient(180deg, #222f3a, #1a263a 50%, #131e28);
+  --hydra-card-shadow:
+    inset 1px 1px 0 rgba(200, 240, 220, 0.14),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.28),
+    0 3px 10px rgba(0, 0, 0, 0.3);
+
+  --hydra-well-bg: linear-gradient(180deg, #06100e, #0a1410 50%, #080e0c);
+  --hydra-well-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.4),
+    inset -1px -1px 0 rgba(180, 230, 210, 0.08);
+
+  --hydra-control-bg: linear-gradient(180deg, #2a3a46, #1e2c36);
+  --hydra-control-hover-bg: linear-gradient(180deg, #30404e, #24343e);
+
+  --hydra-nav-button-bg: linear-gradient(180deg, #242f3a, #1a2530 50%, #141e26);
+  --hydra-nav-button-hover-bg: linear-gradient(180deg, #2a353e, #1e2a34);
+  --hydra-nav-button-active-bg: linear-gradient(180deg, #1a2530, #16202c 50%, #101a22);
+  --hydra-nav-button-shadow:
+    inset 1px 1px 0 rgba(180, 230, 210, 0.12),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.25);
+  --hydra-nav-button-active-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.20),
+    inset -1px -1px 0 rgba(180, 230, 210, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.2);
+
+  --hydra-nav-badge-bg: rgba(0, 0, 0, 0.25);
+  --hydra-nav-badge-border: rgba(50, 100, 90, 0.25);
+  --hydra-nav-badge-text: #a0d0c0;
+
+  --hydra-grid-line: rgba(255, 255, 255, 0.014);
+  --hydra-scrollbar-thumb: rgba(100, 170, 150, 0.40);
+  --hydra-scrollbar-thumb-hover: rgba(140, 210, 190, 0.55);
+}
+
+/* ── FORGE SKIN — reactor gold on black, all opaque, no blur ── */
+[data-skin='forge'] {
+  --hydra-accent: #ffd280;
+  --hydra-accent-warm: #ffb347;
+  --hydra-shell-text: #f5e8d0;
+  --hydra-shell-muted: #c8b090;
+  --hydra-shell-subtle: #8a7658;
+
+  --hydra-border-strong: rgba(200, 170, 110, 0.18);
+  --hydra-border-soft: rgba(200, 170, 110, 0.10);
+  --hydra-control-border: rgba(200, 170, 110, 0.14);
+
+  --hydra-shell-bg: radial-gradient(ellipse at 50% 40%, rgba(40, 30, 15, 0.3), #000 70%);
+  --hydra-shell-overlay: none;
+
+  --hydra-header-bg: linear-gradient(180deg, rgba(30, 24, 12, 0.95), rgba(15, 12, 6, 0.9));
+  --hydra-header-shadow:
+    inset 1px 1px 0 rgba(255, 210, 130, 0.08),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.5);
+
+  --hydra-nav-bg: linear-gradient(180deg, rgba(25, 20, 10, 0.95), rgba(12, 10, 5, 0.9));
+  --hydra-nav-shadow:
+    inset 1px 1px 0 rgba(255, 210, 130, 0.06),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+  --hydra-surface-bg: linear-gradient(180deg, rgba(25, 20, 10, 0.95), rgba(12, 10, 5, 0.9));
+  --hydra-surface-shadow:
+    inset 1px 1px 0 rgba(255, 210, 130, 0.06),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.28),
+    0 3px 10px rgba(0, 0, 0, 0.4);
+
+  --hydra-panel-bg: linear-gradient(180deg, rgba(22, 18, 8, 0.95), rgba(10, 8, 4, 0.92));
+  --hydra-panel-shadow:
+    inset 1px 1px 0 rgba(255, 210, 130, 0.08),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.35),
+    0 4px 14px rgba(0, 0, 0, 0.5);
+
+  --hydra-card-bg: linear-gradient(180deg, rgba(28, 22, 10, 0.95), rgba(14, 11, 5, 0.92));
+  --hydra-card-shadow:
+    inset 1px 1px 0 rgba(255, 210, 130, 0.10),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.32),
+    0 3px 10px rgba(0, 0, 0, 0.45);
+
+  --hydra-well-bg: linear-gradient(180deg, #080604, #0a0806 50%, #060504);
+  --hydra-well-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.45),
+    inset -1px -1px 0 rgba(255, 210, 130, 0.06);
+  --hydra-well-border: rgba(0, 0, 0, 0.4);
+
+  --hydra-control-bg: linear-gradient(180deg, rgba(35, 28, 14, 0.95), rgba(20, 16, 8, 0.9));
+  --hydra-control-hover-bg: linear-gradient(180deg, rgba(45, 36, 18, 0.95), rgba(28, 22, 11, 0.92));
+  --hydra-control-pressed-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.35),
+    inset -1px -1px 0 rgba(255, 210, 130, 0.06);
+
+  --hydra-nav-button-bg: linear-gradient(180deg, rgba(26, 20, 10, 0.95), rgba(14, 11, 5, 0.92));
+  --hydra-nav-button-hover-bg: linear-gradient(180deg, rgba(34, 27, 14, 0.95), rgba(20, 16, 8, 0.92));
+  --hydra-nav-button-active-bg: linear-gradient(180deg, rgba(18, 14, 6, 0.95), rgba(10, 8, 3, 0.92));
+  --hydra-nav-button-shadow:
+    inset 1px 1px 0 rgba(255, 210, 130, 0.06),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+  --hydra-nav-button-active-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.22),
+    inset -1px -1px 0 rgba(255, 210, 130, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+
+  --hydra-nav-badge-bg: rgba(0, 0, 0, 0.3);
+  --hydra-nav-badge-border: rgba(200, 170, 110, 0.15);
+  --hydra-nav-badge-text: #c8b090;
+
+  --hydra-grid-line: rgba(255, 210, 130, 0.015);
+  --hydra-scrollbar-thumb: rgba(180, 150, 100, 0.40);
+  --hydra-scrollbar-thumb-hover: rgba(220, 185, 130, 0.60);
+}

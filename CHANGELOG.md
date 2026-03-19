@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.1.0 — 2026-03-18
+
+### Product
+- Reworked the Hydra shell into a tighter machine-chrome presentation with refined panels, updated AI visuals, and a live skin globe in the header
+- Expanded the skin system to `Deck`, `Orbiter`, and `Forge`, with persisted shell-wide theming instead of partial surface swaps
+- Rebuilt `FM Radio` as a Winamp-style stereo relay with transport controls, genre sliders, playlist framing, and clearer local MP3 import
+
+### Playback
+- Added a main-process localhost radio relay so remote streams, manual URLs, and local files play through a stable Electron media path
+- Added native audio-file picking, persisted local-library entries, and a singleton audio engine so playback survives navigation
+- Allowed loopback media in the renderer CSP and tightened window startup so the FM deck and shell surface appear reliably on launch
+
 ## v3.0.0 — 2026-03-18
 
 ### Product

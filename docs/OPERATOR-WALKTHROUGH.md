@@ -1,6 +1,6 @@
 # HYDRA Operator Walkthrough
 
-Hydra is a page-based desktop shell for watching local AI systems, repo drift, agents, and machine posture without collapsing all of it into one screaming dashboard. This guide covers the current shipped surface in `v3.0.0`.
+Hydra is a page-based desktop shell for watching local AI systems, repo drift, agents, and machine posture without collapsing all of it into one screaming dashboard. This guide covers the current shipped surface in `v3.1.0`.
 
 ## Shell Layout
 
@@ -9,7 +9,7 @@ Hydra keeps a few things visible no matter which page you are on:
 - The top header shows live CPU, memory, network, and a manual `Refresh` action.
 - The scorecards strip keeps machine posture visible: CPU, memory, network, agents, ports, dirty repos, disk, battery, and Claude Code cost.
 - The left navigation rail is the main contract of the app. If a page has its own destination in the nav, it should not also be squatting on another page.
-- The shell skin selector lets you swap between `Deck` and `Orbiter` without breaking the shared chrome language.
+- The shell skin selector lets you swap between `Deck`, `Orbiter`, and `Forge` without breaking the shared chrome language.
 
 ## Pages
 

@@ -1,5 +1,6 @@
 import { config as dotenvConfig } from 'dotenv'
-import { join } from 'path'
+import { join, basename } from 'path'
+import { pathToFileURL } from 'node:url'
 
 // Load .env before anything else reads process.env
 dotenvConfig({ path: join(process.cwd(), '.env') })
@@ -10,9 +11,11 @@ import {
   Menu,
   Tray,
   nativeImage,
+  screen,
   shell,
   globalShortcut,
-  ipcMain
+  ipcMain,
+  dialog
 } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { startMonitoring, stopMonitoring, onStateUpdate } from './monitors/index'
@@ -27,10 +30,23 @@ import {
 } from './db/queries'
 import { IPC_CHANNELS } from '../shared/types'
 import { loadConfig, saveConfig } from './config'
+import { getRadioRelayUrl, stopRadioRelayServer } from './radio-relay'
 import type { HydraConfig, SystemState } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
+
+// FM radio playback resolves relay URLs asynchronously, so Chromium no longer
+// treats the eventual audio.play() call as being inside the original click.
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
+
+function moveWindowToPrimaryDisplay(window: BrowserWindow): void {
+  const workArea = screen.getPrimaryDisplay().workArea
+  const bounds = window.getBounds()
+  const x = workArea.x + Math.max(0, Math.round((workArea.width - bounds.width) / 2))
+  const y = workArea.y + Math.max(0, Math.round((workArea.height - bounds.height) / 2))
+  window.setBounds({ ...bounds, x, y })
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -40,15 +56,31 @@ function createWindow(): void {
     minHeight: 600,
     title: 'HYDRA — Mission Control',
     show: false,
+    paintWhenInitiallyHidden: true,
+    backgroundColor: '#111827',
     autoHideMenuBar: true,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: true
+      preload: join(__dirname, '../preload/index.js')
     }
   })
 
   mainWindow.on('ready-to-show', () => {
+    moveWindowToPrimaryDisplay(mainWindow!)
     mainWindow!.show()
+    mainWindow!.focus()
+    mainWindow!.webContents.invalidate()
+  })
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error('[renderer:did-fail-load]', { errorCode, errorDescription, validatedURL })
+  })
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[renderer:gone]', details)
+  })
+
+  mainWindow.webContents.on('preload-error', (_event, preloadPath, error) => {
+    console.error('[renderer:preload-error]', { preloadPath, error })
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -208,6 +240,29 @@ app.whenReady().then(() => {
     getRepoCommitHistory(repoPath, limit)
   )
 
+  // Audio file picker for FM Radio local library
+  ipcMain.handle('dialog:openAudioFile', async () => {
+    const result = await dialog.showOpenDialog({
+      title: 'Choose audio files',
+      filters: [{ name: 'Audio', extensions: ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'flac'] }],
+      properties: ['openFile', 'multiSelections']
+    })
+    if (result.canceled) return []
+    return result.filePaths.map((fp) => ({
+      path: fp,
+      name: basename(fp),
+      sourceUrl: pathToFileURL(fp).toString()
+    }))
+  })
+
+  ipcMain.handle(
+    'radio:resolve-source',
+    (
+      _event,
+      source: { kind: 'remote' | 'local'; value: string; extensionHint?: string }
+    ) => getRadioRelayUrl(source)
+  )
+
   createTray()
   createWindow()
 
@@ -239,5 +294,6 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   globalShortcut.unregisterAll()
   stopMonitoring()
+  void stopRadioRelayServer()
   closeDb()
 })

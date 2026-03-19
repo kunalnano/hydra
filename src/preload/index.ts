@@ -191,6 +191,16 @@ const api = {
     }
   },
 
+  openAudioFiles: (): Promise<Array<{ path: string; name: string; sourceUrl: string }>> =>
+    ipcRenderer.invoke('dialog:openAudioFile'),
+
+  resolveRadioSource: (source: {
+    kind: 'remote' | 'local'
+    value: string
+    extensionHint?: string
+  }): Promise<string> =>
+    ipcRenderer.invoke('radio:resolve-source', source),
+
   getSessionDelta: (): Promise<{
     lastSessionTimestamp: number
     missingWorkspaces: { name: string; type: string; ports: number[] }[]
