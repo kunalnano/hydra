@@ -74,7 +74,7 @@ async function detectLocalNetwork(): Promise<void> {
     const { stdout } = await execAsync('ipconfig getifaddr en0', { timeout: 5000 })
     const ip = stdout.trim()
     if (ip) {
-      // Convert e.g. 192.168.7.225 to 192.168.7.0/24
+      // Convert e.g. 10.55.0.225 to 10.55.0.0/24
       const parts = ip.split('.')
       parts[3] = '0/24'
       localNetworkTarget = parts.join('.')

@@ -178,11 +178,11 @@ describe('loadConfig env overrides', () => {
       JSON.stringify({ lmStudioUrl: 'http://localhost:1234' }, null, 2),
       'utf-8'
     )
-    process.env.LM_STUDIO_URL = 'http://192.168.7.200:1234'
+    process.env.LM_STUDIO_URL = 'http://10.55.0.10:1234'
 
     const { loadConfig } = await import('./config')
 
-    expect(loadConfig().lmStudioUrl).toBe('http://192.168.7.200:1234')
+    expect(loadConfig().lmStudioUrl).toBe('http://10.55.0.10:1234')
   })
 
   it('ignores blank LM_STUDIO_URL values', async () => {

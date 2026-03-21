@@ -29,7 +29,7 @@ describe('healLmStudioConnection', () => {
       gitRepoPaths: [],
       monitorInterval: 2000,
       snapshotInterval: 30000,
-      lmStudioUrl: 'http://192.168.7.200:1234'
+      lmStudioUrl: 'http://10.55.0.10:1234'
     })
     networkInterfaces.mockReturnValue({})
     exec.mockImplementation((_command, _options, callback) => {
@@ -39,7 +39,7 @@ describe('healLmStudioConnection', () => {
 
   it('repairs a stale configured URL by falling back to localhost', async () => {
     const fetchImpl = vi.fn(async (url: string) => {
-      if (url === 'http://192.168.7.200:1234/v1/models') {
+      if (url === 'http://10.55.0.10:1234/v1/models') {
         throw new Error('fetch failed')
       }
 
@@ -56,7 +56,7 @@ describe('healLmStudioConnection', () => {
     expect(result.repaired).toBe(true)
     expect(result.url).toBe('http://localhost:1234')
     expect(result.model).toBe('mistral-local')
-    expect(result.previousUrl).toBe('http://192.168.7.200:1234')
+    expect(result.previousUrl).toBe('http://10.55.0.10:1234')
     expect(saveConfig).toHaveBeenCalledWith(
       expect.objectContaining({ lmStudioUrl: 'http://localhost:1234' })
     )
@@ -75,24 +75,24 @@ describe('healLmStudioConnection', () => {
 
     expect(result.success).toBe(true)
     expect(result.repaired).toBe(false)
-    expect(result.url).toBe('http://192.168.7.200:1234')
+    expect(result.url).toBe('http://10.55.0.10:1234')
     expect(saveConfig).not.toHaveBeenCalled()
   })
 
   it('repairs a stale remote URL by scanning ARP neighbors', async () => {
     exec.mockImplementation((_command, _options, callback) => {
       callback(null, {
-        stdout: '? (192.168.7.201) at aa:bb:cc:dd:ee:ff on en0 ifscope [ethernet]\n',
+        stdout: '? (10.55.0.11) at aa:bb:cc:dd:ee:ff on en0 ifscope [ethernet]\n',
         stderr: ''
       })
     })
 
     const fetchImpl = vi.fn(async (url: string) => {
-      if (url === 'http://192.168.7.200:1234/v1/models') {
-        throw new Error('connect ETIMEDOUT 192.168.7.200:1234')
+      if (url === 'http://10.55.0.10:1234/v1/models') {
+        throw new Error('connect ETIMEDOUT 10.55.0.10:1234')
       }
 
-      if (url === 'http://192.168.7.201:1234/v1/models') {
+      if (url === 'http://10.55.0.11:1234/v1/models') {
         return {
           ok: true,
           json: async () => ({ data: [{ id: 'qwen-neighbor' }] })
@@ -107,10 +107,10 @@ describe('healLmStudioConnection', () => {
 
     expect(result.success).toBe(true)
     expect(result.repaired).toBe(true)
-    expect(result.url).toBe('http://192.168.7.201:1234')
+    expect(result.url).toBe('http://10.55.0.11:1234')
     expect(result.model).toBe('qwen-neighbor')
     expect(saveConfig).toHaveBeenCalledWith(
-      expect.objectContaining({ lmStudioUrl: 'http://192.168.7.201:1234' })
+      expect.objectContaining({ lmStudioUrl: 'http://10.55.0.11:1234' })
     )
   })
 
@@ -129,7 +129,7 @@ describe('healLmStudioConnection', () => {
     expect(isLmStudioConnectivityError('fetch failed')).toBe(true)
     expect(isLmStudioConnectivityError('connect ECONNREFUSED 127.0.0.1:1234')).toBe(true)
     expect(
-      parseArpNeighborIps('? (192.168.7.200) at cc:ba:bd:fc:81:19 on en8 ifscope [ethernet]\n? (8.8.8.8) at aa:bb:cc:dd:ee:ff on en8 ifscope [ethernet]')
-    ).toEqual(['192.168.7.200'])
+      parseArpNeighborIps('? (10.55.0.10) at cc:ba:bd:fc:81:19 on en8 ifscope [ethernet]\n? (8.8.8.8) at aa:bb:cc:dd:ee:ff on en8 ifscope [ethernet]')
+    ).toEqual(['10.55.0.10'])
   })
 })
