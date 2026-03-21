@@ -1,4 +1,4 @@
-# HYDRA Security Audit Report
+# HELM Security Audit Report
 
 **Date:** 2026-03-06
 **Scope:** Source code, dependencies, Electron configuration
@@ -8,7 +8,7 @@
 
 ## Overall Rating: A-
 
-HYDRA demonstrates strong security fundamentals — proper context isolation, sandboxed renderer, a well-scoped preload bridge, command allowlisting, URL protocol validation, and process-kill safeguards.
+HELM demonstrates strong security fundamentals — proper context isolation, sandboxed renderer, a well-scoped preload bridge, command allowlisting, URL protocol validation, and process-kill safeguards.
 
 **Update (2026-03-06):** All four findings from the initial B+ audit have been resolved:
 - Sandbox mode enabled in webPreferences
@@ -155,7 +155,7 @@ URLs are validated before opening. Only `http:` and `https:` protocols are allow
 
 **Status: PASS (with notes)**
 
-HYDRA's main process makes extensive use of `child_process.exec()` for system monitoring (`ps`, `lsof`, `nettop`, `df`, etc.). Review:
+HELM's main process makes extensive use of `child_process.exec()` for system monitoring (`ps`, `lsof`, `nettop`, `df`, etc.). Review:
 
 | Module | Method | Input Source | Injection Risk |
 |--------|--------|-------------|----------------|

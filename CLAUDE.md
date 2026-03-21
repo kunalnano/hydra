@@ -2,17 +2,17 @@
 
 ## What This Is
 
-Electron 28 desktop app for developers monitoring local machines — processes, AI agents, git repos, network, security — with an AI intelligence layer (Claude Haiku briefings, auto-heal engine). "htop meets aircraft carrier CIC meets AI briefing officer."
+Electron 35 desktop app for developers monitoring local machines — processes, AI agents, git repos, network, security — with an AI intelligence layer (Claude Haiku briefings, auto-heal engine, Sentinel watcher). "htop meets aircraft carrier CIC meets AI briefing officer."
 
 GitHub: https://github.com/kunalnano/hydra
 
 ## Tech Stack
 
-- **Framework:** Electron 28 + React 18 + TypeScript + Tailwind 4
+- **Framework:** Electron 35 + React 18 + TypeScript + Tailwind 4
 - **State:** Zustand (system store + timeseries ring buffer + UI store)
 - **Build:** Vite via electron-vite
-- **Persistence:** SQLite via better-sqlite3
-- **Tests:** Vitest (189+ tests passing)
+- **Persistence:** SQLite via better-sqlite3 + JSON (agent registry)
+- **Tests:** Vitest (235 tests across 25 suites)
 - **AI:** Anthropic SDK (Claude Haiku 4.5) for briefings
 
 ## Project Structure
@@ -39,6 +39,15 @@ src/
 │   │   ├── auto-heal.ts     # Rule engine with 60s cooldowns
 │   │   ├── rules.ts         # 5 default rules (process/port disappear, high CPU/mem, agent idle)
 │   │   └── security.ts      # Staff of Gandalf integration (config-driven paths)
+│   ├── sentinel/            # Background watcher daemon
+│   │   ├── index.ts         # Poll loop, cooldown tracking, alert dispatch
+│   │   ├── rules.ts         # 7 rules (agent-crash, high-cpu, high-mem, port-conflict, vault-rag, lm-studio, long-running)
+│   │   ├── notify.ts        # Channels: macOS notification, Obsidian vault log, Slack webhook
+│   │   └── config.json      # Per-rule enable/cooldown settings
+│   ├── data/
+│   │   └── agent-registry.json  # Seed data for agent registry (21 entries)
+│   ├── registry.ts          # Agent registry CRUD (persists to ~/.config/helm/)
+│   ├── skills.ts            # Claude Code skill feed monitor
 │   ├── config.ts            # XDG-compliant config (~/.config/helm/config.json)
 │   ├── platform.ts          # Platform detection (macOS/Linux/Windows)
 │   ├── notifications.ts     # Desktop notifications with 30s throttle
@@ -46,7 +55,7 @@ src/
 ├── preload/
 │   └── index.ts             # contextBridge IPC contracts (window.helm)
 ├── renderer/src/
-│   ├── App.tsx              # 7-page shell with persistent scorecards
+│   ├── App.tsx              # 8-page shell with persistent scorecards
 │   ├── main.tsx             # React entry
 │   ├── components/          # Reusable SVG visual components
 │   │   ├── Scorecard.tsx    # Compact card: big number + trend + sparkline
@@ -67,6 +76,7 @@ src/
 │   │   ├── Briefing.tsx         # LM Studio briefings (Bridge compact, AI full)
 │   │   ├── CCUsage.tsx          # Claude Code usage tracking (AI)
 │   │   ├── Notifications.tsx    # Auto-heal events + alerts (Bridge)
+│   │   ├── Registry.tsx         # Agent hall of fame (Registry)
 │   │   ├── FMRadio.tsx          # FM radio player (Radio)
 │   │   └── Logs.tsx             # Live log streaming (Logs)
 │   └── stores/
@@ -79,7 +89,7 @@ src/
     └── types.ts             # All shared TypeScript interfaces
 ```
 
-## Pages (v4.0.0 — zero panel duplication)
+## Pages (8 pages, zero panel duplication)
 
 | Page | ID | Panels |
 |------|----|--------|
@@ -88,6 +98,7 @@ src/
 | Swarm | `swarm` | Agents, Timeline |
 | Grid | `grid` | Network, Security, Ports |
 | AI | `ai` | Briefing (full), CC Usage |
+| Registry | `registry` | Agent Registry (historical record) |
 | Radio | `radio` | FM Radio |
 | Logs | `logs` | Logs |
 
@@ -113,6 +124,21 @@ src/
 - Briefing prompts are built from current system state (not historical)
 - Security scans shell out to `staff` CLI — must handle missing binary gracefully
 - `ANTHROPIC_API_KEY` env var required for briefings (degrade to "no key" message)
+
+### Sentinel Watcher
+
+- Background daemon in main process, polls every 30s (configurable)
+- 7 rules with per-rule cooldowns; rules are pure functions: `(state, prevState) => alert | null`
+- Notification channels: macOS native, Obsidian vault log, Slack webhook
+- Config at `src/main/sentinel/config.json` (bundled defaults)
+- New rules must follow the same pure-function pattern and include unit tests
+
+### Agent Registry
+
+- JSON-based persistence at `~/.config/helm/agent-registry.json`
+- First run seeds from bundled `src/main/data/agent-registry.json`
+- CRUD via IPC (getAgentRegistry, getAgentById, updateAgentEntry, getTopAgents)
+- Registry panel reads via `window.helm` bridge — no direct file access from renderer
 
 ### Renderer Patterns
 

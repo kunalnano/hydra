@@ -2,19 +2,54 @@
 
 Entries are ordered newest first. `Unreleased` covers mainline work after the latest tagged release, and tagged dates are written in America/Chicago local time.
 
-## Unreleased
+## Unreleased (targeting v5.0.0)
 
-### Shell
-- Added `Secure View` so demos and screenshots can redact local hosts, filesystem paths, and LM Studio endpoints without manually doctoring images
-- Replaced the old micro-metric header cluster with a live operator wire so the top band reads like one intentional shell surface
+### Agent Registry
+- Added permanent historical record of 21+ agents with impact scoring, lineage tracking, stack info, key outputs, and lessons learned
+- New **Registry** page (8th navigation page) with ranked list, detail view, status filters, and summary stats
+- Full CRUD via IPC: getAgentRegistry, getAgentById, updateAgentEntry, getTopAgents
+- Data persists to `~/.config/helm/agent-registry.json` with first-run seeding from bundled defaults
 
-### Panels
-- Reworked the AI page presentation around a protected mech-entity hero shot and a cleaner interface tray
-- Rebuilt `Staff of Gandalf` as a more graphical security command deck with a stronger hero, scan cards, and a dedicated terminal frame
+### Sentinel Watcher
+- Background daemon polling system state every 30s with 7 configurable rules: agent-crash, high-cpu, high-memory, port-conflict, vault-rag-down, lm-studio-idle, long-running-agent
+- Notification channels: macOS native notifications, Obsidian vault log (`~/Documents/ai/obsidian-vault/sentinel/`), Slack webhook (configurable)
+- Per-rule cooldowns to prevent alert fatigue
+- Sentinel status indicator in HELM header (green/amber/red dot)
 
 ### Docs
-- Refreshed README showcase media with sanitized AI and security captures plus a new mainline showcase GIF
-- Added dedicated `v3.1.0` release notes under `docs/releases/` and aligned the GitHub release body to the same content
+- Rewrote README to lead with value prop, surface intelligence layer, and include project stats
+- Rewrote Operator Walkthrough for v4+ page structure with Registry and Sentinel coverage
+- Updated Journey So Far through Phase Seven (registry and sentinel)
+
+### Tests
+- 235 tests across 25 suites (up from 214/23)
+- 6 registry data validation tests
+- 13 sentinel rule unit tests
+
+## v4.0.0 — 2026-03-18
+
+### Shell
+- Renamed project from HYDRA to **HELM** across all types, CSS, config paths, and UI text
+- Config auto-migrates from `~/.config/hydra` to `~/.config/helm`
+- Database auto-migrates from `hydra.db` to `helm.db`
+- Collapsed 8 pages to 7 with zero panel duplication
+- Added 4th skin: **Phantom** (deep violet neon on obsidian)
+- Replaced repetitive system stats ticker with rotating dev/tech facts
+- Added header ticker and radio signal globe visualization
+- Added session delta banner on Bridge and Fleet pages
+- Added skills feed monitor and tiered polling schedule
+
+### Panels
+- Overhauled Staff of Gandalf security panel with cleaner layout and missing-binary detection
+- Moved CC Usage from standalone page into AI page
+- Network scorecard shows contextual status instead of appearing frozen
+- Added `Secure View` for redacting local hosts, paths, and endpoints in screenshots
+- Reworked AI page around mech-entity hero and interface tray
+- Rebuilt security panel as a graphical command deck
+
+### Docs
+- Refreshed README showcase media with sanitized captures
+- Added `v3.1.0` release notes under `docs/releases/`
 
 ## v3.1.0 — 2026-03-18
 

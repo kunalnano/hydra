@@ -1,113 +1,139 @@
-# HYDRA Operator Walkthrough
+# HELM Operator Walkthrough
 
-Hydra is a page-based desktop shell for watching local AI systems, repo drift, agents, and machine posture without collapsing all of it into one screaming dashboard. This guide covers the current mainline shell; the latest tagged release is `v3.1.0`.
+HELM is a page-based desktop shell for watching local AI systems, repo drift, agents, and machine posture. Each domain gets its own page instead of cramming everything into one dense dashboard. This guide covers the current mainline shell (v4+).
 
 ## Shell Layout
 
-Hydra keeps a few things visible no matter which page you are on:
+A few things stay visible no matter which page you're on:
 
-- The top header shows the `Hydra Wire`, `Secure View`, skin selection, and a manual `Refresh` action.
-- The scorecards strip keeps machine posture visible: CPU, memory, network, agents, ports, dirty repos, disk, battery, and Claude Code cost.
-- The left navigation rail is the main contract of the app. If a page has its own destination in the nav, it should not also be squatting on another page.
-- The shell skin selector lets you swap between `Deck`, `Orbiter`, and `Forge` without breaking the shared chrome language.
-- `Secure View` is the safe demo switch. It redacts local endpoints and machine-specific paths in visible operator surfaces.
+- **Header** shows the HELM version badge, system health dot (green/amber/red), the Sentinel status indicator, Secure View toggle, skin selector, and manual Refresh.
+- **Scorecards strip** keeps machine posture at a glance: CPU, memory, network, agents, ports, dirty repos, disk, battery, and Claude Code cost.
+- **Side navigation** is the real contract of the app. If a page has a destination in the nav, its panels live only on that page.
+- **Skins** (Deck, Orbiter, Forge, Phantom) swap the entire visual identity without breaking shared chrome.
+- **Secure View** redacts local endpoints, hosts, and filesystem paths for safe screenshots and demos.
 
 ## Pages
 
-### Overview
+### Bridge
 
-Use `Overview` when you want the fastest read on what changed and where to drill in next.
+Mission control. Start here for the fastest read on system state.
 
-- Shows a calmer summary layer instead of every panel at once.
-- Keeps attention on hotspots, active agents, repo drift, and the next useful page to open.
+- **Command Center** shows top-pressure process groups sorted by resource usage. Full workspace control lives in Fleet.
+- **Operator Briefing** (compact) gives a one-glance AI-generated situation report.
+- **Notifications** surfaces auto-heal events and system alerts.
 
-### Workspaces
+### Fleet
 
-Use `Workspaces` for repos, process groups, and operational cleanup.
+Workspace ops. Repo drift, process orchestration, and git history.
 
-- `Git Status` turns dirty repos and remote drift into actions like `Stash`, `Fetch`, `Pull`, and `Copy Path`.
-- `Command Center` can be sorted by workspace, health, CPU, or memory depending on how you want to triage live processes.
+- **Workspace Control** shows process groups sorted by workspace, health, CPU, or memory.
+- **Git Status** tracks branch state, dirty files, and remote drift across all monitored repos. Actions: Stash, Fetch, Pull, Copy Path.
+- **Git History** shows commit log with AI-author detection (Claude, Codex, Gemini, etc.).
 
-### Agents
+### Swarm
 
-Use `Agents` when you want the real roster, not a vague badge.
+Agent ops. The live roster, not a vague badge count.
 
-- Tracks detected agent sessions such as Codex, Claude Code, Cursor, and other supported tools.
-- Shows status, workspace/context matching, and process handles so you can tell what is active, idle, or waiting.
+- **Agent Roster** detects running AI agents (Claude Code, Codex, Gemini, Cursor, Aider, Continue, Copilot) with status, workspace context, uptime, goals, and process handles.
+- **Swarm Timeline** shows session events: agent starts, stops, actions, errors.
 
-### Systems
+### Grid
 
-Use `Systems` for supporting infrastructure and machine-adjacent telemetry.
+Infrastructure posture. Network, security, and ports.
 
-- Network, ports, security posture, and Claude Code usage all live here.
-- `Staff of Gandalf` now behaves like a dedicated command deck instead of a plain utility panel.
-- `CC Usage` supports `Refresh Live` to rescan Claude session logs when cached cost data is stale.
+- **Network Traffic** shows per-process bandwidth with rates (macOS nettop).
+- **Security Posture** integrates Staff of Gandalf for multi-category security scans with grade scoring.
+- **Listening Ports** maps every open port to its owning process.
 
 ### AI
 
-Use `AI` for the local-model control loop.
+The local-model intelligence loop.
 
-- The mech entity maps `Workspaces`, `Agents`, `Ports`, and `Git` into plates, antennas, and reactor activity.
-- The interface tray below the entity shows the LM Studio endpoint, lens control, swarm counts, CPU, memory, ports, and current readout.
-- The action dock gives you `Request Briefing`, `Invoke Repair`, and `Invoke Yennefer` without leaving the page.
+- **AI Control** provides full briefing interface with LM Studio endpoint status, Yennefer invocation, and lens control (adaptive/throughput/creative/strict).
+- **Invoke Repair** probes local, configured, and LAN-discovered LM Studio endpoints and persists the first healthy one.
+- **Spend and Usage** tracks Claude Code sessions, messages, tokens, cost, and model breakdown.
 
-### FM Radio
+### Registry
 
-Use `FM Radio` when you want a live audio surface inside Hydra instead of another dashboard panel.
+The Hall of Fame. Permanent historical record of every agent, tool, and project ever built.
 
-- Preset stations, search, play/pause, volume, connection state, and the built-in relay all live in one tuner view.
-- You can also load a direct stream URL manually and Hydra will persist the last station and volume.
+- **Ranked list** sorted by impact score with type icons, status badges, and era ranges.
+- **Detail view** shows stack, key outputs, lessons learned, repo links, deployment targets, and lineage (which agents evolved from which).
+- **Filters** by status: active, stalled, dead, evolved, retired.
+- Data persists to `~/.config/helm/agent-registry.json`.
 
-### Activity
+### Radio
 
-Use `Activity` when you need history instead of current posture.
+FM streaming tuner. Mood and music inside HELM.
 
-- Logs, timeline entries, and git history live here.
-- This page is for “what happened?” rather than “what should I do right now?”
+- Preset stations, search, play/pause, volume, and connection state.
+- Direct stream URL loading and local MP3 import.
+- Signal globe visualization.
+- Main-process relay so playback survives the Electron renderer's fragile stream path.
+
+### Logs
+
+Raw event stream. History instead of current posture.
+
+- Live log tailing from configured file paths.
+- No operational controls here. Just the stream.
+
+## Sentinel
+
+Sentinel is a background watcher daemon running in the main Electron process. It polls system state every 30 seconds and fires alerts when rules trigger.
+
+**Built-in rules:**
+- Agent crash (PID disappears unexpectedly)
+- Sustained high CPU (>90% for 2+ polls)
+- Memory pressure (>85%)
+- Port conflicts (multiple processes on same port)
+- vault-rag down (port 8742 not listening)
+- LM Studio idle (running but no inference)
+- Long-running agent (Claude Code session > 2 hours)
+
+**Notification channels:**
+- macOS native notifications (always on)
+- Obsidian vault log at `~/Documents/ai/obsidian-vault/sentinel/YYYY-MM-DD.md`
+- Slack webhook (configurable)
+
+The Sentinel status chip in the header shows green (nominal), amber (info alerts), or red (warning/critical).
 
 ## Core Actions
 
 ### Refresh
 
-- Click `Refresh` in the top-right header to force a new monitor pass.
-- The tray menu also exposes `Refresh Now`.
+Click Refresh in the header or use the tray menu's Refresh Now. Forces a new monitor pass.
 
 ### Command Palette
 
-- `Cmd/Ctrl+K` opens the command palette.
-- Hydra can surface quick actions such as killing a listening port or freezing/thawing a workspace process group.
+`Cmd/Ctrl+K` opens the command palette. Surface quick actions like killing a port or navigating to a page.
 
-### Briefing And Yennefer
+### Briefing and Yennefer
 
-- `Cmd/Ctrl+B` requests a Local AI briefing.
+- `Cmd/Ctrl+B` requests a local AI briefing.
 - `Cmd/Ctrl+Y` invokes Yennefer directly.
-- The `Yennefer Lens` controls tone:
-  - `adaptive` for balanced judgment
-  - `throughput` for dense multi-agent sessions
-  - `creative` for looser synthesis
-  - `strict` for harsher operational scrutiny
+- Yennefer lens controls tone: adaptive, throughput, creative, strict.
 
 ### LM Studio Repair
 
-- `Invoke Repair` probes the configured LM Studio endpoint and local/LAN fallbacks.
-- When Hydra finds a healthy server, it persists the repaired URL back into config.
-- For remote Windows GPU hosts, LM Studio still needs network serving enabled and the firewall open on the chosen port.
+Invoke Repair probes the configured endpoint and local/LAN fallbacks. When it finds a healthy LM Studio server, it persists the repaired URL. For remote GPU hosts, LM Studio needs network serving enabled and the firewall open.
 
-## Persistence And Config
+## Persistence
 
-Hydra keeps local state instead of pretending everything is ephemeral:
+HELM keeps local state:
 
-- SQLite stores snapshots, alerts, briefings, notifications, posture history, and timeline events.
-- Config lives at `~/.config/hydra/config.json`.
-- `.env` can override local development settings such as `LM_STUDIO_URL`.
+- SQLite stores snapshots, alerts, briefings, notifications, posture history, timeline events, and session records.
+- Config at `~/.config/helm/config.json`.
+- Agent registry at `~/.config/helm/agent-registry.json`.
+- Sentinel config at `src/main/sentinel/config.json` (bundled defaults).
+- `.env` for local development overrides.
 
 ## Recommended Flow
 
-If you are using Hydra as intended, the normal loop is:
+1. Start on **Bridge**. Read the scorecards and briefing.
+2. Follow the signal to the right page: Fleet for repo drift, Swarm for agent issues, Grid for network problems, AI for model control.
+3. Use page-local actions instead of trying to solve everything from the top layer.
+4. Come back to Bridge when you want posture again instead of detail.
+5. Check **Registry** when you want the long view on what you've built.
 
-1. Start in `Overview`.
-2. Follow the signal to `Workspaces`, `Agents`, `Systems`, `AI`, or `FM Radio`.
-3. Use the page-local actions instead of trying to solve everything from the top layer.
-4. Come back to `Overview` when you want posture again instead of detail.
-
-That is the whole point of the shell. The side nav is not decorative. It is how the app avoids turning back into a giant panel graveyard.
+The side nav is not decorative. It's how HELM avoids turning into a panel graveyard.
