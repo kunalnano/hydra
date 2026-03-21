@@ -1,6 +1,6 @@
 # HELM Operator Walkthrough
 
-HELM is a page-based desktop shell for watching local AI systems, repo drift, agents, and machine posture without collapsing all of it into one screaming dashboard. This guide covers the current 4.0 shell, and the latest tagged release is `v4.0.0`.
+HELM is a page-based desktop shell for watching local AI systems, repo drift, agents, and machine posture without collapsing all of it into one screaming dashboard. This guide covers the current 4.0 shell, and the latest tagged release is `v4.0.1`.
 
 ## Shell Layout
 

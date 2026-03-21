@@ -6,6 +6,15 @@ Entries are ordered newest first. `Unreleased` covers mainline work after the la
 
 - No unreleased entries yet.
 
+## v4.0.1 — 2026-03-21
+
+### FM Radio
+- Replaced the hardcoded radio home endpoint with a first-run setup popup and persisted user-configured home location
+- Updated the signal globe and route readout to handle an unset home endpoint gracefully instead of assuming a built-in city
+
+### Docs
+- Updated release collateral to reflect the `v4.0.1` patch tag and the new configurable radio-home flow
+
 ## v4.0.0 — 2026-03-21
 
 ### Product

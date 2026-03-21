@@ -2,8 +2,8 @@
 
 HELM is a desktop ops shell for developers running AI agents, local services, and multi-machine model workflows. It keeps overall system status visible while giving each domain its own page instead of forcing everything into one dense dashboard.
 
-Current app line: `4.0.0`.
-Latest tagged release: `v4.0.0`.
+Current app line: `4.0.1`.
+Latest tagged release: `v4.0.1`.
 
 The 4.0 line turns HELM into an operator shell with page ownership instead of panel sprawl. Recent releases added Swarm drill-down, persistent local history, a real traffic-topology grid, and a mapped radio signal globe that traces station origin back to home.
 

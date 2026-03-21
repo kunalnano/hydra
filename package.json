@@ -1,6 +1,6 @@
 {
   "name": "helm",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "HELM — Operator shell for local AI systems, processes, ports, and git repos",
   "main": "./out/main/index.js",
   "author": "kunalnano",
