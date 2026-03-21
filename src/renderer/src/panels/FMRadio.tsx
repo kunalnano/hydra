@@ -7,6 +7,7 @@ import {
 } from '../stores/radio'
 import * as engine from '../stores/audio-engine'
 import { FM_STATIONS, type RadioStation, type StationCategory } from './fm-stations'
+import { RadioSignalGlobe } from '../components/RadioSignalGlobe'
 
 type PlaylistEntryKind = 'station' | 'local' | 'custom'
 
@@ -171,24 +172,6 @@ function getStatusLine(entry: PlaylistEntry | null, status: engine.AudioStatus, 
   if (status === 'playing') return `${entry.title} is on air.`
   if (status === 'paused') return `${entry.title} is cued.`
   return 'Ready.'
-}
-
-function getBandLevel(key: StationCategory | 'all', activeCategory: StationCategory | null): number {
-  if (key === 'all') return activeCategory === null ? 78 : 34
-  if (activeCategory === key) return 82
-
-  const levels: Record<StationCategory, number> = {
-    jazz: 42,
-    eclectic: 64,
-    soul: 58,
-    ambient: 71,
-    community: 47,
-    alt: 53,
-    hacker: 61,
-    classical: 45
-  }
-
-  return levels[key]
 }
 
 export function FMRadioPanel(): JSX.Element {
@@ -616,32 +599,44 @@ export function FMRadioPanel(): JSX.Element {
         </div>
       </section>
 
-      <section className="winamp-window winamp-eq-window">
+      <section className="winamp-window winamp-signal-window">
         <div className="winamp-titlebar">
-          <span className="winamp-titlebar-label">Genre Equalizer</span>
-          <div className="winamp-mini-pill">{category ? category.toUpperCase() : 'AUTO'}</div>
+          <span className="winamp-titlebar-label">Signal Globe</span>
+          <div className="winamp-mini-pill">{activeEntry?.label ?? 'IDLE'}</div>
         </div>
 
-        <div className="winamp-eq-body">
-          {FILTER_BANDS.map((band) => {
-            const active = band.key === 'all' ? category === null : category === band.key
-            return (
-              <button
-                key={band.key}
-                type="button"
-                className={`winamp-band ${active ? 'winamp-band--active' : ''}`}
-                onClick={() => setCategory(band.key === 'all' ? null : band.key)}
-                title={band.label}
-              >
-                <span className="winamp-band-track" />
-                <span
-                  className="winamp-band-thumb"
-                  style={{ bottom: `${getBandLevel(band.key, category)}%` }}
-                />
-                <span className="winamp-band-label">{band.short}</span>
-              </button>
-            )
-          })}
+        <div className="winamp-signal-body">
+          <RadioSignalGlobe
+            station={activeStation}
+            mode={activeEntry?.kind ?? 'idle'}
+            sourceLabel={
+              activeEntry?.kind === 'local'
+                ? activeLocalFile?.name ?? null
+                : activeEntry
+                  ? streamHost(activeEntry.sourceUrl)
+                  : null
+            }
+          />
+
+          <div className="winamp-filter-strip">
+            <span className="winamp-filter-label">Filters</span>
+            <div className="winamp-filter-chips">
+              {FILTER_BANDS.map((band) => {
+                const active = band.key === 'all' ? category === null : category === band.key
+                return (
+                  <button
+                    key={band.key}
+                    type="button"
+                    className={`winamp-filter-chip ${active ? 'winamp-filter-chip--active' : ''}`}
+                    onClick={() => setCategory(band.key === 'all' ? null : band.key)}
+                    title={band.label}
+                  >
+                    {band.short}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </section>
 
