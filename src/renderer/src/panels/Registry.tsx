@@ -30,6 +30,191 @@ const TYPE_ICONS: Record<RegistryAgentType, string> = {
   other: '\u{1F4E6}'
 }
 
+const AGENT_TYPES: RegistryAgentType[] = [
+  'cli-tool',
+  'dashboard',
+  'voice-assistant',
+  'mcp-server',
+  'workflow-agent',
+  'rag-server',
+  'bot',
+  'multiplexer',
+  'simulator',
+  'other'
+]
+
+const AGENT_STATUSES: RegistryAgentStatus[] = ['active', 'retired', 'stalled', 'dead', 'evolved']
+
+function makeId(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+interface AddAgentFormProps {
+  onSave: (entry: AgentRegistryEntry) => void
+  onCancel: () => void
+}
+
+function AddAgentForm({ onSave, onCancel }: AddAgentFormProps): JSX.Element {
+  const [name, setName] = useState('')
+  const [type, setType] = useState<RegistryAgentType>('cli-tool')
+  const [status, setStatus] = useState<RegistryAgentStatus>('active')
+  const [description, setDescription] = useState('')
+  const [stackInput, setStackInput] = useState('')
+  const [repo, setRepo] = useState('')
+  const [impactScore, setImpactScore] = useState(50)
+
+  const canSave = name.trim().length > 0
+
+  function handleSubmit(): void {
+    if (!canSave) return
+    const entry: AgentRegistryEntry = {
+      id: makeId(name),
+      name: name.trim(),
+      type,
+      status,
+      era: { start: new Date().toISOString().split('T')[0] },
+      stack: stackInput
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+      description,
+      keyOutputs: [],
+      impactScore,
+      tags: [],
+      ...(repo.trim() ? { repo: repo.trim() } : {})
+    }
+    onSave(entry)
+  }
+
+  const selectClass =
+    'w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-white/25 appearance-none'
+  const inputClass =
+    'w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/25'
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-lg font-semibold text-white">Add Agent</h3>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-white/40 hover:text-white/70 text-sm"
+        >
+          Cancel
+        </button>
+      </div>
+
+      <div>
+        <label className="text-[9px] uppercase tracking-[0.16em] shell-subtle mb-1 block">
+          Name *
+        </label>
+        <input
+          className={inputClass}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="My Agent"
+          autoFocus
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-[9px] uppercase tracking-[0.16em] shell-subtle mb-1 block">
+            Type
+          </label>
+          <select className={selectClass} value={type} onChange={(e) => setType(e.target.value as RegistryAgentType)}>
+            {AGENT_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {TYPE_ICONS[t]} {t}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-[9px] uppercase tracking-[0.16em] shell-subtle mb-1 block">
+            Status
+          </label>
+          <select
+            className={selectClass}
+            value={status}
+            onChange={(e) => setStatus(e.target.value as RegistryAgentStatus)}
+          >
+            {AGENT_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-[9px] uppercase tracking-[0.16em] shell-subtle mb-1 block">
+          Description
+        </label>
+        <textarea
+          className={`${inputClass} resize-none`}
+          rows={2}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="What does this agent do?"
+        />
+      </div>
+
+      <div>
+        <label className="text-[9px] uppercase tracking-[0.16em] shell-subtle mb-1 block">
+          Stack (comma-separated)
+        </label>
+        <input
+          className={inputClass}
+          value={stackInput}
+          onChange={(e) => setStackInput(e.target.value)}
+          placeholder="typescript, react, python"
+        />
+      </div>
+
+      <div>
+        <label className="text-[9px] uppercase tracking-[0.16em] shell-subtle mb-1 block">
+          Repository URL (optional)
+        </label>
+        <input
+          className={inputClass}
+          value={repo}
+          onChange={(e) => setRepo(e.target.value)}
+          placeholder="https://github.com/..."
+        />
+      </div>
+
+      <div>
+        <label className="text-[9px] uppercase tracking-[0.16em] shell-subtle mb-1 block">
+          Impact Score: {impactScore}
+        </label>
+        <input
+          type="range"
+          min={1}
+          max={100}
+          value={impactScore}
+          onChange={(e) => setImpactScore(Number(e.target.value))}
+          className="w-full accent-amber-400"
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={!canSave}
+        className={`w-full py-2 rounded text-sm font-semibold transition-colors ${
+          canSave
+            ? 'bg-amber-950/40 border border-amber-700/40 text-amber-400 hover:bg-amber-950/60'
+            : 'bg-white/5 border border-white/10 text-white/30 cursor-not-allowed'
+        }`}
+      >
+        Save Agent
+      </button>
+    </div>
+  )
+}
+
 function ImpactBar({ score }: { score: number }): JSX.Element {
   const width = Math.max(4, score)
   const color =
@@ -283,10 +468,32 @@ function SummaryStats({ entries }: { entries: AgentRegistryEntry[] }): JSX.Eleme
   )
 }
 
+function EmptyState({ onAdd }: { onAdd: () => void }): JSX.Element {
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-center p-8">
+      <div className="text-4xl mb-4">{'\u{1F4CB}'}</div>
+      <h2 className="text-lg font-semibold text-white mb-2">Agent Registry</h2>
+      <p className="text-sm text-gray-400 max-w-md mb-6">
+        Track every AI agent that works for you. Add agents manually or let HELM
+        auto-detect them from running processes.
+      </p>
+      <button
+        type="button"
+        onClick={onAdd}
+        className="px-4 py-2 rounded border border-amber-700/40 bg-amber-950/25
+                   text-amber-400 text-sm hover:bg-amber-950/40 transition-colors"
+      >
+        + Add Your First Agent
+      </button>
+    </div>
+  )
+}
+
 export function RegistryPanel(): JSX.Element {
   const [entries, setEntries] = useState<AgentRegistryEntry[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<RegistryAgentStatus | 'all'>('all')
+  const [showAddForm, setShowAddForm] = useState(false)
 
   useEffect(() => {
     window.helm.getAgentRegistry().then((data) => {
@@ -297,6 +504,33 @@ export function RegistryPanel(): JSX.Element {
       }
     })
   }, [])
+
+  function handleSaveAgent(entry: AgentRegistryEntry): void {
+    window.helm.updateAgentEntry(entry).then((saved) => {
+      setEntries((prev) => {
+        const updated = [...prev, saved].sort((a, b) => b.impactScore - a.impactScore)
+        return updated
+      })
+      setSelectedId(saved.id)
+      setShowAddForm(false)
+    })
+  }
+
+  // Empty state
+  if (entries.length === 0 && !showAddForm) {
+    return <EmptyState onAdd={() => setShowAddForm(true)} />
+  }
+
+  // Show add form fullscreen when registry is empty
+  if (entries.length === 0 && showAddForm) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="w-full max-w-md">
+          <AddAgentForm onSave={handleSaveAgent} onCancel={() => setShowAddForm(false)} />
+        </div>
+      </div>
+    )
+  }
 
   const filtered = filter === 'all' ? entries : entries.filter((e) => e.status === filter)
   const selected = entries.find((e) => e.id === selectedId) ?? null
@@ -310,8 +544,8 @@ export function RegistryPanel(): JSX.Element {
     <div className="h-full flex flex-col">
       <SummaryStats entries={entries} />
 
-      {/* Filter strip */}
-      <div className="flex gap-1.5 mb-3">
+      {/* Filter strip + add button */}
+      <div className="flex items-center gap-1.5 mb-3">
         {(['all', 'active', 'stalled', 'dead', 'evolved', 'retired'] as const).map((f) => {
           const count = f === 'all' ? entries.length : statusCounts[f] || 0
           if (f !== 'all' && count === 0) return null
@@ -330,6 +564,18 @@ export function RegistryPanel(): JSX.Element {
             </button>
           )
         })}
+        <button
+          type="button"
+          onClick={() => {
+            setShowAddForm(true)
+            setSelectedId(null)
+          }}
+          className="ml-auto px-2.5 py-1 rounded text-[10px] font-semibold uppercase tracking-wider
+                     text-amber-400/70 hover:text-amber-400 border border-amber-700/30 hover:border-amber-700/50
+                     transition-colors"
+        >
+          + Add
+        </button>
       </div>
 
       {/* Main layout */}
@@ -341,8 +587,11 @@ export function RegistryPanel(): JSX.Element {
               key={entry.id}
               entry={entry}
               rank={entries.indexOf(entry) + 1}
-              selected={entry.id === selectedId}
-              onSelect={() => setSelectedId(entry.id)}
+              selected={entry.id === selectedId && !showAddForm}
+              onSelect={() => {
+                setSelectedId(entry.id)
+                setShowAddForm(false)
+              }}
             />
           ))}
           {filtered.length === 0 && (
@@ -350,9 +599,11 @@ export function RegistryPanel(): JSX.Element {
           )}
         </div>
 
-        {/* Right: detail view */}
+        {/* Right: detail view or add form */}
         <div className="flex-1 min-w-0 overflow-y-auto pl-4 border-l border-white/6">
-          {selected ? (
+          {showAddForm ? (
+            <AddAgentForm onSave={handleSaveAgent} onCancel={() => setShowAddForm(false)} />
+          ) : selected ? (
             <AgentDetail entry={selected} allEntries={entries} />
           ) : (
             <div className="flex items-center justify-center h-full shell-subtle text-sm">
