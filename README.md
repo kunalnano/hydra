@@ -2,10 +2,10 @@
 
 HELM is a desktop ops shell for developers running AI agents, local services, and multi-machine model workflows. It keeps overall system status visible while giving each domain its own page instead of forcing everything into one dense dashboard.
 
-Main branch tracks the current `4.0` line.
+Current branch version: `4.0.1`.
 Latest tagged release: `v4.0.1`.
 
-The 4.0 line turns HELM into an operator shell with page ownership instead of panel sprawl. Recent releases added Swarm drill-down, persistent local history, a real traffic-topology grid, and a mapped radio signal globe that traces station origin back to home.
+The 4.0 line turned HELM into an operator shell with page ownership instead of panel sprawl. Recent releases added Swarm drill-down, persistent local history, a real traffic-topology grid, and a mapped radio signal globe that traces station origin back to an operator-defined home endpoint. Current mainline also carries Registry and Sentinel work targeting the next line.
 
 The captures below reflect the current 4.0 shell. They were taken with `Secure View` enabled so local hosts, paths, and endpoint details stay redacted.
 
@@ -21,7 +21,7 @@ The captures below reflect the current 4.0 shell. They were taken with `Secure V
 Operator walkthrough: [docs/OPERATOR-WALKTHROUGH.md](docs/OPERATOR-WALKTHROUGH.md)
 Journey so far: [docs/wiki/journey-so-far.md](docs/wiki/journey-so-far.md)
 
-## Navigation (7 Pages, Zero Panel Duplication)
+## Navigation (8 Pages, Zero Panel Duplication)
 
 Every panel appears on exactly one page. No duplicated widgets, no redundant noise.
 
@@ -32,19 +32,21 @@ Every panel appears on exactly one page. No duplicated widgets, no redundant noi
 | **Swarm** | Agent operations: live agent state, swarm load, session timeline |
 | **Grid** | Infrastructure posture: network traffic, security scans, listening ports |
 | **AI** | Operator AI loop: LM Studio briefings, Yennefer, Claude Code usage tracking |
+| **Registry** | Historical record: ranked agent archive, lineage, outputs, and lessons learned |
 | **Radio** | FM streaming tuner with presets, local MP3 import, and direct URL loading |
 | **Logs** | Live log tailing and system event stream |
 
-## 4.0 Highlights
+## Recent Highlights
 
 - Renamed project from HYDRA to **HELM** across all types, CSS, config paths, and UI text
-- Collapsed 8 pages to 7 with zero panel duplication so every tab owns one story
+- Organized the shell around owned pages so every tab tells one story instead of repeating the same panels
 - Added 4th skin: **Phantom** (deep violet neon on obsidian)
-- Restored the FM signal globe as a real station-to-home world map route instead of a fake visualizer slab
+- Restored the FM signal globe as a real station-to-home world map route instead of a fake visualizer slab, then replaced the hardcoded endpoint with a saved user-defined home location
 - Added a live **Traffic Grid** that turns network activity into scoped `loopback / LAN / internet` topology
 - Swarm now drills into active agents with PID, command, ports, goals, and timeline context
 - Local persistence now stores snapshots, alerts, briefings, notifications, and log history so the shell feels continuous
 - AI ticker now surfaces local agent and skill activity instead of filler trivia
+- Added the **Registry** page as a permanent historical record of built agents, plus **Sentinel** monitoring in the shell header
 - Staff of Gandalf, scorecards, and network posture views were tightened so dead space stops winning
 
 ## Core Capabilities
@@ -54,7 +56,8 @@ Every panel appears on exactly one page. No duplicated widgets, no redundant noi
 - **Swarm** tracks active agent processes, cadence, coordination load, and per-agent drill-down
 - **Grid** exposes ports, scoped traffic topology, and security tools
 - **AI** centralizes LM Studio health, briefing requests, Yennefer invocation, and Claude Code usage tracking
-- **Radio** plays public live streams with presets, search, custom URLs, saved volume/station state, and a mapped signal globe
+- **Registry** preserves impact-ranked agent history, lineage, stacks, outputs, and lessons learned
+- **Radio** plays public live streams with presets, search, custom URLs, saved volume/station state, and a mapped signal globe tied to your configured home endpoint
 - **Logs** keeps live log tailing separated from operational controls
 - **SQLite persistence** stores snapshots, alerts, briefings, notifications, and Yennefer history locally
 

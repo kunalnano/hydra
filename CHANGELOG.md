@@ -26,30 +26,38 @@ Entries are ordered newest first. `Unreleased` covers mainline work after the la
 - 6 registry data validation tests
 - 13 sentinel rule unit tests
 
-## v4.0.0 — 2026-03-18
+## v4.0.1 — 2026-03-21
 
-### Shell
-- Renamed project from HYDRA to **HELM** across all types, CSS, config paths, and UI text
-- Config auto-migrates from `~/.config/hydra` to `~/.config/helm`
-- Database auto-migrates from `hydra.db` to `helm.db`
-- Collapsed 8 pages to 7 with zero panel duplication
-- Added 4th skin: **Phantom** (deep violet neon on obsidian)
-- Replaced repetitive system stats ticker with rotating dev/tech facts
-- Added header ticker and radio signal globe visualization
-- Added session delta banner on Bridge and Fleet pages
-- Added skills feed monitor and tiered polling schedule
-
-### Panels
-- Overhauled Staff of Gandalf security panel with cleaner layout and missing-binary detection
-- Moved CC Usage from standalone page into AI page
-- Network scorecard shows contextual status instead of appearing frozen
-- Added `Secure View` for redacting local hosts, paths, and endpoints in screenshots
-- Reworked AI page around mech-entity hero and interface tray
-- Rebuilt security panel as a graphical command deck
+### FM Radio
+- Replaced the hardcoded radio home endpoint with a first-run setup popup and persisted user-configured home location
+- Updated the signal globe and route readout to handle an unset home endpoint gracefully instead of assuming a built-in city
 
 ### Docs
-- Refreshed README showcase media with sanitized captures
-- Added `v3.1.0` release notes under `docs/releases/`
+- Updated release collateral to reflect the `v4.0.1` patch tag and the new configurable radio-home flow
+
+## v4.0.0 — 2026-03-21
+
+### Product
+- Renamed Hydra to HELM across app identity, config surfaces, and the visible shell language
+- Collapsed the shell into seven owned pages so `Bridge`, `Fleet`, `Swarm`, `Grid`, `AI`, `Radio`, and `Logs` stop repeating the same story
+- Added the `Phantom` skin alongside the existing `Deck`, `Orbiter`, and `Forge` themes
+
+### Operations
+- Added Swarm drill-down so agent rows open into PID, command, ports, goals, and timeline context
+- Rebuilt Grid around a live traffic-topology canvas with scoped `loopback`, `LAN`, and `internet` peers
+- Replaced filler header trivia with local AI ticker updates for agents, skills, and operator activity
+
+### Persistence
+- Moved the shell toward true continuity with persisted snapshots, alerts, briefings, notifications, timeline events, and log history
+- Tightened startup hydration so persisted state shows up in the UI instead of feeling fresh every launch
+
+### FM Radio
+- Restored the signal globe as a real station-to-home route, now rendered from actual world land geometry instead of placeholder continent blobs
+- Fixed the home receiving point to Bulverde, Texas for a stable route anchor
+
+### Docs
+- Refreshed the README with current 4.0 captures for AI control, the signal map, and the traffic grid
+- Added dedicated release notes for `v4.0.0` and pointed release automation at tag-specific notes
 
 ## v3.1.0 — 2026-03-18
 
