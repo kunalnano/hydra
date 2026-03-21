@@ -95,7 +95,7 @@ Optional local override:
 ```bash
 cp .env.example .env
 # Example:
-LM_STUDIO_URL=http://192.168.7.200:1234
+LM_STUDIO_URL=http://lm-studio-host.local:1234
 ```
 
 ## Skins

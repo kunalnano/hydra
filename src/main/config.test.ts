@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'fs'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { mkdtempSync, rmSync, existsSync, readFileSync, mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
@@ -138,5 +138,65 @@ describe('ensureConfigDir', () => {
     const nested = join(tmpDir, 'existing')
     mkdirSync(nested, { recursive: true })
     expect(() => mkdirSync(nested, { recursive: true })).not.toThrow()
+  })
+})
+
+describe('loadConfig env overrides', () => {
+  let tmpHome: string
+  const originalHome = process.env.HOME
+  const originalLmStudioUrl = process.env.LM_STUDIO_URL
+
+  beforeEach(() => {
+    vi.resetModules()
+    tmpHome = mkdtempSync(join(tmpdir(), 'helm-config-home-'))
+    process.env.HOME = tmpHome
+    delete process.env.LM_STUDIO_URL
+  })
+
+  afterEach(() => {
+    vi.resetModules()
+    if (originalHome === undefined) {
+      delete process.env.HOME
+    } else {
+      process.env.HOME = originalHome
+    }
+
+    if (originalLmStudioUrl === undefined) {
+      delete process.env.LM_STUDIO_URL
+    } else {
+      process.env.LM_STUDIO_URL = originalLmStudioUrl
+    }
+
+    rmSync(tmpHome, { recursive: true, force: true })
+  })
+
+  it('prefers LM_STUDIO_URL over persisted config', async () => {
+    const configDir = join(tmpHome, '.config', 'helm')
+    mkdirSync(configDir, { recursive: true })
+    writeFileSync(
+      join(configDir, 'config.json'),
+      JSON.stringify({ lmStudioUrl: 'http://localhost:1234' }, null, 2),
+      'utf-8'
+    )
+    process.env.LM_STUDIO_URL = 'http://10.55.0.10:1234'
+
+    const { loadConfig } = await import('./config')
+
+    expect(loadConfig().lmStudioUrl).toBe('http://10.55.0.10:1234')
+  })
+
+  it('ignores blank LM_STUDIO_URL values', async () => {
+    const configDir = join(tmpHome, '.config', 'helm')
+    mkdirSync(configDir, { recursive: true })
+    writeFileSync(
+      join(configDir, 'config.json'),
+      JSON.stringify({ lmStudioUrl: 'http://localhost:1234' }, null, 2),
+      'utf-8'
+    )
+    process.env.LM_STUDIO_URL = '   '
+
+    const { loadConfig } = await import('./config')
+
+    expect(loadConfig().lmStudioUrl).toBe('http://localhost:1234')
   })
 })
