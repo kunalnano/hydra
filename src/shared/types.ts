@@ -87,11 +87,33 @@ export interface NetworkProcess {
   bytesOutPerSec: number
 }
 
+export type NetworkScope = 'loopback' | 'lan' | 'internet' | 'unknown'
+export type NetworkSourceMode = 'nettop' | 'netstat' | 'unavailable'
+
+export interface NetworkConnection {
+  id: string
+  processName: string
+  pid: number
+  protocol: string
+  state: string
+  localAddress: string
+  localPort: number | null
+  remoteAddress: string
+  remotePort: number | null
+  scope: NetworkScope
+  bytesIn: number
+  bytesOut: number
+  bytesInPerSec: number
+  bytesOutPerSec: number
+}
+
 export interface NetworkState {
   processes: NetworkProcess[]
+  connections: NetworkConnection[]
   totalBytesInPerSec: number
   totalBytesOutPerSec: number
   timestamp: number
+  sourceMode: NetworkSourceMode
   error?: string
 }
 
