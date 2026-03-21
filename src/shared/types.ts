@@ -353,8 +353,33 @@ export const IPC_CHANNELS = {
   CCUSAGE_STATE: 'ccusage:state',
   CCUSAGE_REFRESH: 'ccusage:refresh',
   YENNEFER_REQUEST: 'intelligence:yennefer-request',
-  SKILLS_FEED: 'skills:feed'
+  SKILLS_FEED: 'skills:feed',
+  REGISTRY_GET_ALL: 'registry:get-all',
+  REGISTRY_GET_BY_ID: 'registry:get-by-id',
+  REGISTRY_UPDATE: 'registry:update',
+  REGISTRY_GET_TOP: 'registry:get-top',
+  SENTINEL_STATUS: 'sentinel:status',
+  SENTINEL_ALERTS: 'sentinel:alerts'
 } as const
+
+// Sentinel types
+export type SentinelSeverity = 'info' | 'warning' | 'critical'
+
+export interface SentinelAlert {
+  ruleId: string
+  severity: SentinelSeverity
+  title: string
+  body: string
+  suggestedAction?: string
+  timestamp: number
+}
+
+export interface SentinelStatus {
+  enabled: boolean
+  activeAlerts: SentinelAlert[]
+  lastPoll: number
+  rulesEnabled: number
+}
 
 export interface GitActionResult {
   success: boolean
@@ -391,6 +416,39 @@ export interface SkillUpdate {
 export interface SkillFeed {
   totalSkills: number
   recent: SkillUpdate[]
+}
+
+// Agent Registry (historical record of all agents ever built)
+export type RegistryAgentType =
+  | 'voice-assistant'
+  | 'cli-tool'
+  | 'dashboard'
+  | 'mcp-server'
+  | 'workflow-agent'
+  | 'multiplexer'
+  | 'rag-server'
+  | 'bot'
+  | 'simulator'
+  | 'other'
+
+export type RegistryAgentStatus = 'active' | 'retired' | 'stalled' | 'dead' | 'evolved'
+
+export interface AgentRegistryEntry {
+  id: string
+  name: string
+  codename?: string
+  type: RegistryAgentType
+  status: RegistryAgentStatus
+  era: { start: string; end?: string }
+  stack: string[]
+  repo?: string
+  deployedTo?: string
+  description: string
+  keyOutputs: string[]
+  impactScore: number
+  lessonsLearned?: string
+  parentAgent?: string
+  tags: string[]
 }
 
 export type YenneferStyle = 'adaptive' | 'throughput' | 'creative' | 'strict'

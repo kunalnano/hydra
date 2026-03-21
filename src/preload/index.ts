@@ -20,7 +20,10 @@ import type {
   GroupActionResult,
   CCUsageState,
   SkillFeed,
-  DBSnapshot
+  DBSnapshot,
+  AgentRegistryEntry,
+  SentinelStatus,
+  SentinelAlert
 } from '../shared/types'
 
 const api = {
@@ -215,7 +218,36 @@ const api = {
   getSessionDelta: (): Promise<{
     lastSessionTimestamp: number
     missingWorkspaces: { name: string; type: string; ports: number[] }[]
-  } | null> => ipcRenderer.invoke(IPC_CHANNELS.SESSION_DELTA)
+  } | null> => ipcRenderer.invoke(IPC_CHANNELS.SESSION_DELTA),
+
+  // Agent Registry
+  getAgentRegistry: (): Promise<AgentRegistryEntry[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.REGISTRY_GET_ALL),
+
+  getAgentById: (id: string): Promise<AgentRegistryEntry | null> =>
+    ipcRenderer.invoke(IPC_CHANNELS.REGISTRY_GET_BY_ID, id),
+
+  updateAgentEntry: (entry: AgentRegistryEntry): Promise<AgentRegistryEntry> =>
+    ipcRenderer.invoke(IPC_CHANNELS.REGISTRY_UPDATE, entry),
+
+  getTopAgents: (n: number): Promise<AgentRegistryEntry[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.REGISTRY_GET_TOP, n),
+
+  // Sentinel
+  getSentinelStatus: (): Promise<SentinelStatus> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SENTINEL_STATUS),
+
+  getSentinelAlerts: (): Promise<SentinelAlert[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SENTINEL_ALERTS),
+
+  onSentinelAlert: (callback: (alert: SentinelAlert) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, alert: SentinelAlert): void =>
+      callback(alert)
+    ipcRenderer.on(IPC_CHANNELS.SENTINEL_ALERTS, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.SENTINEL_ALERTS, handler)
+    }
+  }
 }
 
 contextBridge.exposeInMainWorld('helm', api)

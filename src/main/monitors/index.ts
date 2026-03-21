@@ -225,6 +225,10 @@ function ingestExternalAgentTimelineEvents(): void {
   }
 }
 
+export function getLatestState(): SystemState | null {
+  return latestState
+}
+
 export function onStateUpdate(callback: (state: SystemState) => void): void {
   trayCallback = callback
 }

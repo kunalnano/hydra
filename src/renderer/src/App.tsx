@@ -16,12 +16,13 @@ import { TimelinePanel, SessionDeltaBanner } from './panels/Timeline'
 import { CommandPalette } from './panels/CommandPalette'
 import { CCUsagePanel } from './panels/CCUsage'
 import { FMRadioPanel } from './panels/FMRadio'
+import { RegistryPanel } from './panels/Registry'
 import { HELM_SKINS, useSkinStore } from './stores/skin'
 import { usePrivacyStore } from './stores/privacy'
 import { HeaderTicker } from './components/HeaderTicker'
 import { SkinGlobe } from './components/SkinGlobe'
 import { getAudioElement } from './stores/audio-engine'
-import type { SystemState } from '../../shared/types'
+import type { SystemState, SentinelStatus } from '../../shared/types'
 
 interface PageMeta {
   id: HelmPageId
@@ -62,6 +63,12 @@ const PAGES: PageMeta[] = [
     description: 'Owns LM Studio control, AI briefings, and usage tracking.'
   },
   {
+    id: 'registry',
+    label: 'Registry',
+    kicker: 'Hall of fame',
+    description: 'Permanent historical record of every agent ever built. Ranked by impact.'
+  },
+  {
     id: 'radio',
     label: 'Radio',
     kicker: 'Audio relay',
@@ -91,7 +98,8 @@ const PANEL_DOTS: Record<string, string> = {
   'Git History': 'bg-indigo-400',
   'Swarm Timeline': 'bg-lime-400',
   'Spend & Usage': 'bg-violet-400',
-  'Agent Roster': 'bg-amber-400'
+  'Agent Roster': 'bg-amber-400',
+  'Agent Registry': 'bg-yellow-400'
 }
 
 const PANEL_ACCENT_HEX: Record<string, string> = {
@@ -110,7 +118,8 @@ const PANEL_ACCENT_HEX: Record<string, string> = {
   'Git History': '#818cf8',
   'Swarm Timeline': '#a3e635',
   'Spend & Usage': '#a78bfa',
-  'Agent Roster': '#fbbf24'
+  'Agent Roster': '#fbbf24',
+  'Agent Registry': '#facc15'
 }
 
 const PAGE_MONOGRAMS: Record<HelmPageId, string> = {
@@ -119,6 +128,7 @@ const PAGE_MONOGRAMS: Record<HelmPageId, string> = {
   swarm: 'SW',
   grid: 'GR',
   ai: 'AI',
+  registry: 'RG',
   radio: 'FM',
   logs: 'LG'
 }
@@ -129,6 +139,7 @@ const PAGE_GLYPH_GRADIENTS: Record<HelmPageId, string> = {
   swarm: 'from-amber-200/95 via-orange-300/80 to-rose-300/75',
   grid: 'from-emerald-200/95 via-teal-300/80 to-sky-300/65',
   ai: 'from-fuchsia-200/95 via-violet-300/80 to-sky-300/65',
+  registry: 'from-yellow-200/95 via-amber-300/80 to-orange-300/65',
   radio: 'from-pink-200/95 via-fuchsia-300/80 to-cyan-300/70',
   logs: 'from-lime-200/95 via-emerald-300/75 to-cyan-300/65'
 }
@@ -297,6 +308,41 @@ function PrivacyChip(): JSX.Element {
   )
 }
 
+function SentinelChip(): JSX.Element {
+  const [status, setStatus] = useState<SentinelStatus | null>(null)
+  const setCurrentPage = useNavigationStore((s) => s.setCurrentPage)
+
+  useEffect(() => {
+    window.helm.getSentinelStatus().then(setStatus)
+    const interval = setInterval(() => {
+      window.helm.getSentinelStatus().then(setStatus)
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (!status || !status.enabled) return <></>
+
+  const hasCritical = status.activeAlerts.some((a) => a.severity === 'critical' || a.severity === 'warning')
+  const hasInfo = status.activeAlerts.some((a) => a.severity === 'info')
+  const dotColor = hasCritical
+    ? 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.8)]'
+    : hasInfo
+      ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+      : 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]'
+
+  return (
+    <button
+      type="button"
+      onClick={() => setCurrentPage('logs')}
+      title={`Sentinel: ${status.activeAlerts.length} alerts in last hour, ${status.rulesEnabled} rules active`}
+      className="shell-control-button px-3 py-1.5 text-xs font-medium flex items-center gap-2"
+    >
+      <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+      Sentinel
+    </button>
+  )
+}
+
 function Header({
   onOpenSkinSelector
 }: {
@@ -324,6 +370,7 @@ function Header({
 
       <div className="ml-auto flex shrink-0 items-center gap-3">
         <div className="hidden sm:flex items-center gap-2">
+          <SentinelChip />
           <PrivacyChip />
           <SkinChip onOpen={onOpenSkinSelector} />
         </div>
@@ -455,6 +502,16 @@ function AIPage(): JSX.Element {
   )
 }
 
+function RegistryPage(): JSX.Element {
+  return (
+    <div className="space-y-4">
+      <DashPanel title="Agent Registry" className="min-h-[600px]">
+        <RegistryPanel />
+      </DashPanel>
+    </div>
+  )
+}
+
 function RadioPage(): JSX.Element {
   return (
     <div className="space-y-4">
@@ -514,6 +571,9 @@ function NavBadge({
       break
     case 'ai':
       badge = state.memory.usagePercent >= 80 ? 'hot' : 'ready'
+      break
+    case 'registry':
+      badge = '\u{1F3C6}'
       break
     case 'radio':
       badge = 'fm'
@@ -610,6 +670,7 @@ function PageContent({ currentPage }: { currentPage: HelmPageId }): JSX.Element 
     case 'swarm':    return <SwarmPage />
     case 'grid':     return <GridPage />
     case 'ai':       return <AIPage />
+    case 'registry': return <RegistryPage />
     case 'radio':    return <RadioPage />
     case 'logs':     return <LogsPage />
     default:         return <BridgePage />

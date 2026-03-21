@@ -18,7 +18,8 @@ import {
   dialog
 } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { startMonitoring, stopMonitoring, onStateUpdate } from './monitors/index'
+import { startMonitoring, stopMonitoring, onStateUpdate, getLatestState } from './monitors/index'
+import { startSentinel, stopSentinel, getSentinelStatus, getSentinelAlerts } from './sentinel/index'
 import { getRepoCommitHistory } from './monitors/git'
 import { getDb, closeDb } from './db/index'
 import {
@@ -32,9 +33,10 @@ import {
 } from './db/queries'
 import { IPC_CHANNELS } from '../shared/types'
 import { loadConfig, saveConfig } from './config'
+import { getAgentRegistry, getAgentById, updateAgentEntry, getTopAgents } from './registry'
 import { getRadioRelayUrl, stopRadioRelayServer } from './radio-relay'
 import { getSkillFeed } from './skills'
-import type { HelmConfig, SystemState } from '../shared/types'
+import type { HelmConfig, SystemState, AgentRegistryEntry } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -105,6 +107,7 @@ function createWindow(): void {
   }
 
   startMonitoring(mainWindow)
+  startSentinel(mainWindow, getLatestState)
 
   onStateUpdate((state) => {
     if (tray) {
@@ -249,6 +252,18 @@ app.whenReady().then(() => {
 
   ipcMain.handle(IPC_CHANNELS.SKILLS_FEED, (_event, limit: number) => getSkillFeed(limit))
 
+  // Agent Registry IPC handlers
+  ipcMain.handle(IPC_CHANNELS.REGISTRY_GET_ALL, () => getAgentRegistry())
+  ipcMain.handle(IPC_CHANNELS.REGISTRY_GET_BY_ID, (_event, id: string) => getAgentById(id))
+  ipcMain.handle(IPC_CHANNELS.REGISTRY_UPDATE, (_event, entry: AgentRegistryEntry) =>
+    updateAgentEntry(entry)
+  )
+  ipcMain.handle(IPC_CHANNELS.REGISTRY_GET_TOP, (_event, n: number) => getTopAgents(n))
+
+  // Sentinel IPC handlers
+  ipcMain.handle(IPC_CHANNELS.SENTINEL_STATUS, () => getSentinelStatus())
+  ipcMain.handle(IPC_CHANNELS.SENTINEL_ALERTS, () => getSentinelAlerts())
+
   // Audio file picker for FM Radio local library
   ipcMain.handle('dialog:openAudioFile', async () => {
     const result = await dialog.showOpenDialog({
@@ -302,6 +317,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   globalShortcut.unregisterAll()
+  stopSentinel()
   stopMonitoring()
   void stopRadioRelayServer()
   closeDb()
