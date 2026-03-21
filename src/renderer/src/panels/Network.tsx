@@ -8,6 +8,7 @@ import type {
 } from '../../../shared/types'
 import { NetworkTrafficGrid, type NetworkGridPeer } from '../components/NetworkTrafficGrid'
 import { Sparkline } from '../components/Sparkline'
+import { redactSensitiveText, usePrivacyStore } from '../stores/privacy'
 import { useTimeSeriesStore } from '../stores/timeseries'
 
 function formatRate(bytesPerSec: number): string {
@@ -167,6 +168,7 @@ export function NetworkPanel(): JSX.Element {
   const [processHistory, setProcessHistory] = useState<Record<number, number[]>>({})
   const [peerHistory, setPeerHistory] = useState<Record<string, number[]>>({})
   const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null)
+  const privacyMode = usePrivacyStore((store) => store.privacyMode)
 
   const { netInHistory, netOutHistory } = useTimeSeriesStore()
 
@@ -202,6 +204,14 @@ export function NetworkPanel(): JSX.Element {
   const peerGroups = useMemo(
     () => (networkState ? buildPeerGroups(networkState.connections).slice(0, 10) : []),
     [networkState]
+  )
+  const displayPeers = useMemo(
+    () =>
+      peerGroups.map((peer) => ({
+        ...peer,
+        label: privacyMode ? redactSensitiveText(peer.label) : peer.label
+      })),
+    [peerGroups, privacyMode]
   )
 
   useEffect(() => {
@@ -242,6 +252,11 @@ export function NetworkPanel(): JSX.Element {
     networkState.sourceMode === 'netstat' || sortedProcesses.some((proc) => proc.pid < 0)
   const showTopology = !isInterfaceMode && peerGroups.length > 0
   const selectedPeer = peerGroups.find((peer) => peer.id === selectedPeerId) ?? null
+  const selectedPeerLabel = selectedPeer
+    ? privacyMode
+      ? redactSensitiveText(selectedPeer.label)
+      : selectedPeer.label
+    : null
 
   return (
     <div className="space-y-3 text-sm overflow-y-auto max-h-full pr-1">
@@ -269,14 +284,14 @@ export function NetworkPanel(): JSX.Element {
       {showTopology ? (
         <div className="space-y-3">
           <NetworkTrafficGrid
-            peers={peerGroups}
+            peers={displayPeers}
             selectedPeerId={selectedPeerId}
             onSelect={setSelectedPeerId}
           />
 
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
             <div className="space-y-1.5">
-              {peerGroups.map((peer) => (
+              {displayPeers.map((peer) => (
                 <button
                   key={peer.id}
                   type="button"
@@ -326,7 +341,7 @@ export function NetworkPanel(): JSX.Element {
                     <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
                       Selected Peer
                     </div>
-                    <div className="mt-1 text-white font-semibold">{selectedPeer.label}</div>
+                    <div className="mt-1 text-white font-semibold">{selectedPeerLabel}</div>
                     <div className="mt-1 text-xs text-white/45">
                       {SCOPE_LABEL[selectedPeer.scope]} scope · {selectedPeer.connectionCount} active flows
                     </div>

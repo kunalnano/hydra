@@ -2,14 +2,20 @@
 
 HELM is a desktop ops shell for developers running AI agents, local services, and multi-machine model workflows. It keeps overall system status visible while giving each domain its own page instead of forcing everything into one dense dashboard.
 
-Latest tagged release: `v4.0.0` on March 18, 2026.
+Current app line: `4.0.0`.
 
-The captures below reflect the current mainline shell. They were taken with `Secure View` enabled so local hosts, paths, and LM Studio endpoints stay redacted.
+The 4.0 line turns HELM into an operator shell with page ownership instead of panel sprawl. Recent releases added Swarm drill-down, persistent local history, a real traffic-topology grid, and a mapped radio signal globe that traces station origin back to home.
 
-![HELM Mainline Showcase](docs/screenshots/hydra-mainline-showcase.gif)
-![HELM AI Full View](docs/screenshots/hydra-mainline-ai-full.png)
-![HELM FM Radio Forge](docs/screenshots/hydra-mainline-radio-forge.png)
-![HELM Systems Forge](docs/screenshots/hydra-mainline-systems-forge.png)
+The captures below reflect the current 4.0 shell. They were taken with `Secure View` enabled so local hosts, paths, and endpoint details stay redacted.
+
+### AI Control
+![HELM 4 AI Control](docs/screenshots/helm-4-ai-control.png)
+
+### Radio Signal Map
+![HELM 4 Radio Signal Map](docs/screenshots/helm-4-radio-signal-map.png)
+
+### Traffic Grid
+![HELM 4 Traffic Grid](docs/screenshots/helm-4-grid-topology.png)
 
 Operator walkthrough: [docs/OPERATOR-WALKTHROUGH.md](docs/OPERATOR-WALKTHROUGH.md)
 Journey so far: [docs/wiki/journey-so-far.md](docs/wiki/journey-so-far.md)
@@ -28,25 +34,26 @@ Every panel appears on exactly one page. No duplicated widgets, no redundant noi
 | **Radio** | FM streaming tuner with presets, local MP3 import, and direct URL loading |
 | **Logs** | Live log tailing and system event stream |
 
-## What Changed In v4.0.0
+## 4.0 Highlights
 
 - Renamed project from HYDRA to **HELM** across all types, CSS, config paths, and UI text
-- Config auto-migrates from `~/.config/hydra` to `~/.config/helm`
-- Collapsed 8 pages to 7 with zero panel duplication
+- Collapsed 8 pages to 7 with zero panel duplication so every tab owns one story
 - Added 4th skin: **Phantom** (deep violet neon on obsidian)
-- Replaced repetitive system stats ticker with rotating dev/tech facts
-- Overhauled Staff of Gandalf security panel with cleaner layout and missing-binary detection
-- Moved CC Usage from standalone page into AI page
-- Network scorecard now shows contextual status instead of appearing frozen
+- Restored the FM signal globe as a real station-to-home world map route instead of a fake visualizer slab
+- Added a live **Traffic Grid** that turns network activity into scoped `loopback / LAN / internet` topology
+- Swarm now drills into active agents with PID, command, ports, goals, and timeline context
+- Local persistence now stores snapshots, alerts, briefings, notifications, and log history so the shell feels continuous
+- AI ticker now surfaces local agent and skill activity instead of filler trivia
+- Staff of Gandalf, scorecards, and network posture views were tightened so dead space stops winning
 
 ## Core Capabilities
 
 - **Bridge** surfaces health, hotspots, command center, and the compact AI briefing
 - **Fleet** handles repo drift, process orchestration, git status, and commit history
-- **Swarm** tracks active agent processes, cadence, and coordination load
-- **Grid** exposes ports, network traffic, and security tools
+- **Swarm** tracks active agent processes, cadence, coordination load, and per-agent drill-down
+- **Grid** exposes ports, scoped traffic topology, and security tools
 - **AI** centralizes LM Studio health, briefing requests, Yennefer invocation, and Claude Code usage tracking
-- **Radio** plays public live streams with presets, search, custom URLs, and saved volume/station state
+- **Radio** plays public live streams with presets, search, custom URLs, saved volume/station state, and a mapped signal globe
 - **Logs** keeps live log tailing separated from operational controls
 - **SQLite persistence** stores snapshots, alerts, briefings, notifications, and Yennefer history locally
 
