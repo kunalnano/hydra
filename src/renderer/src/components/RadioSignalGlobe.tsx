@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { RadioStation } from '../panels/fm-stations'
 
 const TAU = Math.PI * 2
-const DEFAULT_DEVICE_COORDS: [number, number] = [39.5, -98.35]
+const HOME_LOCATION: DeviceLocation = {
+  coords: [29.7438332, -98.4530729],
+  label: 'Bulverde, TX',
+  source: 'fixed'
+}
 
 const STATION_COORDS: Record<string, [number, number]> = {
   'wbgo-jazz': [40.7357, -74.1724],
@@ -25,19 +29,8 @@ const STATION_COORDS: Record<string, [number, number]> = {
   'bbc-6music': [51.5072, -0.1276]
 }
 
-const TIMEZONE_FALLBACKS: Record<string, { coords: [number, number]; label: string }> = {
-  'America/New_York': { coords: [40.7128, -74.006], label: 'New York region' },
-  'America/Chicago': { coords: [41.8781, -87.6298], label: 'Chicago region' },
-  'America/Denver': { coords: [39.7392, -104.9903], label: 'Denver region' },
-  'America/Los_Angeles': { coords: [34.0522, -118.2437], label: 'Los Angeles region' },
-  'America/Phoenix': { coords: [33.4484, -112.074], label: 'Phoenix region' },
-  'America/Anchorage': { coords: [61.2181, -149.9003], label: 'Anchorage region' },
-  'Pacific/Honolulu': { coords: [21.3099, -157.8581], label: 'Honolulu region' },
-  'Europe/London': { coords: [51.5072, -0.1276], label: 'London region' }
-}
-
 type SignalMode = 'station' | 'local' | 'custom' | 'idle'
-type DeviceLocationSource = 'geolocation' | 'timezone' | 'fallback'
+type DeviceLocationSource = 'fixed'
 
 interface DeviceLocation {
   coords: [number, number]
@@ -125,16 +118,6 @@ function formatDistance(miles: number): string {
   return `${Math.round(miles)} mi`
 }
 
-function resolveTimezoneFallback(): DeviceLocation {
-  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const fallback = TIMEZONE_FALLBACKS[zone]
-  if (fallback) {
-    return { coords: fallback.coords, label: fallback.label, source: 'timezone' }
-  }
-
-  return { coords: DEFAULT_DEVICE_COORDS, label: 'Device region', source: 'fallback' }
-}
-
 function SignalCard({
   label,
   value,
@@ -160,31 +143,9 @@ export function RadioSignalGlobe({
 }: RadioSignalGlobeProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef(0)
-  const [deviceLocation, setDeviceLocation] = useState<DeviceLocation>(() => resolveTimezoneFallback())
+  const deviceLocation = HOME_LOCATION
 
   const stationCoords = station ? STATION_COORDS[station.id] ?? null : null
-
-  useEffect(() => {
-    if (!navigator.geolocation) return
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setDeviceLocation({
-          coords: [position.coords.latitude, position.coords.longitude],
-          label: 'Current location',
-          source: 'geolocation'
-        })
-      },
-      () => {
-        /* fall back to timezone approximation */
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 5000,
-        maximumAge: 5 * 60 * 1000
-      }
-    )
-  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -368,12 +329,7 @@ export function RadioSignalGlobe({
     return 'Select a station to visualize the path.'
   }, [mode, sourceLabel, stationCoords])
 
-  const receivingDetail =
-    deviceLocation.source === 'geolocation'
-      ? 'Live device location.'
-      : deviceLocation.source === 'timezone'
-        ? 'Timezone-based approximation.'
-        : 'Fallback region.'
+  const receivingDetail = 'Fixed home endpoint.'
 
   return (
     <div className="winamp-signal-layout">
