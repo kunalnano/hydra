@@ -17,7 +17,13 @@ export function LogsPanel(): JSX.Element {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    window.helm.getLogSources().then(setSources)
+    Promise.all([
+      window.helm.getLogSources().catch(() => []),
+      window.helm.queryLogs(MAX_LINES).catch(() => [])
+    ]).then(([initialSources, initialLines]) => {
+      setSources(initialSources)
+      setLines(initialLines)
+    })
 
     const unsubscribe = window.helm.onLogLines((newLines) => {
       setLines((prev) => {
@@ -41,6 +47,11 @@ export function LogsPanel(): JSX.Element {
     setAutoScroll(scrollHeight - scrollTop - clientHeight < 50)
   }
 
+  const clearHistory = async (): Promise<void> => {
+    await window.helm.clearLogs()
+    setLines([])
+  }
+
   if (sources.length === 0 && lines.length === 0) {
     return (
       <div className="text-gray-600 text-sm h-full flex items-center justify-center">
@@ -60,8 +71,8 @@ export function LogsPanel(): JSX.Element {
         <span>
           {sources.length} source{sources.length !== 1 ? 's' : ''} | {lines.length} lines
         </span>
-        <button onClick={() => setLines([])} className="hover:text-gray-400 transition-colors">
-          Clear
+        <button onClick={() => void clearHistory()} className="hover:text-gray-400 transition-colors">
+          Clear History
         </button>
       </div>
       <div

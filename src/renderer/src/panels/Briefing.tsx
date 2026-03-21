@@ -80,6 +80,17 @@ export function BriefingPanel({ variant = 'compact' }: BriefingPanelProps): JSX.
   }, [refreshConfig])
 
   useEffect(() => {
+    window.helm
+      .queryBriefings(1)
+      .then((rows) => {
+        if (rows.length > 0) {
+          setBriefing(rows[0])
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
     return () => {
       if (coreTimerRef.current !== null) {
         window.clearTimeout(coreTimerRef.current)

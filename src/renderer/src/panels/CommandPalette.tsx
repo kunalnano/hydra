@@ -20,31 +20,31 @@ const PAGE_COMMANDS: {
     page: 'bridge',
     label: 'Open Bridge',
     aliases: ['bridge', 'home', 'mission control', 'overview'],
-    description: 'Jump to the mission control posture page'
+    description: 'Jump to the high-level triage overview'
   },
   {
     page: 'fleet',
     label: 'Open Fleet',
     aliases: ['fleet', 'repos', 'git', 'workspace', 'workspaces'],
-    description: 'Jump to repo drift and process orchestration'
+    description: 'Jump to workspace control, repo drift, and commit history'
   },
   {
     page: 'swarm',
     label: 'Open Swarm',
     aliases: ['swarm', 'agents', 'agent roster'],
-    description: 'Jump to agent load and coordination context'
+    description: 'Jump to live agent drill-down and swarm history'
   },
   {
     page: 'grid',
     label: 'Open Grid',
-    aliases: ['grid', 'network', 'ports', 'security', 'systems'],
-    description: 'Jump to network, ports, and machine posture'
+    aliases: ['grid', 'network', 'ports', 'security', 'systems', 'surface'],
+    description: 'Jump to network traffic, ports, and security posture'
   },
   {
     page: 'ai',
     label: 'Open AI',
     aliases: ['lm studio', 'briefing', 'yennefer', 'usage', 'cost'],
-    description: 'Jump to the operator-facing AI loop and usage tracking'
+    description: 'Jump to LM Studio control, briefings, and usage tracking'
   },
   {
     page: 'radio',

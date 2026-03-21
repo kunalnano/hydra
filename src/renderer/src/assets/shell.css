@@ -257,6 +257,7 @@ body {
 /* ── Scorecards strip ── */
 .shell-scorecard-strip {
   gap: 0.5rem;
+  align-items: stretch;
 }
 
 /* ── Shared border + top-edge shine for raised elements ── */
@@ -283,11 +284,23 @@ body {
 
 /* ── Scorecard (card tier + display well for value) ── */
 .shell-scorecard {
-  min-width: 130px;
   border-radius: var(--helm-radius-md);
   background: var(--helm-card-bg);
   box-shadow: var(--helm-card-shadow);
   transition: transform 120ms ease, border-color 120ms ease;
+}
+
+.shell-scorecard--primary {
+  min-width: 118px;
+  flex: 1 1 132px;
+  flex-direction: column;
+}
+
+.shell-scorecard--compact {
+  min-width: 88px;
+  flex: 0 1 102px;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .shell-scorecard:hover {

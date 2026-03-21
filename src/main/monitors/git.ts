@@ -6,6 +6,13 @@ const execAsync = promisify(exec)
 
 const DEFAULT_SCAN_DIRS = ['~/Documents/ai/myAIProjects']
 
+export function resolveGitScanDirs(scanDirs?: string[]): string[] {
+  const dirs = scanDirs && scanDirs.length > 0 ? scanDirs : DEFAULT_SCAN_DIRS
+  return dirs
+    .map((dir) => dir.replace(/^~/, process.env.HOME || ''))
+    .filter((dir) => dir.length > 0)
+}
+
 export function parseGitStatus(
   porcelainOutput: string
 ): Pick<GitRepoInfo, 'dirty' | 'untracked' | 'modified'> {
@@ -75,7 +82,7 @@ async function getRepoInfo(repoPath: string): Promise<GitRepoInfo | null> {
 }
 
 export async function scanForRepos(scanDirs?: string[]): Promise<GitRepoInfo[]> {
-  const dirs = (scanDirs || DEFAULT_SCAN_DIRS).map((d) => d.replace(/^~/, process.env.HOME || ''))
+  const dirs = resolveGitScanDirs(scanDirs)
   const repos: GitRepoInfo[] = []
 
   for (const dir of dirs) {

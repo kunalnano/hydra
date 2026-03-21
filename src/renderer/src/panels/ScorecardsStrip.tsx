@@ -77,7 +77,7 @@ export function ScorecardsStrip(): JSX.Element {
   const totalBandwidth = netIn + netOut
 
   const netCombinedHistory = netInHistory.map((v, i) => v + (netOutHistory[i] ?? 0))
-  const hasNetData = netCombinedHistory.some((v) => v > 0)
+  const hasNetData = netCombinedHistory.some((v) => v > 0) && !state?.network?.error
 
   const totalAgents = state?.agents.length ?? 0
   const engagedAgents =
@@ -96,8 +96,86 @@ export function ScorecardsStrip(): JSX.Element {
       : 'Network (quiet)'
     : 'Network (no data)'
 
+  const compactCards: JSX.Element[] = []
+
+  if (hasNetData) {
+    compactCards.push(
+      <Scorecard
+        key="network"
+        value={formatRate(totalBandwidth)}
+        label={networkLabel}
+        color="blue"
+        sparkData={netCombinedHistory}
+        trend={netTrend.direction}
+        trendWidget={
+          <SmartTrendArrow direction={netTrend.direction} sentiment={netTrend.sentiment} />
+        }
+        onClick={() => setCurrentPage('grid')}
+        size="compact"
+      />
+    )
+  }
+
+  if (totalAgents > 0) {
+    compactCards.push(
+      <Scorecard
+        key="agents"
+        value={`${totalAgents}`}
+        label={engagedAgents > 0 ? `Agents • ${engagedAgents} hot` : 'Agents • idle'}
+        color={engagedAgents > 0 ? 'green' : 'blue'}
+        size="compact"
+        onClick={() => setCurrentPage('swarm')}
+      />
+    )
+  }
+
+  if (listenPorts > 0) {
+    compactCards.push(
+      <Scorecard key="ports" value={`${listenPorts}`} label="Ports" color="blue" size="compact" onClick={() => setCurrentPage('grid')} />
+    )
+  }
+
+  if (totalRepos > 0) {
+    compactCards.push(
+      <Scorecard
+        key="repos"
+        value={dirtyRepos > 0 ? `${dirtyRepos}/${totalRepos}` : `${totalRepos}`}
+        label={dirtyRepos > 0 ? 'Dirty Repos' : 'Git Repos'}
+        color={dirtyRepos > 0 ? 'amber' : 'green'}
+        onClick={() => setCurrentPage('fleet')}
+        size="compact"
+      />
+    )
+  }
+
+  if (state?.disk) {
+    compactCards.push(
+      <Scorecard
+        key="disk"
+        value={`${Math.round(state.disk.maxUsagePercent)}%`}
+        label="Disk"
+        color={getUsageColor(state.disk.maxUsagePercent)}
+        size="compact"
+      />
+    )
+  }
+
+  if (state?.battery?.hasBattery) {
+    compactCards.push(
+      <Scorecard
+        key="battery"
+        value={`${state.battery.percent}%`}
+        label={state.battery.charging ? 'Battery ⚡' : 'Battery'}
+        color={
+          state.battery.percent <= 20 ? 'red' : state.battery.percent <= 50 ? 'amber' : 'green'
+        }
+        size="compact"
+      />
+    )
+  }
+
   return (
-    <div className="shell-scorecard-strip flex flex-wrap gap-3">
+    <div className="shell-scorecard-strip flex flex-wrap items-stretch gap-2">
       <Scorecard
         value={`${Math.round(cpuUsage)}%`}
         label="CPU"
@@ -107,6 +185,7 @@ export function ScorecardsStrip(): JSX.Element {
         trendWidget={
           <SmartTrendArrow direction={cpuTrend.direction} sentiment={cpuTrend.sentiment} />
         }
+        size="primary"
       />
       <Scorecard
         value={`${Math.round(memUsage)}%`}
@@ -117,52 +196,9 @@ export function ScorecardsStrip(): JSX.Element {
         trendWidget={
           <SmartTrendArrow direction={memTrend.direction} sentiment={memTrend.sentiment} />
         }
+        size="primary"
       />
-      <Scorecard
-        value={formatRate(totalBandwidth)}
-        label={networkLabel}
-        color={hasNetData ? 'blue' : 'gray'}
-        sparkData={netCombinedHistory}
-        trend={netTrend.direction}
-        trendWidget={
-          <SmartTrendArrow direction={netTrend.direction} sentiment={netTrend.sentiment} />
-        }
-        onClick={() => setCurrentPage('grid')}
-      />
-      <Scorecard
-        value={`${totalAgents}`}
-        label={
-          totalAgents > 0
-            ? engagedAgents > 0
-              ? `Agents • ${engagedAgents} hot`
-              : 'Agents • idle'
-            : 'Agents'
-        }
-        color={engagedAgents > 0 ? 'green' : totalAgents > 0 ? 'blue' : 'gray'}
-      />
-      <Scorecard value={`${listenPorts}`} label="Ports" color="blue" />
-      <Scorecard
-        value={dirtyRepos > 0 ? `${dirtyRepos}/${totalRepos}` : `${totalRepos}`}
-        label={dirtyRepos > 0 ? 'Dirty Repos' : 'Git Repos'}
-        color={dirtyRepos > 0 ? 'amber' : 'green'}
-        onClick={() => setCurrentPage('fleet')}
-      />
-      {state?.disk && (
-        <Scorecard
-          value={`${Math.round(state.disk.maxUsagePercent)}%`}
-          label="Disk"
-          color={getUsageColor(state.disk.maxUsagePercent)}
-        />
-      )}
-      {state?.battery?.hasBattery && (
-        <Scorecard
-          value={`${state.battery.percent}%`}
-          label={state.battery.charging ? 'Battery ⚡' : 'Battery'}
-          color={
-            state.battery.percent <= 20 ? 'red' : state.battery.percent <= 50 ? 'amber' : 'green'
-          }
-        />
-      )}
+      {compactCards}
     </div>
   )
 }

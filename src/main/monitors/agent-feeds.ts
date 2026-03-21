@@ -15,10 +15,15 @@ import type {
 const WAITING_HEARTBEAT_MS = 2 * 60 * 1000
 const STALE_HEARTBEAT_MS = 10 * 60 * 1000
 
-const DEFAULT_AGENT_FEED_PATHS = [
-  join(homedir(), '.config', 'hydra', 'agents'),
-  join(homedir(), '.hydra', 'agents')
-]
+export function getDefaultAgentFeedPaths(homeDir = homedir()): string[] {
+  return [
+    join(homeDir, '.config', 'helm', 'agents'),
+    join(homeDir, '.config', 'hydra', 'agents'),
+    join(homeDir, '.hydra', 'agents')
+  ]
+}
+
+const DEFAULT_AGENT_FEED_PATHS = getDefaultAgentFeedPaths()
 
 interface RawAgentState {
   agent_id?: unknown

@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import {
+  getDefaultAgentFeedPaths,
   loadExternalAgents,
   loadExternalAgentTimelineEvents,
   parseAgentState,
@@ -153,5 +154,15 @@ describe('agent feed monitor', () => {
     expect(events).toHaveLength(2)
     expect(events[0].timestamp).toBeLessThan(events[1].timestamp)
     expect(events[1].type).toBe('agent_update')
+  })
+
+  it('checks the Helm agent feed path before legacy Hydra locations', () => {
+    const paths = getDefaultAgentFeedPaths('/Users/tester')
+
+    expect(paths).toEqual([
+      '/Users/tester/.config/helm/agents',
+      '/Users/tester/.config/hydra/agents',
+      '/Users/tester/.hydra/agents'
+    ])
   })
 })

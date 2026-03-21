@@ -182,6 +182,12 @@ export interface LogLine {
   level: 'info' | 'warn' | 'error' | 'debug'
 }
 
+export interface DBSnapshot {
+  id: number
+  timestamp: number
+  data: SystemState
+}
+
 export interface BriefingResult {
   summary: string
   alerts: BriefingAlert[]
@@ -332,6 +338,8 @@ export const IPC_CHANNELS = {
   DB_QUERY_ALERTS: 'db:query-alerts',
   DB_QUERY_BRIEFINGS: 'db:query-briefings',
   DB_QUERY_NOTIFICATIONS: 'db:query-notifications',
+  DB_QUERY_LOGS: 'db:query-logs',
+  DB_CLEAR_LOGS: 'db:clear-logs',
   CONFIG_GET: 'config:get',
   CONFIG_SAVE: 'config:save',
   GIT_COMMIT_HISTORY: 'git:commit-history',
@@ -344,7 +352,8 @@ export const IPC_CHANNELS = {
   SESSION_DELTA: 'session:delta',
   CCUSAGE_STATE: 'ccusage:state',
   CCUSAGE_REFRESH: 'ccusage:refresh',
-  YENNEFER_REQUEST: 'intelligence:yennefer-request'
+  YENNEFER_REQUEST: 'intelligence:yennefer-request',
+  SKILLS_FEED: 'skills:feed'
 } as const
 
 export interface GitActionResult {
@@ -369,6 +378,19 @@ export interface PostureHistoryEntry {
   score: number
   grade: string
   verdict: string
+}
+
+export interface SkillUpdate {
+  name: string
+  title: string
+  path: string
+  updatedAt: number
+  scope: 'user' | 'system'
+}
+
+export interface SkillFeed {
+  totalSkills: number
+  recent: SkillUpdate[]
 }
 
 export type YenneferStyle = 'adaptive' | 'throughput' | 'creative' | 'strict'

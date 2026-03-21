@@ -123,6 +123,9 @@ export function SecurityPanel(): JSX.Element {
   const grade = posture?.grade ?? '--'
   const accent = gradeColor(grade === '--' ? 'C' : grade)
   const hasScanData = posture || scanResult
+  const hasCategories = Boolean(posture && posture.categories.length > 0)
+  const hasRecentHistory = postureHistory.length > 0
+  const showInsightsRail = hasCategories || hasRecentHistory
 
   return (
     <div className="h-full flex flex-col gap-3 overflow-y-auto text-sm">
@@ -232,13 +235,17 @@ export function SecurityPanel(): JSX.Element {
         })}
       </div>
 
-      {/* Scan output + categories */}
-      <div className="flex-1 min-h-0 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        {/* Terminal output */}
-        <div className="rounded-md border border-white/10 bg-black/25 p-3 flex flex-col min-h-[200px]">
+      {/* Scan output + insights */}
+      <div
+        className={`flex-1 min-h-0 grid gap-3 ${
+          showInsightsRail ? 'xl:grid-cols-[minmax(0,1.5fr)_minmax(260px,0.72fr)]' : ''
+        }`}
+      >
+        {/* Scan console */}
+        <div className="rounded-md border border-white/10 bg-black/25 p-3 flex flex-col min-h-[240px]">
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="text-[9px] uppercase tracking-[0.18em] text-gray-500 font-[family-name:var(--helm-font-mono)]">
-              Scan Output
+              Scan Console
             </div>
             {scanResult && (
               <span className={`text-[9px] uppercase tracking-wider font-[family-name:var(--helm-font-mono)] ${
@@ -253,8 +260,14 @@ export function SecurityPanel(): JSX.Element {
 
           <div className="flex-1 min-h-0 overflow-auto">
             {!hasScanData && !staffMissing && (
-              <div className="flex h-full items-center justify-center text-xs text-gray-600">
-                Select a scan above to run a security pass.
+              <div className="flex h-full items-center justify-center">
+                <div className="max-w-md space-y-3 text-center">
+                  <div className="text-sm text-gray-300">Choose a scan to inspect this machine.</div>
+                  <div className="text-xs leading-relaxed text-gray-500">
+                    Raw CLI output appears here while the scan runs. Parsed category scores and recent grades
+                    show up in a smaller insights rail only after HELM has something real to summarize.
+                  </div>
+                </div>
               </div>
             )}
             {scanResult?.status === 'running' && (
@@ -278,68 +291,64 @@ export function SecurityPanel(): JSX.Element {
           </div>
         </div>
 
-        {/* Categories + history */}
-        <div className="flex flex-col gap-3 min-h-[200px]">
-          {posture && posture.categories.length > 0 ? (
-            <div className="rounded-md border border-white/10 bg-black/25 p-3 flex-1">
-              <div className="text-[9px] uppercase tracking-[0.18em] text-gray-500 font-[family-name:var(--helm-font-mono)] mb-2">
-                Categories
-              </div>
-              <div className="space-y-2">
-                {posture.categories.map((cat) => (
-                  <div key={cat.name} className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-300 truncate">{cat.name}</span>
-                        <span
-                          className="font-[family-name:var(--helm-font-mono)] font-semibold"
-                          style={{ color: gradeColor(cat.score >= 80 ? 'A' : cat.score >= 60 ? 'C' : 'D') }}
-                        >
-                          {cat.score}
-                        </span>
-                      </div>
-                      <div className="mt-1 h-1.5 rounded-full bg-black/40 overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${cat.score}%`,
-                            background: gradeColor(cat.score >= 80 ? 'A' : cat.score >= 60 ? 'C' : 'D')
-                          }}
-                        />
+        {showInsightsRail && (
+          <div className="flex flex-col gap-3 min-h-[200px]">
+            {hasCategories && posture ? (
+              <div className="rounded-md border border-white/10 bg-black/25 p-3 flex-1">
+                <div className="text-[9px] uppercase tracking-[0.18em] text-gray-500 font-[family-name:var(--helm-font-mono)] mb-2">
+                  Insights
+                </div>
+                <div className="space-y-2">
+                  {posture.categories.map((cat) => (
+                    <div key={cat.name} className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-300 truncate">{cat.name}</span>
+                          <span
+                            className="font-[family-name:var(--helm-font-mono)] font-semibold"
+                            style={{ color: gradeColor(cat.score >= 80 ? 'A' : cat.score >= 60 ? 'C' : 'D') }}
+                          >
+                            {cat.score}
+                          </span>
+                        </div>
+                        <div className="mt-1 h-1.5 rounded-full bg-black/40 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${cat.score}%`,
+                              background: gradeColor(cat.score >= 80 ? 'A' : cat.score >= 60 ? 'C' : 'D')
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="rounded-md border border-dashed border-white/8 bg-black/15 p-3 flex-1 flex items-center justify-center text-xs text-gray-600">
-              Category breakdown appears after a scan.
-            </div>
-          )}
+            ) : null}
 
-          {/* Recent grades */}
-          {postureHistory.length > 0 && (
-            <div className="rounded-md border border-white/10 bg-black/25 p-3">
-              <div className="text-[9px] uppercase tracking-[0.18em] text-gray-500 font-[family-name:var(--helm-font-mono)] mb-2">
-                Recent
+            {hasRecentHistory && (
+              <div className="rounded-md border border-white/10 bg-black/25 p-3">
+                <div className="text-[9px] uppercase tracking-[0.18em] text-gray-500 font-[family-name:var(--helm-font-mono)] mb-2">
+                  Recent
+                </div>
+                <div className="space-y-1">
+                  {postureHistory.slice(0, 4).map((entry) => (
+                    <div key={entry.timestamp} className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">{relativeTime(entry.timestamp)}</span>
+                      <span
+                        className="font-semibold font-[family-name:var(--helm-font-mono)]"
+                        style={{ color: gradeColor(entry.grade) }}
+                      >
+                        {entry.grade}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1">
-                {postureHistory.slice(0, 4).map((entry) => (
-                  <div key={entry.timestamp} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500">{relativeTime(entry.timestamp)}</span>
-                    <span
-                      className="font-semibold font-[family-name:var(--helm-font-mono)]"
-                      style={{ color: gradeColor(entry.grade) }}
-                    >
-                      {entry.grade}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

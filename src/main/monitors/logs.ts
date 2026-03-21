@@ -7,7 +7,8 @@ import type { HelmConfig, LogLine } from '../../shared/types'
 
 const execAsync = promisify(exec)
 
-type LogCallback = (lines: LogLine[]) => void
+export type LogBatchKind = 'initial' | 'tail'
+type LogStreamCallback = (lines: LogLine[], kind: LogBatchKind) => void
 
 interface WatchedFile {
   path: string
@@ -18,7 +19,7 @@ interface WatchedFile {
 
 const MAX_INITIAL_LINES = 100
 const watchedFiles = new Map<string, WatchedFile>()
-let logCallback: LogCallback | null = null
+let logCallback: LogStreamCallback | null = null
 
 function classifyLevel(text: string): LogLine['level'] {
   const lower = text.toLowerCase()
@@ -88,7 +89,7 @@ async function watchLogFile(filePath: string): Promise<void> {
   }
 
   if (initialLines.length > 0 && logCallback) {
-    logCallback(initialLines)
+    logCallback(initialLines, 'initial')
   }
 
   try {
@@ -97,7 +98,7 @@ async function watchLogFile(filePath: string): Promise<void> {
         const { lines, newOffset } = await tailFile(filePath, watched.offset)
         watched.offset = newOffset
         if (lines.length > 0 && logCallback) {
-          logCallback(lines)
+          logCallback(lines, 'tail')
         }
       }
     })
@@ -141,7 +142,7 @@ async function discoverLogFiles(config?: HelmConfig): Promise<string[]> {
 }
 
 export async function startLogMonitoring(
-  callback: LogCallback,
+  callback: LogStreamCallback,
   config?: HelmConfig
 ): Promise<string[]> {
   logCallback = callback

@@ -26,11 +26,14 @@ import {
   getAlertHistory,
   getRecentBriefings,
   getNotifications,
-  getPostureHistory
+  getPostureHistory,
+  getRecentLogLines,
+  clearLogLines
 } from './db/queries'
 import { IPC_CHANNELS } from '../shared/types'
 import { loadConfig, saveConfig } from './config'
 import { getRadioRelayUrl, stopRadioRelayServer } from './radio-relay'
+import { getSkillFeed } from './skills'
 import type { HelmConfig, SystemState } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -202,7 +205,7 @@ function createTray(): void {
 }
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.hydra.mission-control')
+  electronApp.setAppUserModelId('com.helm.mission-control')
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -226,6 +229,10 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC_CHANNELS.DB_QUERY_NOTIFICATIONS, (_event, limit: number) =>
     getNotifications(limit)
   )
+  ipcMain.handle(IPC_CHANNELS.DB_QUERY_LOGS, (_event, limit: number) =>
+    getRecentLogLines(limit)
+  )
+  ipcMain.handle(IPC_CHANNELS.DB_CLEAR_LOGS, () => clearLogLines())
 
   ipcMain.handle(IPC_CHANNELS.DB_QUERY_POSTURE_HISTORY, (_event, limit: number) =>
     getPostureHistory(limit)
@@ -239,6 +246,8 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC_CHANNELS.GIT_COMMIT_HISTORY, (_event, repoPath: string, limit: number) =>
     getRepoCommitHistory(repoPath, limit)
   )
+
+  ipcMain.handle(IPC_CHANNELS.SKILLS_FEED, (_event, limit: number) => getSkillFeed(limit))
 
   // Audio file picker for FM Radio local library
   ipcMain.handle('dialog:openAudioFile', async () => {

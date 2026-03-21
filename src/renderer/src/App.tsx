@@ -15,10 +15,10 @@ import { CommandCenterPanel } from './panels/CommandCenter'
 import { TimelinePanel, SessionDeltaBanner } from './panels/Timeline'
 import { CommandPalette } from './panels/CommandPalette'
 import { CCUsagePanel } from './panels/CCUsage'
-import { WorkspacesPanel } from './panels/Workspaces'
 import { FMRadioPanel } from './panels/FMRadio'
 import { HELM_SKINS, useSkinStore } from './stores/skin'
 import { usePrivacyStore } from './stores/privacy'
+import { HeaderTicker } from './components/HeaderTicker'
 import { SkinGlobe } from './components/SkinGlobe'
 import { getAudioElement } from './stores/audio-engine'
 import type { SystemState } from '../../shared/types'
@@ -34,79 +34,83 @@ const PAGES: PageMeta[] = [
   {
     id: 'bridge',
     label: 'Bridge',
-    kicker: 'Mission control',
-    description: 'Health posture, operator briefing, and what needs attention right now.'
+    kicker: 'Overview',
+    description: 'Overview only. Triage pressure, alerts, and hotspots here, then jump deeper.'
   },
   {
     id: 'fleet',
     label: 'Fleet',
-    kicker: 'Repos and workspaces',
-    description: 'Workspace health, git drift, commit history, and process orchestration.'
+    kicker: 'Workspace ops',
+    description: 'Owns workspace control, repo drift, and recent commit history.'
   },
   {
     id: 'swarm',
     label: 'Swarm',
-    kicker: 'Agent operations',
-    description: 'Live agent state, swarm load, and session timeline.'
+    kicker: 'Agent ops',
+    description: 'Owns live agent state, drill-down, and the swarm timeline.'
   },
   {
     id: 'grid',
     label: 'Grid',
-    kicker: 'Infrastructure posture',
-    description: 'Network traffic, security scans, and listening ports.'
+    kicker: 'Network and security',
+    description: 'Owns traffic, exposed listeners, and security posture.'
   },
   {
     id: 'ai',
     label: 'AI',
-    kicker: 'Briefings and cost',
-    description: 'LM Studio control, Yennefer, Claude Code usage tracking.'
+    kicker: 'Local AI control',
+    description: 'Owns LM Studio control, AI briefings, and usage tracking.'
   },
   {
     id: 'radio',
     label: 'Radio',
-    kicker: 'Stereo relay',
-    description: 'FM presets, local MP3, direct URL loading, and desktop tuner.'
+    kicker: 'Audio relay',
+    description: 'Audio lives here: FM presets, local MP3, and direct stream loading.'
   },
   {
     id: 'logs',
     label: 'Logs',
-    kicker: 'System stream',
-    description: 'Live log tailing and system event history.'
+    kicker: 'Event stream',
+    description: 'Raw stream only. Follow live events without the summarized views.'
   }
 ]
 
 const PANEL_DOTS: Record<string, string> = {
   'Command Center': 'bg-emerald-400',
-  Workspaces: 'bg-blue-400',
+  'Workspace Control': 'bg-blue-400',
   Agents: 'bg-amber-400',
   'Git Status': 'bg-purple-400',
-  'Local AI (LM Studio)': 'bg-cyan-400',
-  Network: 'bg-green-400',
-  'Staff of Gandalf': 'bg-red-400',
-  Ports: 'bg-teal-400',
+  'Operator Briefing': 'bg-cyan-400',
+  'AI Control': 'bg-cyan-400',
+  'Network Traffic': 'bg-green-400',
+  'Security Posture': 'bg-red-400',
+  'Listening Ports': 'bg-teal-400',
   Notifications: 'bg-orange-400',
   'FM Radio': 'bg-pink-300',
-  Logs: 'bg-gray-400',
+  'System Logs': 'bg-gray-400',
   'Git History': 'bg-indigo-400',
-  Timeline: 'bg-lime-400',
-  'CC Usage': 'bg-violet-400'
+  'Swarm Timeline': 'bg-lime-400',
+  'Spend & Usage': 'bg-violet-400',
+  'Agent Roster': 'bg-amber-400'
 }
 
 const PANEL_ACCENT_HEX: Record<string, string> = {
   'Command Center': '#34d399',
-  Workspaces: '#60a5fa',
+  'Workspace Control': '#60a5fa',
   Agents: '#fbbf24',
   'Git Status': '#c084fc',
-  'Local AI (LM Studio)': '#22d3ee',
-  Network: '#4ade80',
-  'Staff of Gandalf': '#f87171',
-  Ports: '#2dd4bf',
+  'Operator Briefing': '#22d3ee',
+  'AI Control': '#22d3ee',
+  'Network Traffic': '#4ade80',
+  'Security Posture': '#f87171',
+  'Listening Ports': '#2dd4bf',
   Notifications: '#fb923c',
   'FM Radio': '#f9a8d4',
-  Logs: '#9ca3af',
+  'System Logs': '#9ca3af',
   'Git History': '#818cf8',
-  Timeline: '#a3e635',
-  'CC Usage': '#a78bfa'
+  'Swarm Timeline': '#a3e635',
+  'Spend & Usage': '#a78bfa',
+  'Agent Roster': '#fbbf24'
 }
 
 const PAGE_MONOGRAMS: Record<HelmPageId, string> = {
@@ -205,49 +209,6 @@ function getShellHealth(state: SystemState | null): {
   }
 }
 
-const DEV_TICKER_POOL = [
-  'JAVASCRIPT WAS CREATED IN 10 DAYS // MAY 1995',
-  'LINUX KERNEL HAS 30M+ LINES OF CODE // AND GROWING',
-  'GIT WAS WRITTEN BY LINUS TORVALDS IN 2 WEEKS',
-  'THE FIRST COMPUTER BUG WAS AN ACTUAL MOTH // 1947',
-  'STACK OVERFLOW GETS 100M+ MONTHLY VISITORS',
-  'NPM REGISTRY HOSTS 2.1M+ PACKAGES',
-  'PYTHON WAS NAMED AFTER MONTY PYTHON // NOT THE SNAKE',
-  'THE FIRST EMAIL WAS SENT IN 1971 BY RAY TOMLINSON',
-  'RUST HAS BEEN MOST LOVED LANGUAGE 8 YEARS RUNNING',
-  'NASA STILL RUNS SOFTWARE FROM THE 1970S',
-  'THE AVERAGE DEV WRITES 100 LINES OF CODE PER DAY',
-  'GOOGLE PROCESSES 8.5 BILLION SEARCHES PER DAY',
-  'TYPESCRIPT ADOPTION GREW 300% SINCE 2020',
-  'THE INTERNET WEIGHS ABOUT 50 GRAMS // ELECTRONS',
-  'FIRST WEBSITE WENT LIVE AUG 6 1991 // CERN',
-  'THERE ARE 700+ PROGRAMMING LANGUAGES IN USE',
-  'SPACEX RUNS LINUX ON FALCON 9 FLIGHT COMPUTERS',
-  'CLAUDE CAN PROCESS 200K TOKENS IN A SINGLE CONTEXT',
-  'DNS WAS INVENTED IN 1983 // BEFORE THE WWW',
-  'THE DARK WEB IS ONLY 5% OF THE TOTAL INTERNET',
-  'ELECTRON APPS USE CHROMIUM // YES EVEN THIS ONE',
-  'REACT WAS OPEN-SOURCED BY FACEBOOK IN 2013',
-  'SQLITE IS THE MOST DEPLOYED DATABASE IN THE WORLD',
-  'THE FIRST PROGRAMMER WAS ADA LOVELACE // 1843',
-  'DOCKER CONTAINERS SHARE THE HOST OS KERNEL',
-  'KUBERNETES MEANS HELMSMAN IN GREEK',
-  'GITHUB HAS 100M+ DEVELOPERS WORLDWIDE',
-  'THE AVERAGE WEBSITE MAKES 70+ HTTP REQUESTS',
-  'WASM RUNS AT NEAR-NATIVE SPEED IN THE BROWSER',
-  'VIM HAS BEEN AROUND SINCE 1991 // STILL NO EXIT'
-]
-
-function buildTickerItems(): string[] {
-  const now = Date.now()
-  const seed = Math.floor(now / 60000) % DEV_TICKER_POOL.length
-  const items: string[] = []
-  for (let i = 0; i < 8; i++) {
-    items.push(DEV_TICKER_POOL[(seed + i) % DEV_TICKER_POOL.length])
-  }
-  return items
-}
-
 function SkinCard({ skin, active, onSelect }: {
   skin: (typeof HELM_SKINS)[number]; active: boolean; onSelect: () => void
 }): JSX.Element {
@@ -336,29 +297,6 @@ function PrivacyChip(): JSX.Element {
   )
 }
 
-function HeaderTicker(): JSX.Element {
-  const [items, setItems] = useState(() => buildTickerItems())
-
-  useEffect(() => {
-    const interval = setInterval(() => setItems(buildTickerItems()), 60000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const tickerItems = [...items, ...items]
-
-  return (
-    <div className="shell-ticker hidden min-w-0 flex-1 lg:flex">
-      <div className="shell-ticker-track">
-        {tickerItems.map((item, index) => (
-          <span key={`${item}-${index}`} className="shell-ticker-item">
-            {item}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function Header({
   onOpenSkinSelector
 }: {
@@ -412,26 +350,14 @@ function Header({
 }
 
 function PageHeader({ meta }: { meta: PageMeta }): JSX.Element {
-  const state = useSystemStore((s) => s.state)
-
   return (
     <div className="shell-page-header px-4 py-2">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="shell-page-kicker text-[9px] uppercase tracking-[0.16em]">
-            {meta.kicker}
-          </div>
-          <h2 className="text-lg font-semibold text-white">{meta.label}</h2>
+      <div>
+        <div className="shell-page-kicker text-[9px] uppercase tracking-[0.16em]">
+          {meta.kicker}
         </div>
-        {state && (
-          <div className="hidden md:flex items-center gap-2 text-[11px]">
-            <span className="shell-chip rounded-full px-3 py-1">{state.agents.length} agents</span>
-            <span className="shell-chip rounded-full px-3 py-1">{state.gitRepos.length} repos</span>
-            <span className="shell-chip rounded-full px-3 py-1">
-              {state.ports.filter((port) => port.state === 'LISTEN').length} listeners
-            </span>
-          </div>
-        )}
+        <h2 className="text-lg font-semibold text-white">{meta.label}</h2>
+        <p className="pt-1 text-sm shell-subtle max-w-[56rem]">{meta.description}</p>
       </div>
     </div>
   )
@@ -445,10 +371,17 @@ function BridgePage(): JSX.Element {
     <div className="space-y-4">
       <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.9fr)]">
         <DashPanel title="Command Center" className="min-h-[460px]">
-          <CommandCenterPanel />
+          <div className="flex h-full flex-col gap-3">
+            <div className="px-1 text-[11px] shell-subtle">
+              Top pressure only. Full workspace control lives in Fleet.
+            </div>
+            <div className="min-h-0 flex-1">
+              <CommandCenterPanel mode="overview" maxGroups={6} />
+            </div>
+          </div>
         </DashPanel>
         <div className="grid gap-4 auto-rows-fr">
-          <DashPanel title="Local AI (LM Studio)" className="min-h-[300px]">
+          <DashPanel title="Operator Briefing" className="min-h-[300px]">
             <BriefingPanel variant="compact" />
           </DashPanel>
           <DashPanel title="Notifications" className="min-h-[220px]">
@@ -464,8 +397,8 @@ function FleetPage(): JSX.Element {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.4fr)_minmax(360px,0.85fr)]">
-        <DashPanel title="Workspaces" className="min-h-[420px]">
-          <WorkspacesPanel />
+        <DashPanel title="Workspace Control" className="min-h-[420px]">
+          <CommandCenterPanel initialSortMode="workspace" showSortControls />
         </DashPanel>
         <DashPanel title="Git Status" className="min-h-[420px]">
           <GitStatusPanel />
@@ -481,10 +414,10 @@ function FleetPage(): JSX.Element {
 function SwarmPage(): JSX.Element {
   return (
     <div className="space-y-4">
-      <DashPanel title="Agents" className="min-h-[460px]">
+      <DashPanel title="Agent Roster" className="min-h-[460px]">
         <AgentsPanel />
       </DashPanel>
-      <DashPanel title="Timeline" className="min-h-[280px]">
+      <DashPanel title="Swarm Timeline" className="min-h-[280px]">
         <TimelinePanel />
       </DashPanel>
     </div>
@@ -495,14 +428,14 @@ function GridPage(): JSX.Element {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 xl:grid-cols-2">
-        <DashPanel title="Network" className="min-h-[360px]">
+        <DashPanel title="Network Traffic" className="min-h-[360px]">
           <NetworkPanel />
         </DashPanel>
-        <DashPanel title="Staff of Gandalf" className="min-h-[360px]">
+        <DashPanel title="Security Posture" className="min-h-[360px]">
           <SecurityPanel />
         </DashPanel>
       </div>
-      <DashPanel title="Ports" className="min-h-[280px]">
+      <DashPanel title="Listening Ports" className="min-h-[280px]">
         <PortsPanel />
       </DashPanel>
     </div>
@@ -512,10 +445,10 @@ function GridPage(): JSX.Element {
 function AIPage(): JSX.Element {
   return (
     <div className="space-y-4">
-      <DashPanel title="Local AI (LM Studio)" className="min-h-[420px]">
+      <DashPanel title="AI Control" className="min-h-[420px]">
         <BriefingPanel variant="full" />
       </DashPanel>
-      <DashPanel title="CC Usage" className="min-h-[400px]">
+      <DashPanel title="Spend & Usage" className="min-h-[400px]">
         <CCUsagePanel />
       </DashPanel>
     </div>
@@ -535,7 +468,7 @@ function RadioPage(): JSX.Element {
 function LogsPage(): JSX.Element {
   return (
     <div className="space-y-4">
-      <DashPanel title="Logs" className="min-h-[600px]">
+      <DashPanel title="System Logs" className="min-h-[600px]">
         <LogsPanel />
       </DashPanel>
     </div>
@@ -742,14 +675,16 @@ function App(): JSX.Element {
     >
       <Header onOpenSkinSelector={() => setSkinOpen(true)} />
 
-      <div className="shrink-0 px-4 pt-3 overflow-x-auto">
+      <div className="shrink-0 px-4 pt-2 overflow-x-auto">
         <ScorecardsStrip />
       </div>
-      <div className="shrink-0 px-4 pt-2">
-        <SessionDeltaBanner />
-      </div>
+      {(currentPage === 'bridge' || currentPage === 'fleet') && (
+        <div className="shrink-0 px-4 pt-1.5">
+          <SessionDeltaBanner />
+        </div>
+      )}
 
-      <div className="flex-1 min-h-0 px-4 pb-4 pt-3">
+      <div className="flex-1 min-h-0 px-4 pb-4 pt-2">
         <div className="h-full min-h-0 flex flex-col xl:flex-row gap-4">
           <ShellNav currentPage={currentPage} setCurrentPage={setCurrentPage} />
 

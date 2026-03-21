@@ -18,7 +18,9 @@ import type {
   ProcessSignalType,
   ProcessActionResult,
   GroupActionResult,
-  CCUsageState
+  CCUsageState,
+  SkillFeed,
+  DBSnapshot
 } from '../shared/types'
 
 const api = {
@@ -137,17 +139,23 @@ const api = {
     }
   },
 
-  querySnapshots: (limit: number): Promise<unknown[]> =>
+  querySnapshots: (limit: number): Promise<DBSnapshot[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_SNAPSHOTS, limit),
 
-  queryAlerts: (limit: number): Promise<unknown[]> =>
+  queryAlerts: (limit: number): Promise<AutoHealEvent[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_ALERTS, limit),
 
-  queryBriefings: (limit: number): Promise<unknown[]> =>
+  queryBriefings: (limit: number): Promise<BriefingResult[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_BRIEFINGS, limit),
 
-  queryNotifications: (limit: number): Promise<unknown[]> =>
+  queryNotifications: (limit: number): Promise<HelmNotification[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_NOTIFICATIONS, limit),
+
+  queryLogs: (limit: number): Promise<LogLine[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_LOGS, limit),
+
+  clearLogs: (): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DB_CLEAR_LOGS),
 
   getConfig: (): Promise<HelmConfig> => ipcRenderer.invoke(IPC_CHANNELS.CONFIG_GET),
 
@@ -181,6 +189,9 @@ const api = {
   getCCUsage: (): Promise<CCUsageState> => ipcRenderer.invoke(IPC_CHANNELS.CCUSAGE_STATE),
 
   refreshCCUsage: (): Promise<CCUsageState> => ipcRenderer.invoke(IPC_CHANNELS.CCUSAGE_REFRESH),
+
+  getSkillFeed: (limit: number): Promise<SkillFeed> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SKILLS_FEED, limit),
 
   onCCUsageUpdate: (callback: (state: CCUsageState) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, state: CCUsageState): void =>

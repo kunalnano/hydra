@@ -4,6 +4,7 @@ import { useUIStore } from '../stores/ui'
 import type { ProcessGroup, ProcessInfo } from '../../../shared/types'
 
 export type CommandCenterSortMode = 'health' | 'workspace' | 'cpu' | 'memory'
+type CommandCenterMode = 'full' | 'overview'
 
 const TYPE_LABELS: Record<ProcessGroup['type'], string> = {
   project: 'PRJ',
@@ -98,10 +99,14 @@ function compareGroups(
 
 export function CommandCenterPanel({
   initialSortMode = 'health',
-  showSortControls = false
+  showSortControls = false,
+  mode = 'full',
+  maxGroups
 }: {
   initialSortMode?: CommandCenterSortMode
   showSortControls?: boolean
+  mode?: CommandCenterMode
+  maxGroups?: number
 }): JSX.Element {
   const state = useSystemStore((s) => s.state)
   const frozenPids = useSystemStore((s) => s.frozenPids)
@@ -113,6 +118,8 @@ export function CommandCenterPanel({
   const groups = [...state.processes]
     .filter((g) => g.type !== 'other')
     .sort((a, b) => compareGroups(a, b, sortMode, selectedWorkspace))
+  const visibleGroups =
+    mode === 'overview' && typeof maxGroups === 'number' ? groups.slice(0, maxGroups) : groups
 
   const otherCount = state.processes
     .filter((g) => g.type === 'other')
@@ -122,7 +129,7 @@ export function CommandCenterPanel({
 
   return (
     <div className="space-y-2 text-sm overflow-y-auto max-h-full">
-      {showSortControls && (
+      {showSortControls && mode === 'full' && (
         <div className="flex items-center justify-between gap-3 px-2">
           <div className="flex flex-wrap gap-1.5">
             <SortChip
@@ -156,21 +163,29 @@ export function CommandCenterPanel({
         <span className="w-4" />
         <span className="flex-1">Workspace</span>
         <span className="w-10 text-center">Type</span>
-        <span className="w-20 text-right">Ports</span>
+        {mode === 'full' && <span className="w-20 text-right">Ports</span>}
         <span className="w-14 text-right">CPU</span>
         <span className="w-14 text-right">MEM</span>
         <span className="w-20 text-right">Git</span>
-        <span className="w-20 text-right">Actions</span>
+        {mode === 'full' && <span className="w-20 text-right">Actions</span>}
       </div>
-      {groups.map((group) => (
+      {visibleGroups.map((group) => (
         <CommandRow
           key={`${group.type}:${group.name}`}
           group={group}
           repo={repoMap.get(group.name)}
           frozenPids={frozenPids}
           isSelected={selectedWorkspace === group.name}
+          allowExpand={mode === 'full'}
+          showPorts={mode === 'full'}
+          showActions={mode === 'full'}
         />
       ))}
+      {mode === 'overview' && visibleGroups.length < groups.length && (
+        <div className="text-xs text-gray-600 pt-2 px-2">
+          + {groups.length - visibleGroups.length} more workspaces in Fleet
+        </div>
+      )}
       {otherCount > 0 && (
         <div className="text-xs text-gray-600 pt-2 px-2">+ {otherCount} system processes</div>
       )}
@@ -207,12 +222,18 @@ function CommandRow({
   group,
   repo,
   frozenPids,
-  isSelected
+  isSelected,
+  allowExpand,
+  showPorts,
+  showActions
 }: {
   group: ProcessGroup
   repo?: { branch: string; dirty: boolean; ahead: number; status: string }
   frozenPids: Set<number>
   isSelected: boolean
+  allowExpand: boolean
+  showPorts: boolean
+  showActions: boolean
 }): JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -269,15 +290,19 @@ function CommandRow({
         <div
           className="flex items-center gap-2 flex-1 min-w-0"
           onClick={() => {
-            setExpanded(!expanded)
+            if (allowExpand) {
+              setExpanded(!expanded)
+            }
             selectWorkspace(group.name)
           }}
         >
-          <span
-            className={`text-[10px] ${expanded ? 'rotate-90' : ''} text-gray-500 transition-transform`}
-          >
-            {'\u25B6'}
-          </span>
+          {allowExpand && (
+            <span
+              className={`text-[10px] ${expanded ? 'rotate-90' : ''} text-gray-500 transition-transform`}
+            >
+              {'\u25B6'}
+            </span>
+          )}
           <span className="text-white truncate">{group.name}</span>
           {frozenCount > 0 && (
             <span className="text-blue-400 text-[10px]" title={`${frozenCount} frozen`}>
@@ -292,9 +317,11 @@ function CommandRow({
           {TYPE_LABELS[group.type]}
         </span>
 
-        <span className="text-gray-500 text-xs font-mono w-20 text-right truncate">
-          {group.ports.length > 0 ? group.ports.map((p) => `:${p}`).join(' ') : '\u2014'}
-        </span>
+        {showPorts && (
+          <span className="text-gray-500 text-xs font-mono w-20 text-right truncate">
+            {group.ports.length > 0 ? group.ports.map((p) => `:${p}`).join(' ') : '\u2014'}
+          </span>
+        )}
 
         <div className="flex items-center gap-1 w-14 justify-end">
           <span className="text-blue-400 text-xs font-mono">{group.totalCpu.toFixed(1)}%</span>
@@ -321,50 +348,52 @@ function CommandRow({
           )}
         </span>
 
-        <div className="flex items-center gap-1 w-20 justify-end">
-          {allFrozen ? (
+        {showActions && (
+          <div className="flex items-center gap-1 w-20 justify-end">
+            {allFrozen ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleThawAll()
+                }}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-blue-950/60 text-blue-400 border border-blue-800/40 hover:bg-blue-900/60"
+                title="Thaw all processes"
+              >
+                Thaw
+              </button>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleFreezeAll()
+                }}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-800/40 hover:bg-cyan-900/60"
+                title="Freeze all processes (SIGSTOP)"
+              >
+                Freeze
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                handleThawAll()
+                handleKillGroup()
               }}
-              className="text-[10px] px-1.5 py-0.5 rounded bg-blue-950/60 text-blue-400 border border-blue-800/40 hover:bg-blue-900/60"
-              title="Thaw all processes"
+              className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                confirming
+                  ? 'bg-red-900/60 text-red-300 border-red-500 animate-pulse'
+                  : 'bg-red-950/60 text-red-400 border-red-800/40 hover:bg-red-900/60'
+              }`}
+              title={
+                confirming ? 'Click again to confirm' : `Kill all ${group.processes.length} processes`
+              }
             >
-              Thaw
+              {confirming ? 'Sure?' : 'Kill'}
             </button>
-          ) : (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                handleFreezeAll()
-              }}
-              className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-800/40 hover:bg-cyan-900/60"
-              title="Freeze all processes (SIGSTOP)"
-            >
-              Freeze
-            </button>
-          )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleKillGroup()
-            }}
-            className={`text-[10px] px-1.5 py-0.5 rounded border ${
-              confirming
-                ? 'bg-red-900/60 text-red-300 border-red-500 animate-pulse'
-                : 'bg-red-950/60 text-red-400 border-red-800/40 hover:bg-red-900/60'
-            }`}
-            title={
-              confirming ? 'Click again to confirm' : `Kill all ${group.processes.length} processes`
-            }
-          >
-            {confirming ? 'Sure?' : 'Kill'}
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
-      {expanded && (
+      {allowExpand && expanded && (
         <div className="ml-6 border-l border-gray-800 pl-2 py-1 space-y-px">
           <div className="flex items-center text-[10px] text-gray-600 uppercase tracking-wider px-1 pb-1 gap-2">
             <span className="w-3" />

@@ -17,8 +17,10 @@ export function NotificationsPanel(): JSX.Element {
   const [notifications, setNotifications] = useState<HelmNotification[]>([])
 
   useEffect(() => {
+    window.helm.queryNotifications(50).then(setNotifications).catch(() => {})
+
     const unsubNotif = window.helm.onNotification((notif) => {
-      setNotifications((prev) => [notif, ...prev].slice(0, 50))
+      setNotifications((prev) => [notif, ...prev.filter((existing) => existing.id !== notif.id)].slice(0, 50))
     })
     return unsubNotif
   }, [])
