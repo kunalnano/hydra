@@ -2,18 +2,13 @@ import { useEffect, useMemo, useRef } from 'react'
 import { geoGraticule10, geoInterpolate, geoOrthographic, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
 import landAtlas from 'world-atlas/land-110m.json'
+import type { RadioHomeLocation } from '../../../shared/types'
 import type { RadioStation } from '../panels/fm-stations'
 
 const TAU = Math.PI * 2
 const ROUTE_SAMPLE_COUNT = 72
 const LAND_FEATURE = feature(landAtlas as any, (landAtlas as any).objects.land) as any
 const WORLD_GRATICULE = geoGraticule10()
-
-const HOME_LOCATION: DeviceLocation = {
-  coords: [29.7438332, -98.4530729],
-  label: 'Bulverde, TX',
-  source: 'fixed'
-}
 
 const STATION_COORDS: Record<string, [number, number]> = {
   'wbgo-jazz': [40.7357, -74.1724],
@@ -37,7 +32,7 @@ const STATION_COORDS: Record<string, [number, number]> = {
 }
 
 type SignalMode = 'station' | 'local' | 'custom' | 'idle'
-type DeviceLocationSource = 'fixed'
+type DeviceLocationSource = 'configured'
 
 interface DeviceLocation {
   coords: [number, number]
@@ -49,6 +44,7 @@ interface RadioSignalGlobeProps {
   station: RadioStation | null
   mode: SignalMode
   sourceLabel: string | null
+  homeLocation: RadioHomeLocation | null
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -95,10 +91,18 @@ function buildRouteLine(start: [number, number], end: [number, number]): { type:
   }
 }
 
-function getFocus(stationCoords: [number, number] | null, homeCoords: [number, number], time: number): [number, number, number] {
-  const anchor = stationCoords
+function getFocus(
+  stationCoords: [number, number] | null,
+  homeCoords: [number, number] | null,
+  time: number
+): [number, number, number] {
+  const anchor = stationCoords && homeCoords
     ? (geoInterpolate(toLonLat(stationCoords), toLonLat(homeCoords))(0.5) as [number, number])
-    : toLonLat(homeCoords)
+    : stationCoords
+      ? toLonLat(stationCoords)
+      : homeCoords
+        ? toLonLat(homeCoords)
+        : [-30, 28]
 
   const yawDrift = stationCoords ? Math.sin(time * 0.22) * 4.5 : Math.sin(time * 0.18) * 6
   const pitchDrift = stationCoords ? Math.cos(time * 0.16) * 1.8 : Math.cos(time * 0.14) * 2.4
@@ -188,11 +192,19 @@ function SignalCard({
 export function RadioSignalGlobe({
   station,
   mode,
-  sourceLabel
+  sourceLabel,
+  homeLocation
 }: RadioSignalGlobeProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef(0)
-  const deviceLocation = HOME_LOCATION
+  const deviceLocation = useMemo<DeviceLocation | null>(() => {
+    if (!homeLocation) return null
+    return {
+      coords: [homeLocation.latitude, homeLocation.longitude],
+      label: homeLocation.label,
+      source: 'configured'
+    }
+  }, [homeLocation])
   const stationCoords = station ? STATION_COORDS[station.id] ?? null : null
 
   useEffect(() => {
@@ -241,7 +253,7 @@ export function RadioSignalGlobe({
         .scale(radius)
         .clipAngle(90)
         .precision(0.4)
-        .rotate(getFocus(stationCoords, deviceLocation.coords, time))
+        .rotate(getFocus(stationCoords, deviceLocation?.coords ?? null, time))
 
       const path = geoPath(projection, context)
       const sphere = { type: 'Sphere' as const }
@@ -306,7 +318,7 @@ export function RadioSignalGlobe({
       context.lineWidth = 1.05
       context.stroke()
 
-      if (stationCoords) {
+      if (stationCoords && deviceLocation) {
         const route = buildRouteLine(stationCoords, deviceLocation.coords)
         context.beginPath()
         path(route as any)
@@ -327,14 +339,21 @@ export function RadioSignalGlobe({
           haloColor: 'rgba(94, 179, 255, 0.14)',
           coreColor: 'rgba(135, 212, 255, 0.95)'
         })
+      } else if (stationCoords) {
+        drawMarker(context, projection, stationCoords, {
+          haloColor: 'rgba(94, 179, 255, 0.14)',
+          coreColor: 'rgba(135, 212, 255, 0.95)'
+        })
       }
 
-      drawMarker(context, projection, deviceLocation.coords, {
-        haloColor: 'rgba(255, 212, 120, 0.16)',
-        coreColor: 'rgba(255, 212, 120, 0.96)',
-        pulseScale: 3.4,
-        time
-      })
+      if (deviceLocation) {
+        drawMarker(context, projection, deviceLocation.coords, {
+          haloColor: 'rgba(255, 212, 120, 0.16)',
+          coreColor: 'rgba(255, 212, 120, 0.96)',
+          pulseScale: 3.4,
+          time
+        })
+      }
 
       context.restore()
 
@@ -357,17 +376,21 @@ export function RadioSignalGlobe({
   }, [deviceLocation, stationCoords])
 
   const pathValue = useMemo(() => {
-    if (stationCoords) {
+    if (stationCoords && deviceLocation) {
       return formatDistance(haversineMiles(stationCoords, deviceLocation.coords))
     }
+    if (stationCoords) return 'Set home'
     if (mode === 'local') return 'Local'
     if (mode === 'custom') return 'Direct'
     return 'Idle'
-  }, [deviceLocation.coords, mode, stationCoords])
+  }, [deviceLocation, mode, stationCoords])
 
   const pathDetail = useMemo(() => {
-    if (stationCoords) {
+    if (stationCoords && deviceLocation) {
       return 'Great-circle route over a real-world orthographic map from station origin to home.'
+    }
+    if (stationCoords) {
+      return 'Set your saved home endpoint to map the route.'
     }
     if (mode === 'local') {
       return 'Local file playback stays on-device.'
@@ -376,9 +399,11 @@ export function RadioSignalGlobe({
       return sourceLabel ? `Direct relay from ${sourceLabel}.` : 'Direct relay URL.'
     }
     return 'Select a station to visualize the path.'
-  }, [mode, sourceLabel, stationCoords])
+  }, [deviceLocation, mode, sourceLabel, stationCoords])
 
-  const receivingDetail = 'Fixed home endpoint.'
+  const receivingDetail = deviceLocation
+    ? 'Saved operator endpoint.'
+    : 'Home endpoint not configured yet.'
 
   return (
     <div className="winamp-signal-layout">
@@ -400,7 +425,11 @@ export function RadioSignalGlobe({
           }
           detail={station ? `${station.callSign} · ${station.frequency}` : sourceLabel ?? 'Choose a source to map.'}
         />
-        <SignalCard label="Receiving" value={deviceLocation.label} detail={receivingDetail} />
+        <SignalCard
+          label="Receiving"
+          value={deviceLocation?.label ?? 'Setup required'}
+          detail={receivingDetail}
+        />
         <SignalCard label="Path" value={pathValue} detail={pathDetail} />
       </div>
     </div>

@@ -475,6 +475,12 @@ export interface AgentRegistryEntry {
 
 export type YenneferStyle = 'adaptive' | 'throughput' | 'creative' | 'strict'
 
+export interface RadioHomeLocation {
+  label: string
+  latitude: number
+  longitude: number
+}
+
 export interface HelmConfig {
   apiKey?: string
   gitRepoPaths: string[]
@@ -488,4 +494,5 @@ export interface HelmConfig {
   logFilePaths?: string[]
   yenneferEnabled?: boolean
   yenneferStyle?: YenneferStyle
+  radioHomeLocation?: RadioHomeLocation
 }

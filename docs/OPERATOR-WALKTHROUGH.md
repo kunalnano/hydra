@@ -54,7 +54,7 @@ Use `AI` for the local-model control loop.
 Use `Radio` when you want the live audio surface.
 
 - Preset stations, local MP3s, manual URLs, and persisted playback state all live in one tuner view.
-- The signal map traces station origin back to Bulverde, Texas on a real-world orthographic map.
+- The signal map traces station origin back to the operator’s saved home endpoint on a real-world orthographic map.
 
 ### Logs
 
