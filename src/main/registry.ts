@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
-import type { AgentRegistryEntry } from '../shared/types'
+import type { AgentRegistryEntry, AgentInfo } from '../shared/types'
 
 const HELM_DIR = join(homedir(), '.config', 'helm')
 const REGISTRY_FILE = join(HELM_DIR, 'agent-registry.json')
@@ -86,4 +86,33 @@ export function getTopAgents(n: number): AgentRegistryEntry[] {
     .slice()
     .sort((a, b) => b.impactScore - a.impactScore)
     .slice(0, n)
+}
+
+export function isAgentInRegistry(name: string): boolean {
+  const entries = loadRegistry()
+  return entries.some(
+    (e) =>
+      e.name.toLowerCase() === name.toLowerCase() ||
+      e.id === name.toLowerCase().replace(/\s+/g, '-')
+  )
+}
+
+export function suggestRegistryEntry(agentInfo: AgentInfo): Partial<AgentRegistryEntry> {
+  return {
+    id: agentInfo.name.toLowerCase().replace(/\s+/g, '-'),
+    name: agentInfo.name,
+    type:
+      agentInfo.type === 'claude-code'
+        ? 'cli-tool'
+        : agentInfo.type === 'codex'
+          ? 'cli-tool'
+          : 'other',
+    status: 'active',
+    era: { start: new Date().toISOString().split('T')[0] },
+    stack: [],
+    description: '',
+    keyOutputs: [],
+    impactScore: 50,
+    tags: []
+  }
 }

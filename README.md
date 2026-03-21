@@ -90,6 +90,12 @@ npm run typecheck    # Type-check main + renderer
 npm test             # 214 tests across 23 suites
 ```
 
+## Agent Registry
+
+HELM tracks your AI agent fleet in a persistent local registry at `~/.config/helm/agent-registry.json`. This file is personal to your machine and is never committed to the repo.
+
+On first run, the registry starts empty. Add agents manually through the Registry panel, or let HELM auto-detect them from running processes.
+
 ## Platform Support
 
 - **macOS**: primary platform, full feature set
