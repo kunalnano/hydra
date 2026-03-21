@@ -1,62 +1,79 @@
-# HELM
+# HELM — Operator Shell For Local AI Systems
 
-**Operator shell for local AI systems.**
+HELM is a desktop ops shell for developers running AI agents, local services, and multi-machine model workflows. It keeps overall system status visible while giving each domain its own page instead of forcing everything into one dense dashboard.
 
-HELM is a desktop dashboard for developers running AI agents, local models, and multi-service workflows on their own machines. It monitors processes, agents, git repos, network traffic, and security posture in real time, with an AI intelligence layer that generates briefings and auto-heals common failures.
+Main branch tracks the current `4.0` line.
+Latest tagged release: `v4.0.1`.
 
-Think htop crossed with an aircraft carrier CIC, wrapped in a Winamp skin.
+The 4.0 line turns HELM into an operator shell with page ownership instead of panel sprawl. Recent releases added Swarm drill-down, persistent local history, a real traffic-topology grid, and a mapped radio signal globe that traces station origin back to home.
 
-![HELM Mainline Showcase](docs/screenshots/hydra-mainline-showcase.gif)
+The captures below reflect the current 4.0 shell. They were taken with `Secure View` enabled so local hosts, paths, and endpoint details stay redacted.
 
-## Why
+### AI Control
+![HELM 4 AI Control](docs/screenshots/helm-4-ai-control.png)
 
-If you run local AI (LM Studio, Ollama, Claude Code sessions), background services, and multiple git repos simultaneously, your machine becomes a distributed system. HELM gives you one place to watch all of it without tabbing between terminal windows, Activity Monitor, and browser tabs.
+### Radio Signal Map
+![HELM 4 Radio Signal Map](docs/screenshots/helm-4-radio-signal-map.png)
 
-## What It Does
+### Traffic Grid
+![HELM 4 Traffic Grid](docs/screenshots/helm-4-grid-topology.png)
 
-| Page | Purpose |
-|------|---------|
-| **Bridge** | Mission control. Health scorecards, process hotspots, compact AI briefing, auto-heal notifications. |
-| **Fleet** | Workspace ops. Process groups by project, git status across all repos, commit history with AI-author detection. |
-| **Swarm** | Agent ops. Live roster of running AI agents (Claude Code, Codex, Gemini, Cursor, Aider, Copilot), uptime, goals, session timeline. |
-| **Grid** | Infrastructure. Per-process network bandwidth, listening ports, Staff of Gandalf security scans with posture scoring. |
-| **AI** | Intelligence layer. LM Studio briefings, Yennefer extended briefings, Claude Code usage/spend tracking. |
-| **Radio** | FM streaming tuner. Presets, local MP3 import, direct URL loading, signal globe visualization. |
-| **Logs** | Raw event stream. Live log tailing from configured file paths. |
+Operator walkthrough: [docs/OPERATOR-WALKTHROUGH.md](docs/OPERATOR-WALKTHROUGH.md)
+Journey so far: [docs/wiki/journey-so-far.md](docs/wiki/journey-so-far.md)
 
-Every panel appears on exactly one page. No duplicated widgets.
+## Navigation (7 Pages, Zero Panel Duplication)
 
-![HELM AI View](docs/screenshots/hydra-mainline-ai-full.png)
-![HELM Systems Forge](docs/screenshots/hydra-mainline-systems-forge.png)
-![HELM Radio Forge](docs/screenshots/hydra-mainline-radio-forge.png)
+Every panel appears on exactly one page. No duplicated widgets, no redundant noise.
 
-## Intelligence Layer
+| Page | What it does |
+|------|-------------|
+| **Bridge** | Mission control: command center, compact AI briefing, notifications |
+| **Fleet** | Repo drift and process orchestration: workspaces, git status, commit history |
+| **Swarm** | Agent operations: live agent state, swarm load, session timeline |
+| **Grid** | Infrastructure posture: network traffic, security scans, listening ports |
+| **AI** | Operator AI loop: LM Studio briefings, Yennefer, Claude Code usage tracking |
+| **Radio** | FM streaming tuner with presets, local MP3 import, and direct URL loading |
+| **Logs** | Live log tailing and system event stream |
 
-HELM includes an AI-powered ops layer that runs on local LM Studio. No cloud inference required for briefings.
+## 4.0 Highlights
 
-- **Operator Briefing** generates a situation report from current system state via Claude Haiku or local models
-- **Yennefer** provides extended briefings with configurable personality (adaptive, throughput, creative, strict)
-- **Auto-heal engine** monitors 5 rule types (process disappearance, port conflicts, high CPU/memory, agent idle) with 60-second cooldowns to prevent alert fatigue
-- **Invoke Repair** probes local, configured, and LAN-discovered LM Studio endpoints and persists the first healthy one it finds
+- Renamed project from HYDRA to **HELM** across all types, CSS, config paths, and UI text
+- Collapsed 8 pages to 7 with zero panel duplication so every tab owns one story
+- Added 4th skin: **Phantom** (deep violet neon on obsidian)
+- Restored the FM signal globe as a real station-to-home world map route instead of a fake visualizer slab
+- Added a live **Traffic Grid** that turns network activity into scoped `loopback / LAN / internet` topology
+- Swarm now drills into active agents with PID, command, ports, goals, and timeline context
+- Local persistence now stores snapshots, alerts, briefings, notifications, and log history so the shell feels continuous
+- AI ticker now surfaces local agent and skill activity instead of filler trivia
+- Staff of Gandalf, scorecards, and network posture views were tightened so dead space stops winning
 
-For cross-machine setups, enable LM Studio network serving on the host and make sure the port is reachable through the firewall.
+## Core Capabilities
 
-## Skins
+- **Bridge** surfaces health, hotspots, command center, and the compact AI briefing
+- **Fleet** handles repo drift, process orchestration, git status, and commit history
+- **Swarm** tracks active agent processes, cadence, coordination load, and per-agent drill-down
+- **Grid** exposes ports, scoped traffic topology, and security tools
+- **AI** centralizes LM Studio health, briefing requests, Yennefer invocation, and Claude Code usage tracking
+- **Radio** plays public live streams with presets, search, custom URLs, saved volume/station state, and a mapped signal globe
+- **Logs** keeps live log tailing separated from operational controls
+- **SQLite persistence** stores snapshots, alerts, briefings, notifications, and Yennefer history locally
 
-Four built-in skins, toggled with `Cmd+Shift+S`:
+## Local AI Workflow
 
-- **Deck** -- dark gunmetal chrome, cyan accent
-- **Orbiter** -- warmer chrome, teal-green accent
-- **Forge** -- reactor gold on black, machine warmth
-- **Phantom** -- deep violet neon on obsidian
+HELM uses LM Studio as a local OpenAI-compatible endpoint. No cloud inference is required for briefings.
 
-The aesthetic is intentional: hard bevels, brushed metal textures, recessed LED readouts, raised buttons. Winamp-era shell for a modern ops workflow.
+- Default target: `http://localhost:1234`
+- Configurable via `~/.config/helm/config.json`
+- Overrideable in local development with `.env`
+- `Invoke Repair` probes configured, local, and LAN-discovered endpoints and persists a repaired URL when HELM finds a healthy LM Studio server
+
+For cross-machine setups, enable LM Studio network serving on the host machine and make sure the chosen port is reachable through the host firewall.
 
 ## Stack
 
-Electron 35, React 18, TypeScript, Tailwind 4, Zustand, SQLite (better-sqlite3), Vite (electron-vite), Vitest.
+Electron 35 · React 18 · TypeScript · Tailwind 4 · Zustand · SQLite (`better-sqlite3`) · Vite (`electron-vite`) · Vitest
 
-~18k lines of TypeScript across 98 source files. 214 tests. All charts are hand-rolled SVG (no charting library). SQLite persistence for snapshots, alerts, briefings, and session history.
+Electron remains the pragmatic cross-OS shell here because HELM depends on desktop IPC, tray integration, local process inspection, filesystem access, and machine-adjacent monitoring.
 
 ## Getting Started
 
@@ -73,39 +90,46 @@ Requires Node.js 18+.
 
 Config file: `~/.config/helm/config.json`
 
-| Option | Default | What it controls |
-|--------|---------|-----------------|
-| `lmStudioUrl` | `http://localhost:1234` | LM Studio endpoint for briefings |
-| `yenneferStyle` | `adaptive` | Briefing tone: adaptive, throughput, creative, strict |
-| `gitRepoPaths` | `[]` | Repos to monitor for git status |
-| `monitorInterval` | `2000` | System polling interval (ms) |
-| `staffBinPath` | auto-detected | Path to Staff of Gandalf binary |
+| Option            | Default                 | Description                                     |
+| ----------------- | ----------------------- | ----------------------------------------------- |
+| `lmStudioUrl`     | `http://localhost:1234` | LM Studio server URL for briefings and Yennefer |
+| `yenneferStyle`   | `adaptive`              | Controls Yennefer tone and creativity           |
+| `gitRepoPaths`    | `[]`                    | Paths to monitor for git status                 |
+| `monitorInterval` | `2000`                  | Monitor polling interval in milliseconds        |
+| `staffBinPath`    | auto-detected           | Path to the `staff` binary for security scans   |
 
-Local override via `.env` file (see `.env.example`).
+Optional local override:
+
+```bash
+cp .env.example .env
+# Example:
+LM_STUDIO_URL=http://lm-studio-host.local:1234
+```
+
+## Skins
+
+4 built-in skins, toggled with Cmd+Shift+S (Mac) / Ctrl+Shift+S:
+
+- **Deck** - Dark gunmetal chrome, cool cyan accent
+- **Orbiter** - Warmer chrome with teal-green accent
+- **Forge** - Reactor gold on black, machine warmth
+- **Phantom** - Deep violet neon on obsidian, night ops
 
 ## Testing
 
 ```bash
-npm run typecheck    # Type-check main + renderer
-npm test             # 214 tests across 23 suites
+npm run typecheck
+npm test
 ```
-
-## Agent Registry
-
-HELM tracks your AI agent fleet in a persistent local registry at `~/.config/helm/agent-registry.json`. This file is personal to your machine and is never committed to the repo.
-
-On first run, the registry starts empty. Add agents manually through the Registry panel, or let HELM auto-detect them from running processes.
 
 ## Platform Support
 
-- **macOS**: primary platform, full feature set
-- **Windows/Linux**: supported with guarded monitor paths; some integrations (nettop, LuLu firewall) are macOS-only
-
-## Further Reading
-
-- [Operator Walkthrough](docs/OPERATOR-WALKTHROUGH.md)
-- [The Journey So Far](docs/wiki/journey-so-far.md)
+- **macOS**: primary supported platform
+- **Windows/Linux**: supported for remote LM Studio and guarded monitor paths; some local monitor integrations remain macOS-first
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](LICENSE). Personal, research, hobby, and educational use permitted. Commercial use requires a separate license.
+HELM is source-available under [PolyForm Noncommercial 1.0.0](LICENSE).
+
+That allows personal, research, hobby, educational, and other noncommercial use,
+modification, and redistribution. Commercial use is not granted by this license.
