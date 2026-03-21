@@ -64,6 +64,58 @@ export interface AgentInfo {
   currentAction?: string
   lastHeartbeat?: number
   goals?: AgentGoal[]
+  // HIVE integration
+  hiveSessionId?: string
+  hiveRole?: HiveRoleName
+}
+
+// ── HIVE Types ──────────────────────────────────────────────
+
+export type HiveRoleName = 'architect' | 'builder' | 'analyst' | 'ops' | 'strategist' | string
+export type HiveModel = 'opus' | 'sonnet' | 'haiku'
+
+export interface HiveRoleTemplate {
+  name: HiveRoleName
+  displayName: string
+  model: HiveModel
+  claudeMdPath: string
+  description: string
+}
+
+export interface HiveSessionInfo {
+  id: string
+  role: HiveRoleName
+  model: HiveModel
+  tmuxSession: string
+  tmuxWindow: string
+  pid?: number
+  workingDir: string
+  startedAt: number
+  status: 'running' | 'idle' | 'dead'
+}
+
+export interface HiveSpawnRequest {
+  role: HiveRoleName
+  model?: HiveModel
+  workingDir: string
+  claudeMdOverride?: string
+  objective?: string
+}
+
+export interface HiveSpawnResult {
+  success: boolean
+  session?: HiveSessionInfo
+  error?: string
+}
+
+export interface HiveConfig {
+  enabled: boolean
+  roles: HiveRoleTemplate[]
+  defaultModel: HiveModel
+  sharedContextPath: string
+  tmuxSessionPrefix: string
+  claudeBinPath: string
+  idleReclaimMinutes: number
 }
 
 export interface GitRepoInfo {
@@ -381,7 +433,16 @@ export const IPC_CHANNELS = {
   REGISTRY_UPDATE: 'registry:update',
   REGISTRY_GET_TOP: 'registry:get-top',
   SENTINEL_STATUS: 'sentinel:status',
-  SENTINEL_ALERTS: 'sentinel:alerts'
+  SENTINEL_ALERTS: 'sentinel:alerts',
+  // HIVE channels
+  HIVE_SPAWN: 'hive:spawn',
+  HIVE_KILL_SESSION: 'hive:kill-session',
+  HIVE_LIST_SESSIONS: 'hive:list-sessions',
+  HIVE_SEND_MESSAGE: 'hive:send-message',
+  HIVE_UPDATE_CONTEXT: 'hive:update-context',
+  HIVE_GET_CONTEXT: 'hive:get-context',
+  HIVE_ATTACH: 'hive:attach',
+  HIVE_SESSION_UPDATE: 'hive:session-update'
 } as const
 
 // Sentinel types
@@ -495,4 +556,5 @@ export interface HelmConfig {
   yenneferEnabled?: boolean
   yenneferStyle?: YenneferStyle
   radioHomeLocation?: RadioHomeLocation
+  hive?: HiveConfig
 }

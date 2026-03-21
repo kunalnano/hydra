@@ -17,6 +17,7 @@ import { CommandPalette } from './panels/CommandPalette'
 import { CCUsagePanel } from './panels/CCUsage'
 import { FMRadioPanel } from './panels/FMRadio'
 import { RegistryPanel } from './panels/Registry'
+import { HiveLauncher } from './panels/HiveLauncher'
 import { HELM_SKINS, useSkinStore } from './stores/skin'
 import { usePrivacyStore } from './stores/privacy'
 import { HeaderTicker } from './components/HeaderTicker'
@@ -99,7 +100,8 @@ const PANEL_DOTS: Record<string, string> = {
   'Swarm Timeline': 'bg-lime-400',
   'Spend & Usage': 'bg-violet-400',
   'Agent Roster': 'bg-amber-400',
-  'Agent Registry': 'bg-yellow-400'
+  'Agent Registry': 'bg-yellow-400',
+  'HIVE Control': 'bg-amber-500'
 }
 
 const PANEL_ACCENT_HEX: Record<string, string> = {
@@ -119,7 +121,8 @@ const PANEL_ACCENT_HEX: Record<string, string> = {
   'Swarm Timeline': '#a3e635',
   'Spend & Usage': '#a78bfa',
   'Agent Roster': '#fbbf24',
-  'Agent Registry': '#facc15'
+  'Agent Registry': '#facc15',
+  'HIVE Control': '#f59e0b'
 }
 
 const PAGE_MONOGRAMS: Record<HelmPageId, string> = {
@@ -461,9 +464,14 @@ function FleetPage(): JSX.Element {
 function SwarmPage(): JSX.Element {
   return (
     <div className="space-y-4">
-      <DashPanel title="Agent Roster" className="min-h-[460px]">
-        <AgentsPanel />
-      </DashPanel>
+      <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
+        <DashPanel title="Agent Roster" className="min-h-[460px]">
+          <AgentsPanel />
+        </DashPanel>
+        <DashPanel title="HIVE Control" className="min-h-[460px]">
+          <HiveLauncher />
+        </DashPanel>
+      </div>
       <DashPanel title="Swarm Timeline" className="min-h-[280px]">
         <TimelinePanel />
       </DashPanel>

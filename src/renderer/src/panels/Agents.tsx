@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSystemStore } from '../stores/system'
 import { useUIStore } from '../stores/ui'
+import { useHiveStore } from '../stores/hive'
 import { redactSensitiveText, usePrivacyStore } from '../stores/privacy'
 import type { AgentInfo, ProcessInfo, TimelineEventRecord } from '../../../shared/types'
 
@@ -278,10 +279,15 @@ function AgentRow({
         <div className="flex items-center gap-2 min-w-0">
           <span className={`${TYPE_COLORS[agent.type]} text-xs shrink-0`}>{TYPE_ICONS[agent.type]}</span>
           <span className="truncate font-medium text-white">{agent.name}</span>
+          {agent.hiveSessionId && (
+            <span className="shrink-0 rounded-full bg-amber-950/50 border border-amber-700/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-400">
+              HIVE {agent.hiveRole ?? ''}
+            </span>
+          )}
           {agent.uptime != null && (
             <span className="shrink-0 text-[10px] text-gray-600">{formatUptime(agent.uptime)}</span>
           )}
-          {agent.name !== kindLabel && (
+          {!agent.hiveSessionId && agent.name !== kindLabel && (
             <span className="shrink-0 text-[10px] uppercase tracking-wider text-gray-600">
               {kindLabel}
             </span>
@@ -316,6 +322,80 @@ function AgentRow({
 
       <div className="w-5 shrink-0 text-right text-gray-600">{isSelected ? '>' : '+'}</div>
     </button>
+  )
+}
+
+function HiveAgentActions({ sessionId }: { sessionId: string }): JSX.Element {
+  const sendMessage = useHiveStore((s) => s.sendMessage)
+  const attach = useHiveStore((s) => s.attach)
+  const killSession = useHiveStore((s) => s.killSession)
+  const [message, setMessage] = useState('')
+  const [confirmKill, setConfirmKill] = useState(false)
+
+  async function handleSend(): Promise<void> {
+    if (!message.trim()) return
+    await sendMessage(sessionId, message.trim())
+    setMessage('')
+  }
+
+  return (
+    <div className="rounded-lg border border-amber-800/30 bg-amber-950/15 p-3 space-y-2">
+      <div className="text-[9px] uppercase tracking-[0.18em] text-amber-400 font-[family-name:var(--helm-font-mono)]">
+        HIVE Controls
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSend() }}
+          placeholder="Send message to agent..."
+          className="flex-1 bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/25 focus:outline-none focus:border-amber-700/40"
+        />
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={!message.trim()}
+          className="px-2 py-1 rounded text-[10px] font-semibold bg-amber-950/40 border border-amber-700/40 text-amber-400 hover:bg-amber-950/60 disabled:opacity-30"
+        >
+          Send
+        </button>
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => attach(sessionId)}
+          className="px-2 py-1 rounded text-[10px] font-semibold bg-cyan-950/30 border border-cyan-800/30 text-cyan-400 hover:bg-cyan-950/50"
+        >
+          Attach Terminal
+        </button>
+        {confirmKill ? (
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => { killSession(sessionId); setConfirmKill(false) }}
+              className="px-2 py-1 rounded text-[10px] font-semibold bg-red-950/40 border border-red-700/40 text-red-400"
+            >
+              Confirm Kill
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmKill(false)}
+              className="px-2 py-1 rounded text-[10px] text-gray-500"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmKill(true)}
+            className="px-2 py-1 rounded text-[10px] font-semibold bg-red-950/20 border border-red-800/20 text-red-400/60 hover:text-red-400"
+          >
+            Kill Session
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -472,6 +552,8 @@ function AgentDetailPanel({
             </div>
           )}
         </div>
+
+        {agent.hiveSessionId && <HiveAgentActions sessionId={agent.hiveSessionId} />}
 
         <div className="rounded-lg border border-white/10 bg-black/25 p-3">
           <div className="text-[9px] uppercase tracking-[0.18em] text-gray-500 font-[family-name:var(--helm-font-mono)]">

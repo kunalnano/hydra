@@ -36,6 +36,7 @@ import { loadConfig, saveConfig } from './config'
 import { getAgentRegistry, getAgentById, updateAgentEntry, getTopAgents } from './registry'
 import { getRadioRelayUrl, stopRadioRelayServer } from './radio-relay'
 import { getSkillFeed } from './skills'
+import { setupHiveIPC, teardownHive, resolveHiveConfig } from './hive/index'
 import type { HelmConfig, SystemState, AgentRegistryEntry } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -108,6 +109,12 @@ function createWindow(): void {
 
   startMonitoring(mainWindow)
   startSentinel(mainWindow, getLatestState)
+
+  // HIVE integration
+  const helmConfig = loadConfig()
+  const hiveConfig = resolveHiveConfig(helmConfig.hive)
+  setupHiveIPC(mainWindow, hiveConfig)
+  console.log(`[hive] IPC handlers registered (enabled: ${hiveConfig.enabled})`)
 
   onStateUpdate((state) => {
     if (tray) {
@@ -317,6 +324,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   globalShortcut.unregisterAll()
+  teardownHive()
   stopSentinel()
   stopMonitoring()
   void stopRadioRelayServer()
