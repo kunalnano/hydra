@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { RadioHomeLocation } from '../../../shared/types'
 import {
   CUSTOM_RADIO_STREAM_ID,
   DEFAULT_RADIO_STATION_ID,
@@ -175,6 +176,10 @@ function getStatusLine(entry: PlaylistEntry | null, status: engine.AudioStatus, 
   return 'Ready.'
 }
 
+function formatCoordinateInput(value: number | undefined): string {
+  return Number.isFinite(value) ? String(value) : ''
+}
+
 export function FMRadioPanel(): JSX.Element {
   const stationId = useRadioStore((s) => s.selectedStationId)
   const setStationId = useRadioStore((s) => s.setSelectedStationId)
@@ -195,6 +200,13 @@ export function FMRadioPanel(): JSX.Element {
   const [category, setCategory] = useState<StationCategory | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [durationSeconds, setDurationSeconds] = useState<number | null>(null)
+  const [homeLocation, setHomeLocation] = useState<RadioHomeLocation | null>(null)
+  const [homeDialogOpen, setHomeDialogOpen] = useState(false)
+  const [homeLabelDraft, setHomeLabelDraft] = useState('')
+  const [homeLatitudeDraft, setHomeLatitudeDraft] = useState('')
+  const [homeLongitudeDraft, setHomeLongitudeDraft] = useState('')
+  const [homeLocationError, setHomeLocationError] = useState<string | null>(null)
+  const [homeLocationSaving, setHomeLocationSaving] = useState(false)
   const relayCacheRef = useRef(new Map<string, string>())
   const relayRequestRef = useRef(0)
   const didInitialCueRef = useRef(false)
@@ -253,6 +265,32 @@ export function FMRadioPanel(): JSX.Element {
   useEffect(() => {
     engine.setVolume(volume)
   }, [volume])
+
+  useEffect(() => {
+    let active = true
+
+    void window.helm
+      .getConfig()
+      .then((config) => {
+        if (!active) return
+        const savedLocation = config.radioHomeLocation ?? null
+        setHomeLocation(savedLocation)
+        setHomeLabelDraft(savedLocation?.label ?? '')
+        setHomeLatitudeDraft(formatCoordinateInput(savedLocation?.latitude))
+        setHomeLongitudeDraft(formatCoordinateInput(savedLocation?.longitude))
+        if (!savedLocation) {
+          setHomeDialogOpen(true)
+        }
+      })
+      .catch(() => {
+        if (!active) return
+        setHomeDialogOpen(true)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     const syncPlaybackClock = (): void => {
@@ -439,6 +477,63 @@ export function FMRadioPanel(): JSX.Element {
     }
   }
 
+  function openHomeDialog(): void {
+    setHomeLocationError(null)
+    setHomeLabelDraft(homeLocation?.label ?? '')
+    setHomeLatitudeDraft(formatCoordinateInput(homeLocation?.latitude))
+    setHomeLongitudeDraft(formatCoordinateInput(homeLocation?.longitude))
+    setHomeDialogOpen(true)
+  }
+
+  function closeHomeDialog(): void {
+    setHomeLocationError(null)
+    setHomeDialogOpen(false)
+  }
+
+  async function handleSaveHomeLocation(): Promise<void> {
+    const label = homeLabelDraft.trim()
+    const latitude = Number(homeLatitudeDraft.trim())
+    const longitude = Number(homeLongitudeDraft.trim())
+
+    if (!label) {
+      setHomeLocationError('Enter a label for the saved endpoint.')
+      return
+    }
+
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+      setHomeLocationError('Latitude must be a number between -90 and 90.')
+      return
+    }
+
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      setHomeLocationError('Longitude must be a number between -180 and 180.')
+      return
+    }
+
+    const nextHomeLocation: RadioHomeLocation = {
+      label,
+      latitude,
+      longitude
+    }
+
+    setHomeLocationSaving(true)
+    setHomeLocationError(null)
+
+    try {
+      const current = await window.helm.getConfig()
+      await window.helm.saveConfig({
+        ...current,
+        radioHomeLocation: nextHomeLocation
+      })
+      setHomeLocation(nextHomeLocation)
+      setHomeDialogOpen(false)
+    } catch {
+      setHomeLocationError('Could not save the home endpoint.')
+    } finally {
+      setHomeLocationSaving(false)
+    }
+  }
+
   return (
     <div className="winamp-radio">
       <section className="winamp-window winamp-main-window">
@@ -596,10 +691,28 @@ export function FMRadioPanel(): JSX.Element {
       <section className="winamp-window winamp-signal-window">
         <div className="winamp-titlebar">
           <span className="winamp-titlebar-label">Signal Globe</span>
-          <div className="winamp-mini-pill">{activeEntry?.label ?? 'IDLE'}</div>
+          <div className="winamp-signal-titlebar-actions">
+            <button type="button" className="winamp-mini-pill winamp-mini-pill--button" onClick={openHomeDialog}>
+              {homeLocation ? 'Edit Home' : 'Set Home'}
+            </button>
+            <div className="winamp-mini-pill">{activeEntry?.label ?? 'IDLE'}</div>
+          </div>
         </div>
 
         <div className="winamp-signal-body">
+          <div className="winamp-signal-toolbar">
+            <div className="winamp-signal-toolbar-copy">
+              <span className="winamp-signal-toolbar-kicker">Home endpoint</span>
+              <span className="winamp-signal-toolbar-value">
+                {homeLocation
+                  ? `${homeLocation.label} · ${homeLocation.latitude.toFixed(4)}, ${homeLocation.longitude.toFixed(4)}`
+                  : 'Not configured'}
+              </span>
+            </div>
+            {!homeLocation && (
+              <span className="winamp-warning-pill">Route mapping needs a saved home location</span>
+            )}
+          </div>
           <RadioSignalGlobe
             station={activeStation}
             mode={activeEntry?.kind ?? 'idle'}
@@ -610,6 +723,7 @@ export function FMRadioPanel(): JSX.Element {
                   ? streamHost(activeEntry.sourceUrl)
                   : null
             }
+            homeLocation={homeLocation}
           />
 
           <div className="winamp-filter-strip">
@@ -723,6 +837,87 @@ export function FMRadioPanel(): JSX.Element {
           ) : null}
         </div>
       </section>
+
+      {homeDialogOpen && (
+        <div className="winamp-home-overlay" role="presentation">
+          <div
+            className="winamp-home-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="radio-home-dialog-title"
+          >
+            <div className="winamp-titlebar">
+              <span id="radio-home-dialog-title" className="winamp-titlebar-label">
+                Set Radio Home Endpoint
+              </span>
+              <div className="winamp-titlebar-actions" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+
+            <div className="winamp-home-dialog-body">
+              <p className="winamp-home-dialog-copy">
+                Save the receiving location once and HELM will map every station route against it.
+              </p>
+
+              <label className="winamp-home-field">
+                <span className="winamp-home-field-label">Label</span>
+                <input
+                  type="text"
+                  value={homeLabelDraft}
+                  onChange={(event) => setHomeLabelDraft(event.target.value)}
+                  placeholder="Home base"
+                  className="winamp-textbox"
+                />
+              </label>
+
+              <div className="winamp-home-field-grid">
+                <label className="winamp-home-field">
+                  <span className="winamp-home-field-label">Latitude</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={homeLatitudeDraft}
+                    onChange={(event) => setHomeLatitudeDraft(event.target.value)}
+                    placeholder="35.1234"
+                    className="winamp-textbox"
+                  />
+                </label>
+
+                <label className="winamp-home-field">
+                  <span className="winamp-home-field-label">Longitude</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={homeLongitudeDraft}
+                    onChange={(event) => setHomeLongitudeDraft(event.target.value)}
+                    placeholder="-97.1234"
+                    className="winamp-textbox"
+                  />
+                </label>
+              </div>
+
+              {homeLocationError && <div className="winamp-home-error">{homeLocationError}</div>}
+
+              <div className="winamp-home-actions">
+                <button type="button" className="winamp-round-button" onClick={closeHomeDialog}>
+                  Later
+                </button>
+                <button
+                  type="button"
+                  className="winamp-action-button"
+                  onClick={() => void handleSaveHomeLocation()}
+                  disabled={homeLocationSaving}
+                >
+                  {homeLocationSaving ? 'Saving…' : 'Save Home'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -57,7 +57,12 @@ describe('config JSON serialization', () => {
       gitRepoPaths: ['/Users/test/repo1'],
       monitorInterval: 3000,
       snapshotInterval: 60000,
-      staffBinPath: '/usr/local/bin/staff'
+      staffBinPath: '/usr/local/bin/staff',
+      radioHomeLocation: {
+        label: 'Home base',
+        latitude: 29.7,
+        longitude: -98.4
+      }
     }
 
     const configPath = join(tmpDir, 'config.json')
@@ -71,6 +76,11 @@ describe('config JSON serialization', () => {
     expect(parsed.monitorInterval).toBe(3000)
     expect(parsed.snapshotInterval).toBe(60000)
     expect(parsed.staffBinPath).toBe('/usr/local/bin/staff')
+    expect(parsed.radioHomeLocation).toEqual({
+      label: 'Home base',
+      latitude: 29.7,
+      longitude: -98.4
+    })
   })
 
   it('handles missing config file by using defaults', () => {
@@ -198,5 +208,33 @@ describe('loadConfig env overrides', () => {
     const { loadConfig } = await import('./config')
 
     expect(loadConfig().lmStudioUrl).toBe('http://localhost:1234')
+  })
+
+  it('loads a persisted radio home location', async () => {
+    const configDir = join(tmpHome, '.config', 'helm')
+    mkdirSync(configDir, { recursive: true })
+    writeFileSync(
+      join(configDir, 'config.json'),
+      JSON.stringify(
+        {
+          radioHomeLocation: {
+            label: 'Operator base',
+            latitude: 30.1234,
+            longitude: -97.9876
+          }
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    )
+
+    const { loadConfig } = await import('./config')
+
+    expect(loadConfig().radioHomeLocation).toEqual({
+      label: 'Operator base',
+      latitude: 30.1234,
+      longitude: -97.9876
+    })
   })
 })

@@ -9,7 +9,10 @@ describe('agent-registry.json', () => {
 
   it('loads as valid JSON array', () => {
     expect(Array.isArray(entries)).toBe(true)
-    expect(entries.length).toBeGreaterThanOrEqual(20)
+  })
+
+  it('ships an empty seed registry by default', () => {
+    expect(entries).toEqual([])
   })
 
   it('every entry has required fields', () => {
@@ -50,11 +53,7 @@ describe('agent-registry.json', () => {
     }
   })
 
-  it('HELM has the highest impact score', () => {
-    const helm = entries.find((e) => e.id === 'helm')
-    expect(helm).toBeDefined()
-    for (const entry of entries) {
-      expect(entry.impactScore).toBeLessThanOrEqual(helm!.impactScore)
-    }
+  it('seed file contains no bundled personal agent history', () => {
+    expect(entries.find((e) => e.id === 'helm')).toBeUndefined()
   })
 })
