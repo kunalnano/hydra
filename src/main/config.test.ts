@@ -5,7 +5,7 @@ import { tmpdir } from 'os'
 
 // We test config logic by importing the module and overriding the config path
 // via a helper that writes/reads from tmp directories.
-import type { HydraConfig } from '../shared/types'
+import type { HelmConfig } from '../shared/types'
 
 // Since config.ts uses hardcoded paths based on os.homedir(), we test the
 // core logic by directly exercising JSON serialization and default merging.
@@ -13,7 +13,7 @@ import type { HydraConfig } from '../shared/types'
 
 describe('config defaults', () => {
   it('default config has expected shape', () => {
-    const defaults: HydraConfig = {
+    const defaults: HelmConfig = {
       gitRepoPaths: [],
       monitorInterval: 2000,
       snapshotInterval: 30000
@@ -26,7 +26,7 @@ describe('config defaults', () => {
   })
 
   it('merging partial config with defaults fills in missing fields', () => {
-    const defaults: HydraConfig = {
+    const defaults: HelmConfig = {
       gitRepoPaths: [],
       monitorInterval: 2000,
       snapshotInterval: 30000
@@ -52,7 +52,7 @@ describe('config JSON serialization', () => {
   })
 
   it('writes and reads config as JSON', () => {
-    const config: HydraConfig = {
+    const config: HelmConfig = {
       apiKey: 'sk-test',
       gitRepoPaths: ['/Users/test/repo1'],
       monitorInterval: 3000,
@@ -77,13 +77,13 @@ describe('config JSON serialization', () => {
     const configPath = join(tmpDir, 'nonexistent.json')
     expect(existsSync(configPath)).toBe(false)
 
-    const defaults: HydraConfig = {
+    const defaults: HelmConfig = {
       gitRepoPaths: [],
       monitorInterval: 2000,
       snapshotInterval: 30000
     }
     // Simulate loadConfig behavior
-    let result: HydraConfig
+    let result: HelmConfig
     try {
       const raw = readFileSync(configPath, 'utf-8')
       result = { ...defaults, ...JSON.parse(raw) }
@@ -98,12 +98,12 @@ describe('config JSON serialization', () => {
     const { writeFileSync } = require('fs')
     writeFileSync(configPath, 'not valid json {{{', 'utf-8')
 
-    const defaults: HydraConfig = {
+    const defaults: HelmConfig = {
       gitRepoPaths: [],
       monitorInterval: 2000,
       snapshotInterval: 30000
     }
-    let result: HydraConfig
+    let result: HelmConfig
     try {
       const raw = readFileSync(configPath, 'utf-8')
       result = { ...defaults, ...JSON.parse(raw) }

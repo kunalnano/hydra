@@ -67,7 +67,7 @@ export const usePrivacyStore = create<PrivacyStore>()(
       togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode }))
     }),
     {
-      name: 'hydra-privacy-mode'
+      name: 'helm-privacy-mode'
     }
   )
 )

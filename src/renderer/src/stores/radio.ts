@@ -62,7 +62,7 @@ export const useRadioStore = create<RadioStore>()(
       }
     }),
     {
-      name: 'hydra-fm-radio'
+      name: 'helm-fm-radio'
     }
   )
 )

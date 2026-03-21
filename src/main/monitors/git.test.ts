@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseGitStatus, parseGitAheadBehind, parseGitLog } from './git'
+import { parseGitStatus, parseGitAheadBehind, parseGitLog, resolveGitScanDirs } from './git'
 
 describe('parseGitStatus', () => {
   it('parses clean repo status', () => {
@@ -119,5 +119,17 @@ describe('parseGitLog', () => {
     const result = parseGitLog(log, 'repo')
     expect(result).toHaveLength(1)
     expect(result[0].message).toBe('fix: handle a')
+  })
+})
+
+describe('resolveGitScanDirs', () => {
+  it('uses configured scan roots when provided', () => {
+    expect(resolveGitScanDirs(['/tmp/repos', '/var/work'])).toEqual(['/tmp/repos', '/var/work'])
+  })
+
+  it('falls back to the default root when config is empty', () => {
+    const dirs = resolveGitScanDirs([])
+    expect(dirs).toHaveLength(1)
+    expect(dirs[0]).toContain('/Documents/ai/myAIProjects')
   })
 })

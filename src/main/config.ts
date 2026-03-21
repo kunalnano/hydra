@@ -1,12 +1,13 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
+import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
-import type { HydraConfig } from '../shared/types'
+import type { HelmConfig } from '../shared/types'
 
-const CONFIG_DIR = join(homedir(), '.config', 'hydra')
+const CONFIG_DIR = join(homedir(), '.config', 'helm')
+const LEGACY_CONFIG_DIR = join(homedir(), '.config', 'hydra')
 const CONFIG_FILE = 'config.json'
 
-const DEFAULT_CONFIG: HydraConfig = {
+const DEFAULT_CONFIG: HelmConfig = {
   gitRepoPaths: [],
   monitorInterval: 2000,
   snapshotInterval: 30000,
@@ -23,8 +24,19 @@ export function ensureConfigDir(): void {
   }
 }
 
-export function loadConfig(): HydraConfig {
-  let config: HydraConfig
+function migrateFromLegacy(): void {
+  const legacyPath = join(LEGACY_CONFIG_DIR, CONFIG_FILE)
+  const newPath = join(CONFIG_DIR, CONFIG_FILE)
+  if (existsSync(legacyPath) && !existsSync(newPath)) {
+    ensureConfigDir()
+    copyFileSync(legacyPath, newPath)
+    console.log('Migrated config from ~/.config/hydra to ~/.config/helm')
+  }
+}
+
+export function loadConfig(): HelmConfig {
+  migrateFromLegacy()
+  let config: HelmConfig
   try {
     const configPath = getConfigPath()
     if (!existsSync(configPath)) {
@@ -44,7 +56,7 @@ export function loadConfig(): HydraConfig {
   return config
 }
 
-export function saveConfig(config: HydraConfig): void {
+export function saveConfig(config: HelmConfig): void {
   ensureConfigDir()
   const configPath = getConfigPath()
   writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')

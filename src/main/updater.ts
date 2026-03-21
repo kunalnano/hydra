@@ -1,5 +1,5 @@
 /**
- * Auto-updater stub for HYDRA.
+ * Auto-updater stub for HELM.
  *
  * electron-updater is not currently installed. This module exports a no-op
  * placeholder so the import path exists when we're ready to wire it up.

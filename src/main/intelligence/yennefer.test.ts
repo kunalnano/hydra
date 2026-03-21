@@ -213,9 +213,9 @@ describe('invokeYennefer', () => {
   })
 })
 
-describe('HydraConfig yenneferEnabled', () => {
+describe('HelmConfig yenneferEnabled', () => {
   it('should accept yenneferEnabled in config type', () => {
-    // Type check: yenneferEnabled is an optional boolean on HydraConfig
+    // Type check: yenneferEnabled is an optional boolean on HelmConfig
     const config = {
       gitRepoPaths: [],
       monitorInterval: 2000,

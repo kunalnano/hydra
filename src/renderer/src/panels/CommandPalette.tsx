@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSystemStore } from '../stores/system'
-import { useNavigationStore, type HydraPageId } from '../stores/navigation'
+import { useNavigationStore, type HelmPageId } from '../stores/navigation'
 
 interface PaletteCommand {
   id: string
@@ -11,52 +11,52 @@ interface PaletteCommand {
 }
 
 const PAGE_COMMANDS: {
-  page: HydraPageId
+  page: HelmPageId
   label: string
   aliases: string[]
   description: string
 }[] = [
   {
-    page: 'overview',
-    label: 'Open Overview',
-    aliases: ['overview', 'home', 'mission control'],
-    description: 'Jump to the top-level system posture page'
+    page: 'bridge',
+    label: 'Open Bridge',
+    aliases: ['bridge', 'home', 'mission control', 'overview'],
+    description: 'Jump to the high-level triage overview'
   },
   {
-    page: 'workspaces',
-    label: 'Open Workspaces',
-    aliases: ['repos', 'git', 'workspace'],
-    description: 'Jump to repo drift and process orchestration'
+    page: 'fleet',
+    label: 'Open Fleet',
+    aliases: ['fleet', 'repos', 'git', 'workspace', 'workspaces'],
+    description: 'Jump to workspace control, repo drift, and commit history'
   },
   {
-    page: 'agents',
-    label: 'Open Agents',
-    aliases: ['swarm', 'agent roster'],
-    description: 'Jump to agent load and coordination context'
+    page: 'swarm',
+    label: 'Open Swarm',
+    aliases: ['swarm', 'agents', 'agent roster'],
+    description: 'Jump to live agent drill-down and swarm history'
   },
   {
-    page: 'systems',
-    label: 'Open Systems',
-    aliases: ['network', 'ports', 'security'],
-    description: 'Jump to network, ports, and machine posture'
+    page: 'grid',
+    label: 'Open Grid',
+    aliases: ['grid', 'network', 'ports', 'security', 'systems', 'surface'],
+    description: 'Jump to network traffic, ports, and security posture'
   },
   {
     page: 'ai',
     label: 'Open AI',
-    aliases: ['lm studio', 'briefing', 'yennefer'],
-    description: 'Jump to the operator-facing AI loop'
+    aliases: ['lm studio', 'briefing', 'yennefer', 'usage', 'cost'],
+    description: 'Jump to LM Studio control, briefings, and usage tracking'
   },
   {
     page: 'radio',
-    label: 'Open FM Radio',
+    label: 'Open Radio',
     aliases: ['radio', 'fm', 'stereo', 'stream'],
     description: 'Jump to the built-in FM streaming tuner'
   },
   {
-    page: 'activity',
-    label: 'Open Activity',
-    aliases: ['logs', 'history', 'timeline'],
-    description: 'Jump to logs, history, and movement across the machine'
+    page: 'logs',
+    label: 'Open Logs',
+    aliases: ['logs', 'history', 'timeline', 'activity'],
+    description: 'Jump to live log tailing and system events'
   }
 ]
 

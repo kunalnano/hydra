@@ -90,7 +90,7 @@ export function parseBriefingResponse(raw: string): BriefingResult {
   }
 }
 
-const SYSTEM_PROMPT = `You are HYDRA, an AI operations officer providing concise system briefings.
+const SYSTEM_PROMPT = `You are HELM, an AI operations officer providing concise system briefings.
 
 Respond with ONLY a valid JSON object. No markdown, no code fences, no explanation. Just raw JSON.
 

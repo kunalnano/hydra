@@ -9,9 +9,9 @@ describe('isProtectedProcess', () => {
     expect(isProtectedProcess('kernel_task')).toBe(true)
   })
 
-  it('returns true for Hydra itself', () => {
+  it('returns true for Helm itself', () => {
     expect(isProtectedProcess('Electron')).toBe(true)
-    expect(isProtectedProcess('HYDRA')).toBe(true)
+    expect(isProtectedProcess('HELM')).toBe(true)
     expect(isProtectedProcess('hydra')).toBe(true)
   })
 

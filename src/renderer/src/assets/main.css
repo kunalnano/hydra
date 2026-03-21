@@ -14,8 +14,8 @@ body,
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--hydra-scrollbar-thumb); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: var(--hydra-scrollbar-thumb-hover); }
+::-webkit-scrollbar-thumb { background: var(--helm-scrollbar-thumb); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--helm-scrollbar-thumb-hover); }
 
 /* ── Keyframes ── */
 @keyframes dot-pulse {
@@ -28,7 +28,7 @@ body,
   50% { opacity: 1; transform: scaleY(1); }
 }
 
-@keyframes hydra-ticker {
+@keyframes helm-ticker {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
@@ -40,8 +40,8 @@ body,
 /* ── CRT grid (softened, wider spacing) ── */
 .crt-grid {
   background-image:
-    linear-gradient(var(--hydra-grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--hydra-grid-line) 1px, transparent 1px);
+    linear-gradient(var(--helm-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--helm-grid-line) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 

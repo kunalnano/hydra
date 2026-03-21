@@ -15,14 +15,18 @@ import {
   insertPostureHistory,
   getPostureHistory,
   insertTimelineEvent,
-  getTimelineEvents
+  getTimelineEvents,
+  insertLogLines,
+  getRecentLogLines,
+  clearLogLines
 } from './queries'
 import type {
   SystemState,
   AutoHealEvent,
   BriefingResult,
-  HydraNotification,
-  SecurityPosture
+  HelmNotification,
+  SecurityPosture,
+  LogLine
 } from '../../shared/types'
 
 function makeState(overrides: Partial<SystemState> = {}): SystemState {
@@ -61,6 +65,7 @@ describe('SQLite persistence', () => {
       expect(names).toContain('briefings')
       expect(names).toContain('notifications')
       expect(names).toContain('posture_history')
+      expect(names).toContain('logs')
       expect(names).toContain('sessions')
       expect(names).toContain('timeline_events')
     })
@@ -151,7 +156,7 @@ describe('SQLite persistence', () => {
 
   describe('notifications', () => {
     it('should insert and retrieve a notification', () => {
-      const notif: HydraNotification = {
+      const notif: HelmNotification = {
         id: 'test-1',
         title: 'High CPU',
         body: 'CPU is at 95%',
@@ -167,7 +172,7 @@ describe('SQLite persistence', () => {
     })
 
     it('should dismiss a notification', () => {
-      const notif: HydraNotification = {
+      const notif: HelmNotification = {
         id: 'test-dismiss',
         title: 'Alert',
         body: 'Something happened',
@@ -178,11 +183,11 @@ describe('SQLite persistence', () => {
       insertNotification(notif)
       dismissNotification('test-dismiss')
       const rows = getNotifications(10)
-      expect(rows[0].dismissed).toBe(true)
+      expect(rows).toHaveLength(0)
     })
 
     it('should handle upsert via INSERT OR REPLACE', () => {
-      const notif: HydraNotification = {
+      const notif: HelmNotification = {
         id: 'upsert-test',
         title: 'Original',
         body: 'Original body',
@@ -237,6 +242,25 @@ describe('SQLite persistence', () => {
       }
       const rows = getPostureHistory(3)
       expect(rows).toHaveLength(3)
+    })
+  })
+
+  describe('logs', () => {
+    it('stores and retrieves recent log lines in chronological order', () => {
+      const lines: LogLine[] = [
+        { timestamp: 1000, source: 'alpha.log', text: 'alpha', level: 'info' },
+        { timestamp: 2000, source: 'beta.log', text: 'beta', level: 'warn' }
+      ]
+
+      insertLogLines(lines)
+
+      expect(getRecentLogLines(10)).toEqual(lines)
+    })
+
+    it('clears persisted log history', () => {
+      insertLogLines([{ timestamp: 1000, source: 'alpha.log', text: 'alpha', level: 'info' }])
+      clearLogLines()
+      expect(getRecentLogLines(10)).toEqual([])
     })
   })
 

@@ -90,7 +90,8 @@
 }
 
 .winamp-main-body,
-.winamp-eq-body {
+.winamp-eq-body,
+.winamp-signal-body {
   padding: 0.5rem;
 }
 
@@ -137,7 +138,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.28rem;
-  font-family: var(--hydra-font-mono);
+  font-family: var(--helm-font-mono);
 }
 
 .winamp-led-token {
@@ -153,7 +154,7 @@
 
 .winamp-led-title {
   margin-top: 0.45rem;
-  font-family: var(--hydra-font-mono);
+  font-family: var(--helm-font-mono);
   font-size: 1.35rem;
   font-weight: 700;
   line-height: 1.1;
@@ -164,7 +165,7 @@
 .winamp-led-subtitle,
 .winamp-led-status {
   margin-top: 0.28rem;
-  font-family: var(--hydra-font-mono);
+  font-family: var(--helm-font-mono);
   font-size: 0.68rem;
   line-height: 1.35;
 }
@@ -230,7 +231,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--hydra-font-mono);
+  font-family: var(--helm-font-mono);
   font-size: 0.74rem;
   color: #101b2f;
 }
@@ -304,7 +305,7 @@
 
 .winamp-slider-label,
 .winamp-slider-value {
-  font-family: var(--hydra-font-mono);
+  font-family: var(--helm-font-mono);
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -358,7 +359,7 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 35%),
     var(--winamp-screen);
   color: #cae5ff;
-  font-family: var(--hydra-font-mono);
+  font-family: var(--helm-font-mono);
   font-size: 0.72rem;
 }
 
@@ -371,6 +372,118 @@
   grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 0.3rem;
   min-height: 8.75rem;
+}
+
+.winamp-signal-body {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.winamp-signal-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(220px, 0.85fr);
+  gap: 0.45rem;
+  min-height: 13rem;
+}
+
+.winamp-signal-canvas-shell,
+.winamp-signal-card {
+  border: 1px solid #06111f;
+  box-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.38),
+    inset -1px -1px 0 rgba(165, 195, 230, 0.12);
+}
+
+.winamp-signal-canvas-shell {
+  overflow: hidden;
+  border-radius: 0.28rem;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(91, 167, 255, 0.14), transparent 45%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 28%),
+    var(--winamp-screen);
+}
+
+.winamp-signal-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 13rem;
+}
+
+.winamp-signal-readout {
+  display: grid;
+  gap: 0.34rem;
+}
+
+.winamp-signal-card {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.55rem 0.62rem;
+  border-radius: 0.28rem;
+  background: linear-gradient(180deg, #eff2f8, #c5cedc 44%, #a8b3c5 100%);
+}
+
+.winamp-signal-kicker {
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4a5670;
+}
+
+.winamp-signal-value {
+  font-family: var(--helm-font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #101b2f;
+}
+
+.winamp-signal-detail {
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: #33415f;
+}
+
+.winamp-filter-strip {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.winamp-filter-label {
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4a5670;
+}
+
+.winamp-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+}
+
+.winamp-filter-chip {
+  min-width: 2.6rem;
+  padding: 0.28rem 0.5rem;
+  border: 1px solid #232d40;
+  border-radius: 999px;
+  color: #152031;
+  font-family: var(--helm-font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #fbfdff 0%, #dbe3f1 42%, #afb9cb 100%);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.92),
+    inset -1px -1px 0 rgba(72, 84, 109, 0.85),
+    0 1px 3px rgba(18, 24, 36, 0.2);
+}
+
+.winamp-filter-chip--active {
+  color: #f7fbff;
+  background: linear-gradient(180deg, #2c6cc7, #174b98);
 }
 
 .winamp-band {
@@ -499,7 +612,7 @@
 
 .winamp-playlist-index,
 .winamp-playlist-badge {
-  font-family: var(--hydra-font-mono);
+  font-family: var(--helm-font-mono);
   font-size: 0.66rem;
 }
 
@@ -539,7 +652,7 @@
   height: 1.65rem;
   border: 1px solid rgba(130, 188, 255, 0.16);
   border-radius: 0.18rem;
-  font-family: var(--hydra-font-mono);
+  font-family: var(--helm-font-mono);
   font-size: 0.8rem;
   color: #9ab9df;
   background: rgba(255, 255, 255, 0.08);
@@ -596,6 +709,10 @@
 
 @media (max-width: 900px) {
   .winamp-main-topline {
+    grid-template-columns: 1fr;
+  }
+
+  .winamp-signal-layout {
     grid-template-columns: 1fr;
   }
 
@@ -693,6 +810,8 @@
 [data-skin='forge'] .winamp-led-panel,
 [data-skin='forge'] .winamp-vu-panel,
 [data-skin='forge'] .winamp-readout-cell,
+[data-skin='forge'] .winamp-signal-canvas-shell,
+[data-skin='forge'] .winamp-signal-card,
 [data-skin='forge'] .winamp-playlist-screen,
 [data-skin='forge'] .winamp-textbox,
 [data-skin='forge'] .winamp-band {
@@ -713,6 +832,19 @@
 
 [data-skin='forge'] .winamp-readout-label { color: #8a7658; }
 [data-skin='forge'] .winamp-readout-cell strong { color: #e8d0a8; }
+[data-skin='forge'] .winamp-signal-canvas-shell {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 210, 130, 0.12), transparent 45%),
+    linear-gradient(180deg, rgba(255, 210, 130, 0.02), transparent 28%),
+    var(--winamp-screen);
+}
+[data-skin='forge'] .winamp-signal-card {
+  background: linear-gradient(180deg, #1a1408, #120e08 44%, #0c0a06 100%);
+}
+[data-skin='forge'] .winamp-signal-kicker,
+[data-skin='forge'] .winamp-filter-label { color: #8a7658; }
+[data-skin='forge'] .winamp-signal-value { color: #e8d0a8; }
+[data-skin='forge'] .winamp-signal-detail { color: #a8906a; }
 
 [data-skin='forge'] .winamp-round-button,
 [data-skin='forge'] .winamp-action-button {
@@ -756,6 +888,21 @@
 [data-skin='forge'] .winamp-textbox {
   color: #e8d0a8;
   background: linear-gradient(180deg, rgba(255, 210, 130, 0.02), transparent 35%), var(--winamp-screen);
+}
+
+[data-skin='forge'] .winamp-filter-chip {
+  border-color: rgba(200, 170, 110, 0.2);
+  color: #f5e8d0;
+  background: linear-gradient(180deg, #2a2214, #1a1408 42%, #120e08 100%);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 210, 130, 0.12),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.35),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+[data-skin='forge'] .winamp-filter-chip--active {
+  background: linear-gradient(180deg, #5a4018, #3a280e);
+  color: #ffd280;
 }
 
 [data-skin='forge'] .winamp-textbox::placeholder { color: #6a5838; }

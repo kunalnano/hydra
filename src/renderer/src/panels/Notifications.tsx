@@ -1,36 +1,38 @@
 import { useState, useEffect, useMemo } from 'react'
-import type { HydraNotification } from '../../../shared/types'
+import type { HelmNotification } from '../../../shared/types'
 
-const LEVEL_STYLES: Record<HydraNotification['level'], string> = {
+const LEVEL_STYLES: Record<HelmNotification['level'], string> = {
   critical: 'border-l-red-500 bg-red-500/10',
   warning: 'border-l-amber-500 bg-amber-500/10',
   info: 'border-l-blue-500 bg-blue-500/10'
 }
 
-const LEVEL_ORDER: Record<HydraNotification['level'], number> = {
+const LEVEL_ORDER: Record<HelmNotification['level'], number> = {
   critical: 0,
   warning: 1,
   info: 2
 }
 
 export function NotificationsPanel(): JSX.Element {
-  const [notifications, setNotifications] = useState<HydraNotification[]>([])
+  const [notifications, setNotifications] = useState<HelmNotification[]>([])
 
   useEffect(() => {
-    const unsubNotif = window.hydra.onNotification((notif) => {
-      setNotifications((prev) => [notif, ...prev].slice(0, 50))
+    window.helm.queryNotifications(50).then(setNotifications).catch(() => {})
+
+    const unsubNotif = window.helm.onNotification((notif) => {
+      setNotifications((prev) => [notif, ...prev.filter((existing) => existing.id !== notif.id)].slice(0, 50))
     })
     return unsubNotif
   }, [])
 
   const dismiss = (id: string): void => {
-    window.hydra.dismissNotification(id)
+    window.helm.dismissNotification(id)
     setNotifications((prev) => prev.filter((n) => n.id !== id))
   }
 
   const dismissAll = (): void => {
     for (const n of notifications) {
-      window.hydra.dismissNotification(n.id)
+      window.helm.dismissNotification(n.id)
     }
     setNotifications([])
   }

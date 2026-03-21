@@ -1,7 +1,7 @@
 {
-  "name": "hydra",
-  "version": "3.1.0",
-  "description": "HYDRA — Mission control dashboard for system processes, ports, AI agents, and git repos",
+  "name": "helm",
+  "version": "4.0.0",
+  "description": "HELM — Operator shell for local AI systems, processes, ports, and git repos",
   "main": "./out/main/index.js",
   "author": "kunalnano",
   "homepage": "https://github.com/kunalnano/hydra",

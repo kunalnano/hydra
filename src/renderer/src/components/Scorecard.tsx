@@ -9,6 +9,7 @@ export interface ScorecardProps {
   color: 'green' | 'amber' | 'red' | 'blue' | 'gray'
   sparkData?: number[]
   onClick?: () => void
+  size?: 'primary' | 'compact'
 }
 
 const COLOR_MAP: Record<ScorecardProps['color'], { text: string; hex: string }> = {
@@ -42,29 +43,39 @@ export function Scorecard({
   trendWidget,
   color,
   sparkData,
-  onClick
+  onClick,
+  size = 'primary'
 }: ScorecardProps): JSX.Element {
   const { hex } = COLOR_MAP[color]
   const scorecardStyle: CSSProperties = {
-    background: `radial-gradient(circle at 92% 8%, ${hex}10, transparent 28%), var(--hydra-card-bg)`
+    background: `radial-gradient(circle at 92% 8%, ${hex}10, transparent 28%), var(--helm-card-bg)`
   }
+  const isCompact = size === 'compact'
 
   return (
     <div
       style={scorecardStyle}
-      className={`shell-scorecard flex-1 px-3 py-2 flex flex-col overflow-hidden${
+      className={`shell-scorecard ${
+        isCompact ? 'shell-scorecard--compact px-2.5 py-1.5' : 'shell-scorecard--primary px-3 py-2'
+      } flex overflow-hidden${
         onClick ? ' cursor-pointer' : ''
       }`}
       onClick={onClick}
     >
-      <div className="display-well inline-flex items-center gap-1 px-2 py-0.5 self-start">
-        <span className="text-lg font-bold tabular-nums" style={{ color: hex }}>{value}</span>
+      <div
+        className={`display-well inline-flex items-center gap-1 self-start ${isCompact ? 'px-1.5 py-0.5' : 'px-2 py-0.5'}`}
+      >
+        <span className={`${isCompact ? 'text-sm' : 'text-lg'} font-bold tabular-nums`} style={{ color: hex }}>
+          {value}
+        </span>
         {trendWidget || (trend && <TrendArrow trend={trend} color={color} />)}
       </div>
-      <span className="mt-1 text-[9px] uppercase tracking-[0.14em] shell-subtle">{label}</span>
-      {sparkData && sparkData.length >= 2 && (
-        <div className="mt-1.5" style={{ height: '32px' }}>
-          <Sparkline data={sparkData} height={32} color={hex} />
+      <span className={`mt-1 uppercase tracking-[0.14em] shell-subtle ${isCompact ? 'text-[8px]' : 'text-[9px]'}`}>
+        {label}
+      </span>
+      {!isCompact && sparkData && sparkData.length >= 2 && (
+        <div className="mt-1.5" style={{ height: '26px' }}>
+          <Sparkline data={sparkData} height={26} color={hex} />
         </div>
       )}
     </div>

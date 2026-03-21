@@ -1,5 +1,5 @@
-appId: com.hydra.mission-control
-productName: HYDRA
+appId: com.helm.mission-control
+productName: HELM
 directories:
   buildResources: build
 files:
@@ -13,7 +13,7 @@ asar: true
 asarUnpack:
   - resources/**
 win:
-  executableName: hydra
+  executableName: helm
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

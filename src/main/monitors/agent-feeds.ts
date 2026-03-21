@@ -7,7 +7,7 @@ import type {
   AgentInfo,
   AgentStatus,
   AgentType,
-  HydraConfig,
+  HelmConfig,
   TimelineEventRecord,
   TimelineEventType
 } from '../../shared/types'
@@ -15,10 +15,15 @@ import type {
 const WAITING_HEARTBEAT_MS = 2 * 60 * 1000
 const STALE_HEARTBEAT_MS = 10 * 60 * 1000
 
-const DEFAULT_AGENT_FEED_PATHS = [
-  join(homedir(), '.config', 'hydra', 'agents'),
-  join(homedir(), '.hydra', 'agents')
-]
+export function getDefaultAgentFeedPaths(homeDir = homedir()): string[] {
+  return [
+    join(homeDir, '.config', 'helm', 'agents'),
+    join(homeDir, '.config', 'hydra', 'agents'),
+    join(homeDir, '.hydra', 'agents')
+  ]
+}
+
+const DEFAULT_AGENT_FEED_PATHS = getDefaultAgentFeedPaths()
 
 interface RawAgentState {
   agent_id?: unknown
@@ -54,7 +59,7 @@ export interface IngestibleTraceTimelineEvent extends TimelineEventRecord {
   ingestKey: string
 }
 
-export function getAgentFeedDirectories(config?: HydraConfig): string[] {
+export function getAgentFeedDirectories(config?: HelmConfig): string[] {
   const candidates =
     config?.agentFeedPaths && config.agentFeedPaths.length > 0
       ? config.agentFeedPaths
@@ -69,7 +74,7 @@ export function getAgentFeedDirectories(config?: HydraConfig): string[] {
   return [...unique].filter((dir) => existsSync(dir))
 }
 
-export function loadExternalAgents(config?: HydraConfig, now = Date.now()): AgentInfo[] {
+export function loadExternalAgents(config?: HelmConfig, now = Date.now()): AgentInfo[] {
   const agentsById = new Map<string, AgentInfo>()
 
   for (const directory of getAgentFeedDirectories(config)) {
@@ -95,7 +100,7 @@ export function loadExternalAgents(config?: HydraConfig, now = Date.now()): Agen
 }
 
 export function loadExternalAgentTimelineEvents(
-  config?: HydraConfig
+  config?: HelmConfig
 ): IngestibleTraceTimelineEvent[] {
   const events: IngestibleTraceTimelineEvent[] = []
 

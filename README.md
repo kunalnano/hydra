@@ -1,93 +1,63 @@
-# HYDRA — Operator Shell For Local AI Systems
+# HELM — Operator Shell For Local AI Systems
 
-Hydra is a desktop ops shell for developers running AI agents, local services, and multi-machine model workflows. It keeps overall system status visible while giving each domain its own page instead of forcing everything into one dense dashboard.
+HELM is a desktop ops shell for developers running AI agents, local services, and multi-machine model workflows. It keeps overall system status visible while giving each domain its own page instead of forcing everything into one dense dashboard.
 
-Latest tagged release: `v3.1.0` on March 18, 2026.
+Latest tagged release: `v4.0.0` on March 18, 2026.
 
 The captures below reflect the current mainline shell. They were taken with `Secure View` enabled so local hosts, paths, and LM Studio endpoints stay redacted.
 
-![Hydra Mainline Showcase](docs/screenshots/hydra-mainline-showcase.gif)
-![Hydra AI Full View](docs/screenshots/hydra-mainline-ai-full.png)
-![Hydra FM Radio Forge](docs/screenshots/hydra-mainline-radio-forge.png)
-![Hydra Systems Forge](docs/screenshots/hydra-mainline-systems-forge.png)
+![HELM Mainline Showcase](docs/screenshots/hydra-mainline-showcase.gif)
+![HELM AI Full View](docs/screenshots/hydra-mainline-ai-full.png)
+![HELM FM Radio Forge](docs/screenshots/hydra-mainline-radio-forge.png)
+![HELM Systems Forge](docs/screenshots/hydra-mainline-systems-forge.png)
 
 Operator walkthrough: [docs/OPERATOR-WALKTHROUGH.md](docs/OPERATOR-WALKTHROUGH.md)
-Tagged release notes: [docs/releases/v3.1.0.md](docs/releases/v3.1.0.md)
 Journey so far: [docs/wiki/journey-so-far.md](docs/wiki/journey-so-far.md)
 
-## See The Shell
+## Navigation (7 Pages, Zero Panel Duplication)
 
-### Overview
+Every panel appears on exactly one page. No duplicated widgets, no redundant noise.
 
-The overview screen is Hydra's calmer control layer: persistent scorecards across the top, a dedicated left-hand navigation rail, and page-level drill-down instead of one giant cockpit trying to shout every metric at once.
+| Page | What it does |
+|------|-------------|
+| **Bridge** | Mission control: command center, compact AI briefing, notifications |
+| **Fleet** | Repo drift and process orchestration: workspaces, git status, commit history |
+| **Swarm** | Agent operations: live agent state, swarm load, session timeline |
+| **Grid** | Infrastructure posture: network traffic, security scans, listening ports |
+| **AI** | Operator AI loop: LM Studio briefings, Yennefer, Claude Code usage tracking |
+| **Radio** | FM streaming tuner with presets, local MP3 import, and direct URL loading |
+| **Logs** | Live log tailing and system event stream |
 
-- Persistent scorecards keep CPU, memory, ports, repo drift, battery, and Claude Code cost visible at all times
-- The navigation rail gives each operating surface its own home: `Overview`, `Workspaces`, `Agents`, `Systems`, `AI`, `FM Radio`, and `Activity`
-- The shell is built so you can move from "something looks off" to the exact page that can act on it without losing context
-- `Deck`, `Orbiter`, and `Forge` give the shell three coherent skins instead of a one-off theme toggle
+## What Changed In v4.0.0
 
-### AI Page
-
-The AI page is now intentionally singular: the Yennefer mech entity gets the full runway, the interface tray sits directly beneath it, and the page stays focused on the local model loop instead of repeating panels that already live elsewhere in the shell.
-
-- The mech entity maps live workstation entities into armor, antennas, and reactor motion instead of another generic globe
-- `Request Briefing`, `Invoke Repair`, and `Invoke Yennefer` stay attached to the entity so the page behaves like an instrument, not just a decoration
-- The LM Studio endpoint, lens control, live swarm metrics, and current readout live in the interface tray beneath the entity instead of squeezing it sideways
-- `Secure View` can redact local endpoints and host details for demos, screenshots, and recordings
-
-## Navigation Flow
-
-Hydra's biggest shell shift is structural, not cosmetic. The app now behaves like a shell with purpose-built pages instead of a single overstuffed dashboard.
-
-- `Overview` answers what changed and what needs attention now
-- `Workspaces` handles repo drift, process orchestration, and command-center sorting
-- `Agents` focuses on live agent state and swarm load without dragging in unrelated infrastructure noise
-- `Systems` keeps ports, network, security, and CC usage together
-- `AI` gives the operator-facing local model loop its own space, anchored by the mech entity visualizer
-- `FM Radio` adds a lightweight live-stream tuner with station presets and manual stream loading
-- `Activity` isolates logs, timelines, and historical movement so they stop crowding operational controls
-
-## Mainline Since v3.1.0
-
-- Added `Secure View` so demos and screenshots can redact local hosts, LM Studio endpoints, and filesystem details
-- Rebuilt the center header band as a live operator wire instead of another tiny sparkline cluster
-- Reworked `Staff of Gandalf` into a more graphical command deck with a stronger hero surface and scan terminal framing
-- Refreshed the README showcase media around the AI page, FM Radio deck, and sanitized security surface
-
-## What Changed In v3.1.0
-
-- Reworked the shell into a more compact machine-chrome presentation with cleaner panel hierarchy, a live skin globe, and less of the old flat dashboard framing
-- Expanded the skin system to `Deck`, `Orbiter`, and `Forge`, with persisted shell-wide tokens instead of isolated one-off effects
-- Rebuilt `FM Radio` as a Winamp-inspired stereo relay with presets, search, transport controls, direct stream loading, and obvious local MP3 import
-- Added a main-process audio relay so presets, custom streams, and local files play through Hydra instead of depending on fragile direct renderer streaming
-- Fixed Electron launch visibility and loopback media policy issues so the shell and FM deck come up reliably on the desktop
-
-## What Landed In v2
-
-- Dedicated pages for `Overview`, `Workspaces`, `Agents`, `Systems`, `AI`, and `Activity`
-- Persistent status shell with health scorecards and always-visible system posture
-- `Yennefer Lens` modes so the operator can choose `adaptive`, `creative`, or `strict` output
-- Repetition-aware Yennefer prompts using recent briefing history and live workload context
-- LM Studio self-heal flow that can repair stale endpoints and recover remote LAN-hosted LM Studio servers
+- Renamed project from HYDRA to **HELM** across all types, CSS, config paths, and UI text
+- Config auto-migrates from `~/.config/hydra` to `~/.config/helm`
+- Collapsed 8 pages to 7 with zero panel duplication
+- Added 4th skin: **Phantom** (deep violet neon on obsidian)
+- Replaced repetitive system stats ticker with rotating dev/tech facts
+- Overhauled Staff of Gandalf security panel with cleaner layout and missing-binary detection
+- Moved CC Usage from standalone page into AI page
+- Network scorecard now shows contextual status instead of appearing frozen
 
 ## Core Capabilities
 
-- **Overview page** surfaces health, hotspots, active workspaces, notifications, and the command center
-- **Agents page** tracks active agent processes, cadence, and coordination load
-- **Systems page** exposes ports, network traffic, platform telemetry, and security tools
-- **AI page** centralizes LM Studio health, briefing requests, Yennefer invocation, and repair actions
-- **FM Radio page** plays public live streams with presets, search, custom URLs, and saved volume/station state
-- **Activity page** keeps timeline, logs, and historical events separated from the main operational flow
+- **Bridge** surfaces health, hotspots, command center, and the compact AI briefing
+- **Fleet** handles repo drift, process orchestration, git status, and commit history
+- **Swarm** tracks active agent processes, cadence, and coordination load
+- **Grid** exposes ports, network traffic, and security tools
+- **AI** centralizes LM Studio health, briefing requests, Yennefer invocation, and Claude Code usage tracking
+- **Radio** plays public live streams with presets, search, custom URLs, and saved volume/station state
+- **Logs** keeps live log tailing separated from operational controls
 - **SQLite persistence** stores snapshots, alerts, briefings, notifications, and Yennefer history locally
 
 ## Local AI Workflow
 
-Hydra uses LM Studio as a local OpenAI-compatible endpoint. No cloud inference is required for briefings.
+HELM uses LM Studio as a local OpenAI-compatible endpoint. No cloud inference is required for briefings.
 
 - Default target: `http://localhost:1234`
-- Configurable via `~/.config/hydra/config.json`
+- Configurable via `~/.config/helm/config.json`
 - Overrideable in local development with `.env`
-- `Invoke Repair` probes configured, local, and LAN-discovered endpoints and persists a repaired URL when Hydra finds a healthy LM Studio server
+- `Invoke Repair` probes configured, local, and LAN-discovered endpoints and persists a repaired URL when HELM finds a healthy LM Studio server
 
 For cross-machine setups, enable LM Studio network serving on the host machine and make sure the chosen port is reachable through the host firewall.
 
@@ -95,7 +65,7 @@ For cross-machine setups, enable LM Studio network serving on the host machine a
 
 Electron 35 · React 18 · TypeScript · Tailwind 4 · Zustand · SQLite (`better-sqlite3`) · Vite (`electron-vite`) · Vitest
 
-Electron remains the pragmatic cross-OS shell here because Hydra depends on desktop IPC, tray integration, local process inspection, filesystem access, and machine-adjacent monitoring.
+Electron remains the pragmatic cross-OS shell here because HELM depends on desktop IPC, tray integration, local process inspection, filesystem access, and machine-adjacent monitoring.
 
 ## Getting Started
 
@@ -110,7 +80,7 @@ Requires Node.js 18+.
 
 ## Configuration
 
-Config file: `~/.config/hydra/config.json`
+Config file: `~/.config/helm/config.json`
 
 | Option            | Default                 | Description                                     |
 | ----------------- | ----------------------- | ----------------------------------------------- |
@@ -128,17 +98,20 @@ cp .env.example .env
 LM_STUDIO_URL=http://192.168.7.200:1234
 ```
 
+## Skins
+
+4 built-in skins, toggled with Cmd+Shift+S (Mac) / Ctrl+Shift+S:
+
+- **Deck** — Dark gunmetal chrome, cool cyan accent
+- **Orbiter** — Warmer chrome with teal-green accent
+- **Forge** — Reactor gold on black, machine warmth
+- **Phantom** — Deep violet neon on obsidian, night ops
+
 ## Testing
 
 ```bash
 npm run typecheck
 npm test
-```
-
-Useful targeted checks:
-
-```bash
-npm test -- yennefer briefing lmstudio
 ```
 
 ## Platform Support
@@ -148,10 +121,7 @@ npm test -- yennefer briefing lmstudio
 
 ## License
 
-Hydra is source-available under [PolyForm Noncommercial 1.0.0](LICENSE).
+HELM is source-available under [PolyForm Noncommercial 1.0.0](LICENSE).
 
 That allows personal, research, hobby, educational, and other noncommercial use,
 modification, and redistribution. Commercial use is not granted by this license.
-
-This license applies starting with `v3.0.0`. Earlier releases through `v2.1.2`
-remain available under the terms they originally shipped with.

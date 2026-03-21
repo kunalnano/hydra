@@ -26,6 +26,7 @@ import { getDiskUsage } from './disk'
 import { getBatteryStatus } from './battery'
 import { runSecurityScan, extractPosture } from '../intelligence/security'
 import { getCCUsage } from './ccusage'
+import { buildMonitorTickThresholds, resolveMonitorInterval } from './schedule'
 import { showDesktopNotification } from '../notifications'
 import { isLateNight } from '../intelligence/time-context'
 import {
@@ -34,16 +35,21 @@ import {
   insertBriefing,
   insertNotification as dbInsertNotification,
   dismissNotification as dbDismissNotification,
+  insertLogLines,
   insertSession,
   getLatestSession,
   insertTimelineEvent,
   getTimelineEvents,
-  pruneOldTimelineEvents
+  pruneOldTimelineEvents,
+  pruneOldSnapshots,
+  pruneOldLogLines,
+  getAlertHistory,
+  getRecentLogLines
 } from '../db/queries'
 import type {
   SystemState,
   AutoHealEvent,
-  HydraNotification,
+  HelmNotification,
   NetworkState,
   FirewallState,
   DiskState,
@@ -90,31 +96,45 @@ let monitorInterval: ReturnType<typeof setInterval> | null = null
 let latestState: SystemState | null = null
 let previousState: PreviousState | null = null
 let healHistory: AutoHealEvent[] = []
-let notifications: HydraNotification[] = []
+let notifications: HelmNotification[] = []
 let trayCallback: ((state: SystemState) => void) | null = null
 let latestNetwork: NetworkState | null = null
 let latestFirewall: FirewallState | null = null
 let latestDisk: DiskState | null = null
 let latestBattery: BatteryState | null = null
 let latestCCUsage: CCUsageState | null = null
-// Tiered polling: base tick = 5s
-// Tier 1 (every tick = 5s): processes, ports, agents, CPU, memory
-// Tier 2 (every 3rd tick = 15s): network
-// Tier 3 (every 6th tick = 30s): disk, battery
-// Tier 4 (every 12th tick = 60s): git, firewall, snapshots, ccusage
-// Tier 5 (every 24th tick = 2min): session snapshots
-let networkPollCount = 2 // Start high so first cycle triggers immediately
-let diskPollCount = 5
-let batteryPollCount = 5
-let gitPollCount = 11
-let firewallPollCount = 11
-let ccusagePollCount = 11
-let snapshotPollCount = 0
-let sessionPollCount = 0
 let previousWorkspaceNames = new Set<string>()
 let monitorConfig = loadConfig()
+let pollThresholds = buildMonitorTickThresholds(monitorConfig)
+let networkPollCount = 0
+let diskPollCount = 0
+let batteryPollCount = 0
+let gitPollCount = 0
+let firewallPollCount = 0
+let ccusagePollCount = 0
+let snapshotPollCount = 0
+let sessionPollCount = 0
 
 let latestGitRepos: SystemState['gitRepos'] = []
+
+function refreshMonitorConfig(): void {
+  monitorConfig = loadConfig()
+  pollThresholds = buildMonitorTickThresholds(monitorConfig)
+}
+
+function resetTieredPollCounters(): void {
+  // Start slow monitors "warm" so the first loop fills those panels quickly.
+  networkPollCount = Math.max(0, pollThresholds.network - 1)
+  diskPollCount = Math.max(0, pollThresholds.disk - 1)
+  batteryPollCount = Math.max(0, pollThresholds.battery - 1)
+  gitPollCount = Math.max(0, pollThresholds.git - 1)
+  firewallPollCount = Math.max(0, pollThresholds.firewall - 1)
+  ccusagePollCount = Math.max(0, pollThresholds.ccusage - 1)
+  snapshotPollCount = 0
+  sessionPollCount = 0
+}
+
+resetTieredPollCounters()
 
 async function withTimeout<T>(label: string, operation: Promise<T>, fallback: T, ms = 4000): Promise<T> {
   try {
@@ -188,6 +208,8 @@ async function collectSystemState(): Promise<SystemState> {
 
   if (latestDisk) state.disk = latestDisk
   if (latestBattery) state.battery = latestBattery
+  if (latestNetwork) state.network = latestNetwork
+  if (latestFirewall) state.firewall = latestFirewall
 
   return state
 }
@@ -207,8 +229,10 @@ export function onStateUpdate(callback: (state: SystemState) => void): void {
   trayCallback = callback
 }
 
-export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): void {
-  monitorConfig = loadConfig()
+export function startMonitoring(mainWindow: BrowserWindow, intervalMs?: number): void {
+  refreshMonitorConfig()
+  resetTieredPollCounters()
+  const loopIntervalMs = intervalMs ?? resolveMonitorInterval(monitorConfig)
 
   ipcMain.handle(IPC_CHANNELS.GET_INITIAL_STATE, async () => {
     if (!latestState) {
@@ -218,6 +242,12 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
   })
 
   ipcMain.on(IPC_CHANNELS.REQUEST_REFRESH, async () => {
+    refreshMonitorConfig()
+    try {
+      latestGitRepos = await scanForRepos(monitorConfig.gitRepoPaths)
+    } catch (err) {
+      console.error('Git monitor failed:', err)
+    }
     latestState = await collectSystemState()
     mainWindow.webContents.send(IPC_CHANNELS.SYSTEM_STATE_UPDATE, latestState)
     refreshAndBroadcastCCUsage(mainWindow, { forceLive: true })
@@ -225,6 +255,7 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
 
   monitorInterval = setInterval(async () => {
     try {
+      refreshMonitorConfig()
       latestState = await collectSystemState()
       ingestExternalAgentTimelineEvents()
 
@@ -241,7 +272,7 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
           } catch {
             /* DB write failed — continue */
           }
-          const notif: HydraNotification = {
+          const notif: HelmNotification = {
             id: `${event.timestamp}-${event.rule}`,
             title: event.rule.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
             body: event.message,
@@ -259,7 +290,7 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
             mainWindow.webContents.send(IPC_CHANNELS.NOTIFICATION, notif)
           }
           if (notif.level === 'critical') {
-            showDesktopNotification(`HYDRA: ${notif.title}`, notif.body)
+            showDesktopNotification(`HELM: ${notif.title}`, notif.body)
           }
         }
       }
@@ -270,26 +301,35 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
         mainWindow.webContents.send(IPC_CHANNELS.SYSTEM_STATE_UPDATE, latestState)
       }
 
-      // Tier 2: Network (every 3rd tick = 15s)
+      // Tier 2: Network
       networkPollCount++
-      if (networkPollCount >= 3) {
+      if (networkPollCount >= pollThresholds.network) {
         networkPollCount = 0
         try {
           latestNetwork = await getNetworkActivity()
+          if (latestState) {
+            latestState = { ...latestState, network: latestNetwork }
+          }
           if (!mainWindow.isDestroyed()) {
             mainWindow.webContents.send(IPC_CHANNELS.NETWORK_STATE, latestNetwork)
+            if (latestState) {
+              mainWindow.webContents.send(IPC_CHANNELS.SYSTEM_STATE_UPDATE, latestState)
+            }
           }
         } catch (err) {
           console.error('Network monitor failed:', err)
         }
       }
 
-      // Tier 4: Firewall (every 12th tick = 60s)
+      // Tier 4: Firewall
       firewallPollCount++
-      if (firewallPollCount >= 12) {
+      if (firewallPollCount >= pollThresholds.firewall) {
         firewallPollCount = 0
         try {
           latestFirewall = await getFirewallRules()
+          if (latestState) {
+            latestState = { ...latestState, firewall: latestFirewall }
+          }
           if (!mainWindow.isDestroyed()) {
             mainWindow.webContents.send(IPC_CHANNELS.FIREWALL_STATE, latestFirewall)
           }
@@ -298,9 +338,9 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
         }
       }
 
-      // Tier 3: Disk (every 6th tick = 30s)
+      // Tier 3: Disk
       diskPollCount++
-      if (diskPollCount >= 6) {
+      if (diskPollCount >= pollThresholds.disk) {
         diskPollCount = 0
         try {
           latestDisk = await getDiskUsage()
@@ -309,9 +349,9 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
         }
       }
 
-      // Tier 3: Battery (every 6th tick = 30s)
+      // Tier 3: Battery
       batteryPollCount++
-      if (batteryPollCount >= 6) {
+      if (batteryPollCount >= pollThresholds.battery) {
         batteryPollCount = 0
         try {
           latestBattery = await getBatteryStatus()
@@ -320,20 +360,20 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
         }
       }
 
-      // Tier 4: Git status (every 12th tick = 60s)
+      // Tier 4: Git status
       gitPollCount++
-      if (gitPollCount >= 12) {
+      if (gitPollCount >= pollThresholds.git) {
         gitPollCount = 0
         try {
-          latestGitRepos = await scanForRepos()
+          latestGitRepos = await scanForRepos(monitorConfig.gitRepoPaths)
         } catch (err) {
           console.error('Git monitor failed:', err)
         }
       }
 
-      // Tier 4: CC Usage (every 12th tick = 60s)
+      // Tier 4: CC Usage
       ccusagePollCount++
-      if (ccusagePollCount >= 12) {
+      if (ccusagePollCount >= pollThresholds.ccusage) {
         ccusagePollCount = 0
         try {
           refreshAndBroadcastCCUsage(mainWindow)
@@ -342,20 +382,21 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
         }
       }
 
-      // Tier 4: DB snapshot (every 12th tick = 60s)
+      // Tier 4: DB snapshot
       snapshotPollCount++
-      if (snapshotPollCount >= 12) {
+      if (snapshotPollCount >= pollThresholds.snapshot) {
         snapshotPollCount = 0
         try {
           insertSnapshot(latestState)
+          pruneOldSnapshots(1000)
         } catch (err) {
           console.error('Snapshot DB write failed:', err)
         }
       }
 
-      // Tier 5: Session snapshot (every 24th tick = 2 min)
+      // Tier 5: Session snapshot
       sessionPollCount++
-      if (sessionPollCount >= 24) {
+      if (sessionPollCount >= pollThresholds.session) {
         sessionPollCount = 0
         try {
           const sessionData = {
@@ -426,11 +467,20 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
     } catch (err) {
       console.error('Monitor cycle failed:', err)
     }
-  }, intervalMs)
+  }, loopIntervalMs)
 
   // Log monitoring: stream new log lines to renderer
-  startLogMonitoring((lines) => {
-    if (!mainWindow.isDestroyed()) {
+  const hasPersistedLogs = getRecentLogLines(1).length > 0
+  startLogMonitoring((lines, kind) => {
+    if (kind === 'tail' || !hasPersistedLogs) {
+      try {
+        insertLogLines(lines)
+        pruneOldLogLines(10000)
+      } catch {
+        /* DB write failed — continue */
+      }
+    }
+    if (!mainWindow.isDestroyed() && (kind === 'tail' || !hasPersistedLogs)) {
       mainWindow.webContents.send(IPC_CHANNELS.LOG_LINES, lines)
     }
   }, monitorConfig)
@@ -463,7 +513,7 @@ export function startMonitoring(mainWindow: BrowserWindow, intervalMs = 5000): v
     return result
   })
 
-  ipcMain.handle(IPC_CHANNELS.GET_HEAL_HISTORY, () => healHistory)
+  ipcMain.handle(IPC_CHANNELS.GET_HEAL_HISTORY, () => getAlertHistory(100))
 
   ipcMain.on(IPC_CHANNELS.DISMISS_NOTIFICATION, (_event, id: string) => {
     const notif = notifications.find((n) => n.id === id)
@@ -588,13 +638,6 @@ export function stopMonitoring(): void {
   latestDisk = null
   latestBattery = null
   latestCCUsage = null
-  networkPollCount = 2
-  diskPollCount = 5
-  batteryPollCount = 5
-  gitPollCount = 11
-  firewallPollCount = 11
-  ccusagePollCount = 11
-  snapshotPollCount = 0
-  sessionPollCount = 0
   previousWorkspaceNames = new Set()
+  resetTieredPollCounters()
 }

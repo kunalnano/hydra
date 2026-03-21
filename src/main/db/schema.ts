@@ -46,6 +46,15 @@ CREATE TABLE IF NOT EXISTS posture_history (
   verdict TEXT NOT NULL
 )`
 
+export const CREATE_LOGS_TABLE = `
+CREATE TABLE IF NOT EXISTS logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  timestamp INTEGER NOT NULL,
+  source TEXT NOT NULL,
+  text TEXT NOT NULL,
+  level TEXT NOT NULL
+)`
+
 export const CREATE_SESSIONS_TABLE = `
 CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,6 +79,7 @@ export function initializeSchema(db: Database.Database): void {
   db.exec(CREATE_BRIEFINGS_TABLE)
   db.exec(CREATE_NOTIFICATIONS_TABLE)
   db.exec(CREATE_POSTURE_HISTORY_TABLE)
+  db.exec(CREATE_LOGS_TABLE)
   db.exec(CREATE_SESSIONS_TABLE)
   db.exec(CREATE_TIMELINE_EVENTS_TABLE)
   ensureTimelineEventColumns(db)

@@ -1,16 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type HydraSkinId = 'classic' | 'glass' | 'forge'
+export type HelmSkinId = 'classic' | 'glass' | 'forge' | 'phantom'
 
-export interface HydraSkinOption {
-  id: HydraSkinId
+export interface HelmSkinOption {
+  id: HelmSkinId
   label: string
   blurb: string
   palette: [string, string, string]
 }
 
-export const HYDRA_SKINS: HydraSkinOption[] = [
+export const HELM_SKINS: HelmSkinOption[] = [
   {
     id: 'classic',
     label: 'Deck',
@@ -28,12 +28,18 @@ export const HYDRA_SKINS: HydraSkinOption[] = [
     label: 'Forge',
     blurb: 'Reactor gold on black. Machine warmth.',
     palette: ['#000000', '#ffd280', '#1a1408']
+  },
+  {
+    id: 'phantom',
+    label: 'Phantom',
+    blurb: 'Deep violet neon on obsidian. Night ops.',
+    palette: ['#0c0818', '#bf7aff', '#1a1030']
   }
 ]
 
 interface SkinStore {
-  activeSkin: HydraSkinId
-  setActiveSkin: (skin: HydraSkinId) => void
+  activeSkin: HelmSkinId
+  setActiveSkin: (skin: HelmSkinId) => void
 }
 
 export const useSkinStore = create<SkinStore>()(
@@ -43,7 +49,7 @@ export const useSkinStore = create<SkinStore>()(
       setActiveSkin: (skin) => set({ activeSkin: skin })
     }),
     {
-      name: 'hydra-shell-skin'
+      name: 'helm-shell-skin'
     }
   )
 )

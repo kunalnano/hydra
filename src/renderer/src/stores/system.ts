@@ -28,10 +28,10 @@ export const useSystemStore = create<SystemStore>((set) => ({
 
   initialize: async () => {
     try {
-      const initialState = await window.hydra.getInitialState()
+      const initialState = await window.helm.getInitialState()
       set({ state: initialState, isConnected: true })
 
-      window.hydra.onSystemStateUpdate((newState) => {
+      window.helm.onSystemStateUpdate((newState) => {
         set({ state: newState })
 
         const netIn = newState.network?.totalBytesInPerSec ?? 0
@@ -47,11 +47,11 @@ export const useSystemStore = create<SystemStore>((set) => ({
   },
 
   refresh: () => {
-    window.hydra.requestRefresh()
+    window.helm.requestRefresh()
   },
 
   killProcess: async (pid, expectedName) => {
-    const result = await window.hydra.killProcess(pid, expectedName)
+    const result = await window.helm.killProcess(pid, expectedName)
     if (result.success) {
       set((s) => {
         const next = new Set(s.frozenPids)
@@ -63,7 +63,7 @@ export const useSystemStore = create<SystemStore>((set) => ({
   },
 
   signalProcess: async (pid, signal) => {
-    const result = await window.hydra.signalProcess(pid, signal)
+    const result = await window.helm.signalProcess(pid, signal)
     if (result.success) {
       set((s) => {
         const next = new Set(s.frozenPids)
@@ -76,7 +76,7 @@ export const useSystemStore = create<SystemStore>((set) => ({
   },
 
   killGroup: async (processes, groupName) => {
-    const result = await window.hydra.killGroup(processes, groupName)
+    const result = await window.helm.killGroup(processes, groupName)
     set((s) => {
       const next = new Set(s.frozenPids)
       for (const r of result.results) {

@@ -1,19 +1,15 @@
 import { getDb } from './index'
 import type {
   SystemState,
+  DBSnapshot,
   AutoHealEvent,
   BriefingResult,
-  HydraNotification,
+  HelmNotification,
   SecurityPosture,
   PostureHistoryEntry,
-  TimelineEventRecord
+  TimelineEventRecord,
+  LogLine
 } from '../../shared/types'
-
-export interface DBSnapshot {
-  id: number
-  timestamp: number
-  data: SystemState
-}
 
 export function insertSnapshot(state: SystemState): void {
   const db = getDb()
@@ -100,18 +96,18 @@ export function getRecentBriefings(limit: number): BriefingResult[] {
   }))
 }
 
-export function insertNotification(notif: HydraNotification): void {
+export function insertNotification(notif: HelmNotification): void {
   const db = getDb()
   db.prepare(
     'INSERT OR REPLACE INTO notifications (id, title, body, level, timestamp, dismissed) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(notif.id, notif.title, notif.body, notif.level, notif.timestamp, notif.dismissed ? 1 : 0)
 }
 
-export function getNotifications(limit: number): HydraNotification[] {
+export function getNotifications(limit: number): HelmNotification[] {
   const db = getDb()
   const rows = db
     .prepare(
-      'SELECT id, title, body, level, timestamp, dismissed FROM notifications ORDER BY timestamp DESC LIMIT ?'
+      'SELECT id, title, body, level, timestamp, dismissed FROM notifications WHERE dismissed = 0 ORDER BY timestamp DESC LIMIT ?'
     )
     .all(limit) as {
     id: string
@@ -125,7 +121,7 @@ export function getNotifications(limit: number): HydraNotification[] {
     id: row.id,
     title: row.title,
     body: row.body,
-    level: row.level as HydraNotification['level'],
+    level: row.level as HelmNotification['level'],
     timestamp: row.timestamp,
     dismissed: row.dismissed === 1
   }))
@@ -141,6 +137,42 @@ export function insertPostureHistory(posture: SecurityPosture): void {
   db.prepare(
     'INSERT INTO posture_history (timestamp, score, grade, verdict) VALUES (?, ?, ?, ?)'
   ).run(Date.now(), posture.overallScore, posture.grade, posture.verdict)
+}
+
+export function insertLogLines(lines: LogLine[]): void {
+  if (lines.length === 0) return
+  const db = getDb()
+  const insert = db.prepare(
+    'INSERT INTO logs (timestamp, source, text, level) VALUES (?, ?, ?, ?)'
+  )
+  const tx = db.transaction((entries: LogLine[]) => {
+    for (const entry of entries) {
+      insert.run(entry.timestamp, entry.source, entry.text, entry.level)
+    }
+  })
+  tx(lines)
+}
+
+export function getRecentLogLines(limit: number): LogLine[] {
+  const db = getDb()
+  const rows = db
+    .prepare(
+      'SELECT timestamp, source, text, level FROM logs ORDER BY timestamp DESC, id DESC LIMIT ?'
+    )
+    .all(limit) as LogLine[]
+  return rows.reverse()
+}
+
+export function clearLogLines(): void {
+  const db = getDb()
+  db.prepare('DELETE FROM logs').run()
+}
+
+export function pruneOldLogLines(maxRows = 10000): void {
+  const db = getDb()
+  db.prepare(
+    'DELETE FROM logs WHERE id NOT IN (SELECT id FROM logs ORDER BY timestamp DESC, id DESC LIMIT ?)'
+  ).run(maxRows)
 }
 
 export function getPostureHistory(limit: number): PostureHistoryEntry[] {

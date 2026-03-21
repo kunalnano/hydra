@@ -1,20 +1,20 @@
 import { create } from 'zustand'
 
-export type HydraPageId =
-  | 'overview'
-  | 'workspaces'
-  | 'agents'
-  | 'systems'
+export type HelmPageId =
+  | 'bridge'
+  | 'fleet'
+  | 'swarm'
+  | 'grid'
   | 'ai'
   | 'radio'
-  | 'activity'
+  | 'logs'
 
 interface NavigationStore {
-  currentPage: HydraPageId
-  setCurrentPage: (page: HydraPageId) => void
+  currentPage: HelmPageId
+  setCurrentPage: (page: HelmPageId) => void
 }
 
 export const useNavigationStore = create<NavigationStore>((set) => ({
-  currentPage: 'overview',
+  currentPage: 'bridge',
   setCurrentPage: (page) => set({ currentPage: page })
 }))

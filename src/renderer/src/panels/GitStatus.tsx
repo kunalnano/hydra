@@ -125,7 +125,7 @@ export function GitStatusPanel(): JSX.Element {
 
       const results: { repo: string; result: GitActionResult }[] = []
       for (const repo of repos) {
-        const result = await window.hydra.runGitAction(repo.path, action)
+        const result = await window.helm.runGitAction(repo.path, action)
         results.push({ repo: repo.name, result })
       }
 
@@ -235,7 +235,7 @@ function RepoRow({ repo }: { repo: GitRepoInfo }): JSX.Element {
       setRunningAction(action)
       setFeedback(null)
       try {
-        const result = await window.hydra.runGitAction(repo.path, action)
+        const result = await window.helm.runGitAction(repo.path, action)
         setFeedback({ ok: result.success, msg: result.output })
         if (result.success) refresh()
       } catch {

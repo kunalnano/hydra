@@ -5,20 +5,22 @@ import type {
   LogLine,
   BriefingResult,
   AutoHealEvent,
-  HydraNotification,
+  HelmNotification,
   LmStudioHealResult,
   NetworkState,
   FirewallState,
   SecurityScanResult,
   SecurityPosture,
-  HydraConfig,
+  HelmConfig,
   GitCommit,
   PostureHistoryEntry,
   GitActionResult,
   ProcessSignalType,
   ProcessActionResult,
   GroupActionResult,
-  CCUsageState
+  CCUsageState,
+  SkillFeed,
+  DBSnapshot
 } from '../shared/types'
 
 const api = {
@@ -72,8 +74,8 @@ const api = {
     }
   },
 
-  onNotification: (callback: (notif: HydraNotification) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, notif: HydraNotification): void =>
+  onNotification: (callback: (notif: HelmNotification) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, notif: HelmNotification): void =>
       callback(notif)
     ipcRenderer.on(IPC_CHANNELS.NOTIFICATION, handler)
     return (): void => {
@@ -137,21 +139,27 @@ const api = {
     }
   },
 
-  querySnapshots: (limit: number): Promise<unknown[]> =>
+  querySnapshots: (limit: number): Promise<DBSnapshot[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_SNAPSHOTS, limit),
 
-  queryAlerts: (limit: number): Promise<unknown[]> =>
+  queryAlerts: (limit: number): Promise<AutoHealEvent[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_ALERTS, limit),
 
-  queryBriefings: (limit: number): Promise<unknown[]> =>
+  queryBriefings: (limit: number): Promise<BriefingResult[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_BRIEFINGS, limit),
 
-  queryNotifications: (limit: number): Promise<unknown[]> =>
+  queryNotifications: (limit: number): Promise<HelmNotification[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_NOTIFICATIONS, limit),
 
-  getConfig: (): Promise<HydraConfig> => ipcRenderer.invoke(IPC_CHANNELS.CONFIG_GET),
+  queryLogs: (limit: number): Promise<LogLine[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DB_QUERY_LOGS, limit),
 
-  saveConfig: (config: HydraConfig): Promise<void> =>
+  clearLogs: (): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DB_CLEAR_LOGS),
+
+  getConfig: (): Promise<HelmConfig> => ipcRenderer.invoke(IPC_CHANNELS.CONFIG_GET),
+
+  saveConfig: (config: HelmConfig): Promise<void> =>
     ipcRenderer.invoke(IPC_CHANNELS.CONFIG_SAVE, config),
 
   getCommitHistory: (repoPath: string, limit: number): Promise<GitCommit[]> =>
@@ -182,6 +190,9 @@ const api = {
 
   refreshCCUsage: (): Promise<CCUsageState> => ipcRenderer.invoke(IPC_CHANNELS.CCUSAGE_REFRESH),
 
+  getSkillFeed: (limit: number): Promise<SkillFeed> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SKILLS_FEED, limit),
+
   onCCUsageUpdate: (callback: (state: CCUsageState) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, state: CCUsageState): void =>
       callback(state)
@@ -207,6 +218,6 @@ const api = {
   } | null> => ipcRenderer.invoke(IPC_CHANNELS.SESSION_DELTA)
 }
 
-contextBridge.exposeInMainWorld('hydra', api)
+contextBridge.exposeInMainWorld('helm', api)
 
-export type HydraAPI = typeof api
+export type HelmAPI = typeof api

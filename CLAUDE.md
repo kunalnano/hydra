@@ -1,4 +1,4 @@
-# HYDRA — AI-Native Mission Control Dashboard
+# HELM — Operator Shell For Local AI Systems
 
 ## What This Is
 
@@ -12,7 +12,7 @@ GitHub: https://github.com/kunalnano/hydra
 - **State:** Zustand (system store + timeseries ring buffer + UI store)
 - **Build:** Vite via electron-vite
 - **Persistence:** SQLite via better-sqlite3
-- **Tests:** Vitest (100 tests, all passing)
+- **Tests:** Vitest (189+ tests passing)
 - **AI:** Anthropic SDK (Claude Haiku 4.5) for briefings
 
 ## Project Structure
@@ -39,45 +39,64 @@ src/
 │   │   ├── auto-heal.ts     # Rule engine with 60s cooldowns
 │   │   ├── rules.ts         # 5 default rules (process/port disappear, high CPU/mem, agent idle)
 │   │   └── security.ts      # Staff of Gandalf integration (config-driven paths)
-│   ├── config.ts            # XDG-compliant config (~/.config/hydra/config.json)
+│   ├── config.ts            # XDG-compliant config (~/.config/helm/config.json)
 │   ├── platform.ts          # Platform detection (macOS/Linux/Windows)
 │   ├── notifications.ts     # Desktop notifications with 30s throttle
 │   └── updater.ts           # Auto-updater stub (electron-updater)
 ├── preload/
-│   └── index.ts             # contextBridge IPC contracts
+│   └── index.ts             # contextBridge IPC contracts (window.helm)
 ├── renderer/src/
-│   ├── App.tsx              # 5-row grid layout with scorecards strip
+│   ├── App.tsx              # 7-page shell with persistent scorecards
 │   ├── main.tsx             # React entry
 │   ├── components/          # Reusable SVG visual components
 │   │   ├── Scorecard.tsx    # Compact card: big number + trend + sparkline
 │   │   ├── Sparkline.tsx    # Pure SVG polyline chart
 │   │   ├── GaugeArc.tsx     # Semi-circular gauge (speedometer style)
 │   │   └── DonutChart.tsx   # Ring chart with segments
-│   ├── panels/              # Dashboard panels (9 total)
-│   │   ├── ScorecardsStrip.tsx  # Top row: 6 at-a-glance health cards
-│   │   ├── Workspaces.tsx   # Process groups with expand/collapse
-│   │   ├── Agents.tsx       # AI agent status + workspace linking
-│   │   ├── Ports.tsx        # Listening ports → process mapping
-│   │   ├── GitStatus.tsx    # Branch, dirty state, ahead/behind
-│   │   ├── Briefing.tsx     # On-demand Claude briefings (Cmd+B)
-│   │   ├── Network.tsx      # Per-process bandwidth + firewall correlation
-│   │   ├── Security.tsx     # Staff of Gandalf scan UI
-│   │   ├── Notifications.tsx # Auto-heal events + alerts
-│   │   └── Logs.tsx         # Live log streaming
+│   ├── panels/              # Dashboard panels (each appears on exactly one page)
+│   │   ├── ScorecardsStrip.tsx  # Top row: at-a-glance health cards
+│   │   ├── CommandCenter.tsx    # Process overview (Bridge)
+│   │   ├── Workspaces.tsx       # Process groups (Fleet)
+│   │   ├── GitStatus.tsx        # Branch, dirty state (Fleet)
+│   │   ├── GitHistory.tsx       # Commit history (Fleet)
+│   │   ├── Agents.tsx           # AI agent status (Swarm)
+│   │   ├── Timeline.tsx         # Session timeline (Swarm)
+│   │   ├── Network.tsx          # Per-process bandwidth (Grid)
+│   │   ├── Security.tsx         # Staff of Gandalf scan UI (Grid)
+│   │   ├── Ports.tsx            # Listening ports (Grid)
+│   │   ├── Briefing.tsx         # LM Studio briefings (Bridge compact, AI full)
+│   │   ├── CCUsage.tsx          # Claude Code usage tracking (AI)
+│   │   ├── Notifications.tsx    # Auto-heal events + alerts (Bridge)
+│   │   ├── FMRadio.tsx          # FM radio player (Radio)
+│   │   └── Logs.tsx             # Live log streaming (Logs)
 │   └── stores/
 │       ├── system.ts        # Zustand: all monitor data + IPC subscriptions
 │       ├── timeseries.ts    # Ring buffer (60 snapshots, ~2min history)
-│       └── ui.ts            # Panel collapse/expand state
+│       ├── navigation.ts    # Current page state
+│       ├── skin.ts          # 4 skins: Deck, Orbiter, Forge, Phantom
+│       └── privacy.ts       # Secure View toggle
 └── shared/
     └── types.ts             # All shared TypeScript interfaces
 ```
+
+## Pages (v4.0.0 — zero panel duplication)
+
+| Page | ID | Panels |
+|------|----|--------|
+| Bridge | `bridge` | Command Center, Briefing (compact), Notifications |
+| Fleet | `fleet` | Workspaces, Git Status, Git History |
+| Swarm | `swarm` | Agents, Timeline |
+| Grid | `grid` | Network, Security, Ports |
+| AI | `ai` | Briefing (full), CC Usage |
+| Radio | `radio` | FM Radio |
+| Logs | `logs` | Logs |
 
 ## Architecture Rules — READ BEFORE CODING
 
 ### IPC Contract
 
 - Main → Renderer communication via typed IPC channels defined in `shared/types.ts`
-- Preload bridge in `preload/index.ts` exposes `window.api` via `contextBridge`
+- Preload bridge in `preload/index.ts` exposes `window.helm` via `contextBridge`
 - **NEVER** use `ipcRenderer` directly in renderer code
 - All new IPC channels must be added to: types.ts interface, preload bridge, AND main handlers
 
@@ -100,59 +119,15 @@ src/
 - All panels are React functional components reading from Zustand stores
 - SVG chart components are pure (no external charting library)
 - Time-series uses ring buffer pattern: fixed 60-slot array, push new, drop oldest
-- Dark theme: `bg-gray-900`, `text-gray-100`, neon accent colors
-- Panels support expand/collapse via UI store
+- 4 skins: Deck (cyan), Orbiter (teal), Forge (gold), Phantom (violet)
+- Each panel appears on exactly ONE page (zero duplication)
 
 ### State Management
 
 - `system.ts` store: canonical source for ALL monitor data, updated via IPC listeners
 - `timeseries.ts` store: derived ring buffers for sparklines/charts
-- `ui.ts` store: transient UI state (collapsed panels, selected tabs)
+- `navigation.ts` store: current page ID
 - **NEVER** put monitor data in component state — always in Zustand
-
-## Completed Systems (6 Sessions)
-
-| System                | Status | Key Files                                                                    |
-| --------------------- | ------ | ---------------------------------------------------------------------------- |
-| Process monitoring    | ✅     | processes.ts (smart grouping)                                                |
-| Port monitoring       | ✅     | ports.ts (lsof parsing)                                                      |
-| Agent detection       | ✅     | agents.ts (8 types: Claude, Codex, Gemini, Cursor, Aider, Continue, Copilot) |
-| Git status            | ✅     | git.ts (multi-repo scanning)                                                 |
-| Network bandwidth     | ✅     | network.ts (nettop + rate computation, macOS-guarded)                        |
-| Firewall rules        | ✅     | firewall.ts (LuLu plist parsing, macOS-guarded)                              |
-| Log tailing           | ✅     | logs.ts (file watcher + streaming)                                           |
-| AI Briefing           | ✅     | briefing.ts (Claude Haiku, Cmd+B)                                            |
-| Auto-heal engine      | ✅     | auto-heal.ts + rules.ts (5 rules)                                            |
-| Security scans        | ✅     | security.ts (Staff of Gandalf, config-driven paths)                          |
-| Dashboard UI          | ✅     | 9 panels, 4 SVG components                                                   |
-| Scorecards strip      | ✅     | 6 at-a-glance health cards                                                   |
-| Time-series charts    | ✅     | Ring buffer + sparklines                                                     |
-| System tray           | ✅     | Color-coded health indicator                                                 |
-| SQLite persistence    | ✅     | db/ (snapshots, alerts, briefings, notifications)                            |
-| Config system         | ✅     | config.ts (XDG-compliant ~/.config/hydra/config.json)                        |
-| Platform detection    | ✅     | platform.ts (macOS/Linux/Windows guards)                                     |
-| Desktop notifications | ✅     | notifications.ts (Electron Notification API, 30s throttle)                   |
-| Notification UI       | ✅     | Notifications.tsx (severity grouping, dismiss, badges)                       |
-| Packaging             | ✅     | electron-builder.yml (.dmg + .AppImage), LICENSE (PolyForm Noncommercial 1.0.0) |
-| Auto-updater stub     | ✅     | updater.ts (ready to wire to GitHub releases)                                |
-
-**Total: ~6,000 lines TypeScript, 100 tests passing**
-
-## What's NOT Done (Remaining Blockers)
-
-- [x] ~~macOS-only~~ — platform guards added, stubs for non-macOS (Session 6)
-- [x] ~~Hardcoded paths in security.ts~~ — config-driven + `which staff` fallback (Session 6)
-- [x] ~~README is still boilerplate~~ — full rewrite with features, install, architecture (Session 6)
-- [x] ~~No persistence~~ — SQLite via better-sqlite3 (Session 6)
-- [x] ~~No .dmg packaging~~ — electron-builder configured for .dmg + .AppImage (Session 6)
-- [x] ~~Agent detection is brittle~~ — 8 agent types, configurable patterns (Session 6)
-- [x] ~~No licensing~~ — MIT LICENSE added (Session 6)
-- [ ] No first-run setup wizard UI (config system exists but no GUI prompt)
-- [ ] No Linux/Windows monitor implementations (guards return empty data)
-- [ ] No .dmg code signing or notarization
-- [ ] Auto-updater is stub only (not wired to GitHub releases)
-- [ ] No SQLite history UI in renderer (IPC channels ready, no panel yet)
-- [ ] Dependabot vulnerabilities in transitive deps
 
 ## Dev Commands
 
@@ -160,7 +135,7 @@ src/
 npm install          # Install deps
 npm run dev          # Start in dev mode (hot reload)
 npm run build        # Build for production
-npx vitest --run     # Run all 100 tests
+npx vitest --run     # Run all tests
 npx vitest --watch   # Watch mode
 ```
 

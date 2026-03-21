@@ -51,8 +51,8 @@ export function CCUsagePanel(): JSX.Element {
   const [refreshError, setRefreshError] = useState<string | null>(null)
 
   useEffect(() => {
-    window.hydra.getCCUsage().then(setUsage)
-    const unsub = window.hydra.onCCUsageUpdate(setUsage)
+    window.helm.getCCUsage().then(setUsage)
+    const unsub = window.helm.onCCUsageUpdate(setUsage)
     return unsub
   }, [])
 
@@ -60,7 +60,7 @@ export function CCUsagePanel(): JSX.Element {
     setRefreshing(true)
     setRefreshError(null)
     try {
-      const next = await window.hydra.refreshCCUsage()
+      const next = await window.helm.refreshCCUsage()
       setUsage(next)
     } catch (err) {
       setRefreshError(err instanceof Error ? err.message : 'Live refresh failed')
