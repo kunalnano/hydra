@@ -8,6 +8,7 @@ import {
 import * as engine from '../stores/audio-engine'
 import { FM_STATIONS, type RadioStation, type StationCategory } from './fm-stations'
 import { RadioSignalGlobe } from '../components/RadioSignalGlobe'
+import { RadioRippleVisualizer } from '../components/RadioRippleVisualizer'
 
 type PlaylistEntryKind = 'station' | 'local' | 'custom'
 
@@ -469,18 +470,11 @@ export function FMRadioPanel(): JSX.Element {
               <div className="winamp-led-status">{getStatusLine(activeEntry, status, error)}</div>
             </div>
 
-            <div className="winamp-vu-panel" aria-hidden="true">
-              {Array.from({ length: 16 }, (_, index) => (
-                <span
-                  key={index}
-                  className={`winamp-vu-bar ${status === 'playing' ? 'winamp-vu-bar--active' : ''}`}
-                  style={{
-                    height: `${24 + ((index * 11) % 36)}px`,
-                    animationDelay: `${index * 65}ms`
-                  }}
-                />
-              ))}
-            </div>
+            <RadioRippleVisualizer
+              status={status}
+              volume={volume}
+              seed={activeEntry?.id ?? activeEntry?.title ?? null}
+            />
           </div>
 
           <div className="winamp-readout-strip">

@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "pollIntervalMs": 30000,
+  "channels": {
+    "macos_notification": true,
+    "slack_webhook": null,
+    "vault_log": true
+  },
+  "rules": {
+    "agent-crash": { "enabled": true, "cooldownMs": 300000 },
+    "high-cpu": { "enabled": true, "cooldownMs": 600000 },
+    "high-memory": { "enabled": true, "cooldownMs": 600000 },
+    "port-conflict": { "enabled": true, "cooldownMs": 300000 },
+    "vault-rag-down": { "enabled": true, "cooldownMs": 60000 },
+    "lm-studio-idle": { "enabled": true, "cooldownMs": 1800000 },
+    "long-running-agent": { "enabled": true, "cooldownMs": 7200000 }
+  }
+}

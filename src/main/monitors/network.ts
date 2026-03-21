@@ -1,7 +1,13 @@
 import { exec } from 'child_process'
 import { setTimeout as delay } from 'timers/promises'
 import { promisify } from 'util'
-import type { NetworkProcess, NetworkState } from '../../shared/types'
+import type {
+  NetworkConnection,
+  NetworkProcess,
+  NetworkScope,
+  NetworkSourceMode,
+  NetworkState
+} from '../../shared/types'
 import { isMacOS } from '../platform'
 
 const execAsync = promisify(exec)
@@ -13,16 +19,36 @@ interface RawNetworkEntry {
   bytesOut: number
 }
 
+interface RawNetworkConnection {
+  id: string
+  processName: string
+  pid: number
+  protocol: string
+  state: string
+  localAddress: string
+  localPort: number | null
+  remoteAddress: string
+  remotePort: number | null
+  scope: NetworkScope
+  bytesIn: number
+  bytesOut: number
+}
+
+interface RawNettopSnapshot {
+  processes: RawNetworkEntry[]
+  connections: RawNetworkConnection[]
+}
+
 interface Snapshot {
-  entries: Map<number, { bytesIn: number; bytesOut: number }>
+  processes: Map<number, { bytesIn: number; bytesOut: number }>
+  connections: Map<string, { bytesIn: number; bytesOut: number }>
   timestamp: number
 }
 
-type NetworkSourceMode = 'nettop' | 'netstat' | 'unavailable'
-
 interface NetworkSourceSelection {
   mode: NetworkSourceMode
-  entries: RawNetworkEntry[] | null
+  processes: RawNetworkEntry[] | null
+  connections: RawNetworkConnection[] | null
 }
 
 let previousSnapshot: Snapshot | null = null
@@ -30,53 +56,186 @@ let previousSnapshot: Snapshot | null = null
 // Track which source is working so we don't retry failed ones every poll
 let nettopFailed = false
 
-/**
- * Parse nettop output into raw network entries.
- *
- * nettop outputs CSV format:
- *   ,bytes_in,bytes_out,
- *   Chrome.1234,1048576,524288,
- *   Electron Helper.5678,262144,131072,
- *
- * The PID is the number after the last dot in the process identifier.
- */
-export function parseNettopOutput(
-  raw: string
-): { name: string; pid: number; bytesIn: number; bytesOut: number }[] {
-  const lines = raw.trim().split('\n')
-  if (lines.length === 0) return []
+function parseMetric(value: string | undefined): number {
+  const parsed = Number.parseInt((value || '').trim(), 10)
+  return Number.isFinite(parsed) ? parsed : 0
+}
 
-  const results: RawNetworkEntry[] = []
+function isConnectionIdentifier(identifier: string): boolean {
+  return /^(tcp|udp)\d?\s+/i.test(identifier)
+}
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
-    if (!line) continue
+function parseProcessIdentifier(identifier: string): { name: string; pid: number } | null {
+  if (!identifier || isConnectionIdentifier(identifier)) return null
 
-    // CSV format: "processName.PID,bytesIn,bytesOut," (trailing comma)
-    const parts = line.replace(/,$/, '').split(',')
-    if (parts.length < 3) continue
+  const lastDotIndex = identifier.lastIndexOf('.')
+  if (lastDotIndex === -1) return null
 
-    const processId = parts[0].trim()
-    const bytesIn = parseInt(parts[1], 10)
-    const bytesOut = parseInt(parts[2], 10)
+  const pid = Number.parseInt(identifier.slice(lastDotIndex + 1), 10)
+  if (!Number.isFinite(pid)) return null
 
-    if (!processId || isNaN(bytesIn) || isNaN(bytesOut)) continue
+  const name = identifier.slice(0, lastDotIndex).trim()
+  if (!name) return null
 
-    // Extract PID from the last dot-separated segment
-    const lastDotIndex = processId.lastIndexOf('.')
-    if (lastDotIndex === -1) continue
+  return { name, pid }
+}
 
-    const pidStr = processId.substring(lastDotIndex + 1)
-    const pid = parseInt(pidStr, 10)
-    if (isNaN(pid)) continue
-
-    const name = processId.substring(0, lastDotIndex)
-    if (!name) continue
-
-    results.push({ name, pid, bytesIn, bytesOut })
+function splitEndpoint(raw: string): { address: string; port: number | null } {
+  const trimmed = raw.trim()
+  if (!trimmed || trimmed === '*:*' || trimmed === '*.*' || trimmed === '*') {
+    return { address: '*', port: null }
   }
 
-  return results
+  for (let index = trimmed.length - 1; index >= 0; index--) {
+    const char = trimmed[index]
+    if (char !== ':' && char !== '.') continue
+
+    const suffix = trimmed.slice(index + 1)
+    if (!suffix || !/^(\d+|\*)$/.test(suffix)) continue
+
+    return {
+      address: trimmed.slice(0, index) || '*',
+      port: /^\d+$/.test(suffix) ? Number.parseInt(suffix, 10) : null
+    }
+  }
+
+  return { address: trimmed, port: null }
+}
+
+function isLoopbackAddress(address: string): boolean {
+  const normalized = address.toLowerCase()
+  return normalized === 'localhost' || normalized === '::1' || normalized.startsWith('127.')
+}
+
+function isPrivateIPv4(address: string): boolean {
+  return (
+    address.startsWith('10.') ||
+    address.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(address) ||
+    address.startsWith('169.254.')
+  )
+}
+
+function isLanAddress(address: string): boolean {
+  const normalized = address.toLowerCase()
+  if (isPrivateIPv4(normalized)) return true
+  return normalized.startsWith('fe80:') || normalized.startsWith('fc') || normalized.startsWith('fd')
+}
+
+function classifyNetworkScope(localAddress: string, remoteAddress: string): NetworkScope {
+  const local = localAddress.toLowerCase()
+  const remote = remoteAddress.toLowerCase()
+
+  if (remote === '*' || remote === '') return 'unknown'
+  if (isLoopbackAddress(remote) || isLoopbackAddress(local)) return 'loopback'
+  if (isLanAddress(remote)) return 'lan'
+  return 'internet'
+}
+
+function buildConnectionId(connection: Omit<RawNetworkConnection, 'id'>): string {
+  return [
+    connection.pid,
+    connection.protocol,
+    connection.localAddress,
+    connection.localPort ?? '*',
+    connection.remoteAddress,
+    connection.remotePort ?? '*'
+  ].join('|')
+}
+
+function parseConnectionIdentifier(
+  identifier: string,
+  currentProcess: RawNetworkEntry | null,
+  state: string,
+  bytesIn: number,
+  bytesOut: number
+): RawNetworkConnection | null {
+  if (!currentProcess) return null
+
+  const match = identifier.match(/^((?:tcp|udp)\d?)\s+(.+?)<->(.+)$/i)
+  if (!match) return null
+
+  const protocol = match[1].toLowerCase()
+  const local = splitEndpoint(match[2])
+  const remote = splitEndpoint(match[3])
+  const scope = classifyNetworkScope(local.address, remote.address)
+  const connection = {
+    processName: currentProcess.name,
+    pid: currentProcess.pid,
+    protocol,
+    state: state || '',
+    localAddress: local.address,
+    localPort: local.port,
+    remoteAddress: remote.address,
+    remotePort: remote.port,
+    scope,
+    bytesIn,
+    bytesOut
+  }
+
+  return {
+    ...connection,
+    id: buildConnectionId(connection)
+  }
+}
+
+/**
+ * Parse connection-aware nettop CSV output. Process rows set the active process
+ * context, and following socket rows are attached to that process.
+ */
+export function parseNettopSnapshot(raw: string): RawNettopSnapshot {
+  const trimmed = raw.trim()
+  if (!trimmed) return { processes: [], connections: [] }
+
+  const lines = trimmed.split('\n').map((line) => line.trim()).filter(Boolean)
+  if (lines.length <= 1) return { processes: [], connections: [] }
+
+  const headers = lines[0].replace(/^,/, '').replace(/,$/, '').split(',').map((part) => part.trim())
+  const processes: RawNetworkEntry[] = []
+  const connections: RawNetworkConnection[] = []
+  let currentProcess: RawNetworkEntry | null = null
+
+  for (let index = 1; index < lines.length; index++) {
+    const parts = lines[index].replace(/,$/, '').split(',')
+    if (parts.length === 0) continue
+
+    const identifier = parts[0]?.trim()
+    if (!identifier) continue
+
+    const columns = new Map<string, string>()
+    for (let columnIndex = 0; columnIndex < headers.length; columnIndex++) {
+      columns.set(headers[columnIndex], parts[columnIndex + 1]?.trim() ?? '')
+    }
+
+    const bytesIn = parseMetric(columns.get('bytes_in'))
+    const bytesOut = parseMetric(columns.get('bytes_out'))
+    const state = columns.get('state') || ''
+
+    const process = parseProcessIdentifier(identifier)
+    if (process) {
+      currentProcess = {
+        ...process,
+        bytesIn,
+        bytesOut
+      }
+      processes.push(currentProcess)
+      continue
+    }
+
+    const connection = parseConnectionIdentifier(identifier, currentProcess, state, bytesIn, bytesOut)
+    if (connection) {
+      connections.push(connection)
+    }
+  }
+
+  return { processes, connections }
+}
+
+/**
+ * Legacy helper used by tests and callers that only care about process totals.
+ */
+export function parseNettopOutput(raw: string): RawNetworkEntry[] {
+  return parseNettopSnapshot(raw).processes
 }
 
 /**
@@ -88,36 +247,35 @@ export function hasUsableNettopData(entries: RawNetworkEntry[]): boolean {
 }
 
 export function selectNetworkSource(
-  nettopEntries: RawNetworkEntry[] | null,
+  nettopSnapshot: RawNettopSnapshot | null,
   netstatEntries: RawNetworkEntry[] | null
 ): NetworkSourceSelection {
-  if (nettopEntries && hasUsableNettopData(nettopEntries)) {
+  if (nettopSnapshot && hasUsableNettopData(nettopSnapshot.processes)) {
     return {
       mode: 'nettop',
-      entries: aggregateByPid(nettopEntries)
+      processes: aggregateByPid(nettopSnapshot.processes),
+      connections: nettopSnapshot.connections
     }
   }
 
   if (netstatEntries && netstatEntries.length > 0) {
     return {
       mode: 'netstat',
-      entries: netstatEntries
+      processes: netstatEntries,
+      connections: []
     }
   }
 
   return {
     mode: 'unavailable',
-    entries: null
+    processes: null,
+    connections: null
   }
 }
 
 /**
  * Parse netstat -ib output into interface-level byte counts.
  * Returns one entry per active interface (en0, en1, etc.) with cumulative bytes.
- *
- * Format:
- * Name  Mtu  Network  Address  Ipkts  Ierrs  Ibytes  Opkts  Oerrs  Obytes  Coll
- * en0   1500 <Link#14> ...     1377177  0    1428632542 497465  0   186614454  0
  */
 export function parseNetstatOutput(
   raw: string
@@ -128,22 +286,19 @@ export function parseNetstatOutput(
   const results: { name: string; bytesIn: number; bytesOut: number }[] = []
   const seen = new Set<string>()
 
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].trim().split(/\s+/)
+  for (let index = 1; index < lines.length; index++) {
+    const cols = lines[index].trim().split(/\s+/)
     if (cols.length < 11) continue
 
     const iface = cols[0]
-    // Only real interfaces (en*, bridge*, utun*), skip loopback and inactive (*-suffix)
     if (iface.startsWith('lo') || iface.endsWith('*')) continue
-    // Only <Link#N> rows (raw byte counts), not per-address duplicates
     if (!cols[2].startsWith('<Link#')) continue
     if (seen.has(iface)) continue
     seen.add(iface)
 
-    const bytesIn = parseInt(cols[6], 10)
-    const bytesOut = parseInt(cols[9], 10)
-    if (isNaN(bytesIn) || isNaN(bytesOut)) continue
-    // Skip interfaces with zero traffic
+    const bytesIn = Number.parseInt(cols[6], 10)
+    const bytesOut = Number.parseInt(cols[9], 10)
+    if (!Number.isFinite(bytesIn) || !Number.isFinite(bytesOut)) continue
     if (bytesIn === 0 && bytesOut === 0) continue
 
     results.push({ name: iface, bytesIn, bytesOut })
@@ -171,10 +326,6 @@ function mapNetstatEntries(
   }))
 }
 
-/**
- * Aggregate multiple entries for the same PID (e.g. multiple interfaces)
- * by summing their bytesIn and bytesOut.
- */
 function aggregateByPid(entries: RawNetworkEntry[]): RawNetworkEntry[] {
   const pidMap = new Map<number, RawNetworkEntry>()
 
@@ -191,47 +342,69 @@ function aggregateByPid(entries: RawNetworkEntry[]): RawNetworkEntry[] {
   return Array.from(pidMap.values())
 }
 
-/**
- * Build NetworkState from raw entries + snapshot diffing for rate computation.
- */
+function buildSnapshot(
+  processes: RawNetworkEntry[],
+  connections: RawNetworkConnection[],
+  timestamp: number
+): Snapshot {
+  return {
+    processes: new Map(
+      processes.map((entry) => [
+        entry.pid,
+        {
+          bytesIn: entry.bytesIn,
+          bytesOut: entry.bytesOut
+        }
+      ])
+    ),
+    connections: new Map(
+      connections.map((entry) => [
+        entry.id,
+        {
+          bytesIn: entry.bytesIn,
+          bytesOut: entry.bytesOut
+        }
+      ])
+    ),
+    timestamp
+  }
+}
+
+function shouldExposeConnection(connection: RawNetworkConnection): boolean {
+  if (connection.scope === 'unknown') return false
+  return connection.remoteAddress !== '*' && connection.state.toLowerCase() !== 'listen'
+}
+
 function buildNetworkState(
-  aggregated: { name: string; pid: number; bytesIn: number; bytesOut: number }[],
-  now: number
+  processes: RawNetworkEntry[],
+  connections: RawNetworkConnection[],
+  now: number,
+  sourceMode: NetworkSourceMode
 ): NetworkState {
-  const { state, snapshot } = buildNetworkStateFromSnapshot(previousSnapshot, aggregated, now)
+  const { state, snapshot } = buildNetworkStateFromSnapshot(previousSnapshot, processes, connections, now, sourceMode)
   previousSnapshot = snapshot
   return state
 }
 
 function buildNetworkStateFromSnapshot(
   baseline: Snapshot | null,
-  aggregated: { name: string; pid: number; bytesIn: number; bytesOut: number }[],
-  now: number
+  processes: RawNetworkEntry[],
+  connections: RawNetworkConnection[],
+  now: number,
+  sourceMode: NetworkSourceMode
 ): { state: NetworkState; snapshot: Snapshot } {
-  const currentSnapshot: Snapshot = {
-    entries: new Map(),
-    timestamp: now
-  }
-  for (const entry of aggregated) {
-    currentSnapshot.entries.set(entry.pid, {
-      bytesIn: entry.bytesIn,
-      bytesOut: entry.bytesOut
-    })
-  }
-
+  const currentSnapshot = buildSnapshot(processes, connections, now)
   const elapsedSec = baseline !== null ? (now - baseline.timestamp) / 1000 : 0
 
-  const processes: NetworkProcess[] = aggregated.map((entry) => {
+  const nextProcesses: NetworkProcess[] = processes.map((entry) => {
     let bytesInPerSec = 0
     let bytesOutPerSec = 0
 
     if (baseline && elapsedSec > 0) {
-      const prev = baseline.entries.get(entry.pid)
-      if (prev) {
-        const deltaIn = Math.max(0, entry.bytesIn - prev.bytesIn)
-        const deltaOut = Math.max(0, entry.bytesOut - prev.bytesOut)
-        bytesInPerSec = deltaIn / elapsedSec
-        bytesOutPerSec = deltaOut / elapsedSec
+      const previous = baseline.processes.get(entry.pid)
+      if (previous) {
+        bytesInPerSec = Math.max(0, entry.bytesIn - previous.bytesIn) / elapsedSec
+        bytesOutPerSec = Math.max(0, entry.bytesOut - previous.bytesOut) / elapsedSec
       }
     }
 
@@ -245,38 +418,56 @@ function buildNetworkStateFromSnapshot(
     }
   })
 
-  previousSnapshot = currentSnapshot
+  const nextConnections: NetworkConnection[] = connections
+    .filter(shouldExposeConnection)
+    .map((entry) => {
+      let bytesInPerSec = 0
+      let bytesOutPerSec = 0
 
-  const totalBytesInPerSec = processes.reduce((sum, p) => sum + p.bytesInPerSec, 0)
-  const totalBytesOutPerSec = processes.reduce((sum, p) => sum + p.bytesOutPerSec, 0)
+      if (baseline && elapsedSec > 0) {
+        const previous = baseline.connections.get(entry.id)
+        if (previous) {
+          bytesInPerSec = Math.max(0, entry.bytesIn - previous.bytesIn) / elapsedSec
+          bytesOutPerSec = Math.max(0, entry.bytesOut - previous.bytesOut) / elapsedSec
+        }
+      }
+
+      return {
+        ...entry,
+        bytesInPerSec,
+        bytesOutPerSec
+      }
+    })
+
+  const totalBytesInPerSec = nextProcesses.reduce((sum, entry) => sum + entry.bytesInPerSec, 0)
+  const totalBytesOutPerSec = nextProcesses.reduce((sum, entry) => sum + entry.bytesOutPerSec, 0)
 
   return {
-    state: { processes, totalBytesInPerSec, totalBytesOutPerSec, timestamp: now },
+    state: {
+      processes: nextProcesses,
+      connections: nextConnections,
+      totalBytesInPerSec,
+      totalBytesOutPerSec,
+      timestamp: now,
+      sourceMode
+    },
     snapshot: currentSnapshot
   }
 }
 
-/**
- * Try nettop with -x flag (extended, works better from non-interactive contexts).
- */
-async function tryNettop(): Promise<RawNetworkEntry[] | null> {
+async function tryNettop(): Promise<RawNettopSnapshot | null> {
   try {
-    const { stdout } = await execAsync('nettop -P -x -L 1 -J bytes_in,bytes_out', {
+    const { stdout } = await execAsync('nettop -n -x -L 1 -J state,bytes_in,bytes_out', {
       timeout: 8000
     })
-    const entries = parseNettopOutput(stdout)
-    if (entries.length > 0) return entries
+    const snapshot = parseNettopSnapshot(stdout)
+    if (snapshot.processes.length > 0) return snapshot
     return null
   } catch {
     return null
   }
 }
 
-/**
- * Fallback: netstat -ib gives interface-level cumulative byte counts.
- * No per-process granularity, but shows real network throughput.
- * Uses negative PIDs as synthetic identifiers for interfaces.
- */
 async function tryNetstat(): Promise<RawNetworkEntry[] | null> {
   try {
     const { stdout } = await execAsync('netstat -ib', { timeout: 3000 })
@@ -290,89 +481,87 @@ async function tryNetstat(): Promise<RawNetworkEntry[] | null> {
 
 async function buildNetstatFallbackState(initialEntries: RawNetworkEntry[]): Promise<NetworkState> {
   const firstTimestamp = Date.now()
-  const firstSnapshot: Snapshot = {
-    entries: new Map(
-      initialEntries.map((entry) => [
-        entry.pid,
-        {
-          bytesIn: entry.bytesIn,
-          bytesOut: entry.bytesOut
-        }
-      ])
-    ),
-    timestamp: firstTimestamp
-  }
+  const firstSnapshot = buildSnapshot(initialEntries, [], firstTimestamp)
 
   await delay(2000)
 
   const secondEntries = await tryNetstat()
   if (!secondEntries) {
     previousSnapshot = firstSnapshot
-    return buildNetworkState(initialEntries, firstTimestamp)
+    return buildNetworkState(initialEntries, [], firstTimestamp, 'netstat')
   }
 
   const secondTimestamp = Date.now()
-  const { state, snapshot } = buildNetworkStateFromSnapshot(firstSnapshot, secondEntries, secondTimestamp)
+  const { state, snapshot } = buildNetworkStateFromSnapshot(
+    firstSnapshot,
+    secondEntries,
+    [],
+    secondTimestamp,
+    'netstat'
+  )
   previousSnapshot = snapshot
   return state
 }
 
-/**
- * Get current network activity. Tries nettop first (per-process),
- * falls back to netstat (per-interface) if nettop is unavailable.
- */
 export async function getNetworkActivity(): Promise<NetworkState> {
   const now = Date.now()
 
   if (!isMacOS()) {
-    return { processes: [], totalBytesInPerSec: 0, totalBytesOutPerSec: 0, timestamp: now }
+    return {
+      processes: [],
+      connections: [],
+      totalBytesInPerSec: 0,
+      totalBytesOutPerSec: 0,
+      timestamp: now,
+      sourceMode: 'unavailable'
+    }
   }
 
-  // Try nettop first (unless it previously failed)
-  let nettopEntries: RawNetworkEntry[] | null = null
+  let nettopSnapshot: RawNettopSnapshot | null = null
   if (!nettopFailed) {
-    nettopEntries = await tryNettop()
+    nettopSnapshot = await tryNettop()
   }
 
   let netstatEntries: RawNetworkEntry[] | null = null
-  if (!nettopEntries || !hasUsableNettopData(nettopEntries)) {
+  if (!nettopSnapshot || !hasUsableNettopData(nettopSnapshot.processes)) {
     nettopFailed = true
     netstatEntries = await tryNetstat()
   }
 
-  const selected = selectNetworkSource(nettopEntries, netstatEntries)
-  if (selected.entries) {
+  const selected = selectNetworkSource(nettopSnapshot, netstatEntries)
+  if (selected.processes) {
     if (selected.mode === 'netstat') {
-      return buildNetstatFallbackState(selected.entries)
+      return buildNetstatFallbackState(selected.processes)
     }
-    return buildNetworkState(selected.entries, now)
+
+    return buildNetworkState(
+      selected.processes,
+      selected.connections ?? [],
+      now,
+      selected.mode
+    )
   }
 
   return {
     processes: [],
+    connections: [],
     totalBytesInPerSec: 0,
     totalBytesOutPerSec: 0,
     timestamp: now,
+    sourceMode: 'unavailable',
     error: 'Network monitoring unavailable — nettop and netstat both failed'
   }
 }
 
-/**
- * Reset module-level state. Used for test cleanup.
- */
 export function resetNetworkState(): void {
   previousSnapshot = null
   nettopFailed = false
 }
 
-/**
- * Exposed for testing: allows injecting raw output + timestamp
- * to test rate computation without actually calling nettop.
- */
 export function _computeNetworkState(rawOutput: string, timestamp: number): NetworkState {
-  const rawEntries = parseNettopOutput(rawOutput)
-  const aggregated = aggregateByPid(rawEntries)
-  return buildNetworkState(aggregated, timestamp)
+  const snapshot = parseNettopSnapshot(rawOutput)
+  const aggregated = aggregateByPid(snapshot.processes)
+  return buildNetworkState(aggregated, snapshot.connections, timestamp, 'nettop')
 }
 
 export function _computeNetworkStateFromEntries(
@@ -381,18 +570,6 @@ export function _computeNetworkStateFromEntries(
   elapsedMs: number,
   now: number
 ): NetworkState {
-  const baseline: Snapshot = {
-    entries: new Map(
-      previousEntries.map((entry) => [
-        entry.pid,
-        {
-          bytesIn: entry.bytesIn,
-          bytesOut: entry.bytesOut
-        }
-      ])
-    ),
-    timestamp: now - elapsedMs
-  }
-
-  return buildNetworkStateFromSnapshot(baseline, currentEntries, now).state
+  const baseline = buildSnapshot(previousEntries, [], now - elapsedMs)
+  return buildNetworkStateFromSnapshot(baseline, currentEntries, [], now, 'netstat').state
 }

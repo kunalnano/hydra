@@ -1,0 +1,379 @@
+[
+  {
+    "id": "helm",
+    "name": "HELM",
+    "codename": "HYDRA",
+    "type": "dashboard",
+    "status": "active",
+    "era": { "start": "2025-06-01" },
+    "stack": ["electron", "react", "typescript", "tailwind", "zustand", "sqlite", "vite"],
+    "repo": "https://github.com/kunalnano/hydra",
+    "deployedTo": "local",
+    "description": "Operator shell for local AI systems. htop meets aircraft carrier CIC meets AI briefing officer.",
+    "keyOutputs": [
+      "7-page dashboard with zero panel duplication",
+      "Real-time system monitoring (processes, agents, git, network, security)",
+      "Claude Haiku AI briefing layer with auto-heal engine",
+      "4 visual skins (Deck, Orbiter, Forge, Phantom)",
+      "FM radio player with relay proxy",
+      "4 GitHub stars"
+    ],
+    "impactScore": 95,
+    "lessonsLearned": "Start with monitoring, add intelligence later. The Winamp chrome aesthetic was a force multiplier for motivation. Renaming from HYDRA to HELM was the right call for clarity.",
+    "parentAgent": "hydra-multiplexer",
+    "tags": ["flagship", "electron", "monitoring", "dashboard", "ai"]
+  },
+  {
+    "id": "yennefer",
+    "name": "Yennefer",
+    "type": "voice-assistant",
+    "status": "active",
+    "era": { "start": "2025-03-01" },
+    "stack": ["python", "lm-studio", "elevenlabs", "openai-whisper"],
+    "repo": "https://github.com/kunalnano/yennefer",
+    "deployedTo": "local",
+    "description": "Voice assistant with personality. Named after the sorceress. Speaks, listens, and reasons locally.",
+    "keyOutputs": [
+      "Working voice loop: listen -> reason -> speak",
+      "ElevenLabs TTS integration with custom voice",
+      "LM Studio local inference backend",
+      "Shipped to GitHub"
+    ],
+    "impactScore": 82,
+    "lessonsLearned": "Voice latency is the killer metric. Local inference + cloud TTS is the right hybrid. Users forgive slow thinking but not slow speaking.",
+    "tags": ["voice", "ai", "python", "local-inference"]
+  },
+  {
+    "id": "staff-of-gandalf",
+    "name": "Staff of Gandalf",
+    "type": "cli-tool",
+    "status": "active",
+    "era": { "start": "2025-04-01" },
+    "stack": ["rust", "clap", "sysinfo"],
+    "repo": "https://github.com/kunalnano/staff-of-gandalf",
+    "deployedTo": "local",
+    "description": "Security CLI v0.3.0 with Shire Watch network guardian. 'You shall not pass' for your local machine.",
+    "keyOutputs": [
+      "Multi-category security scanning (network, firewall, ports, processes)",
+      "Shire Watch persistent network guardian mode",
+      "JSON + human-readable output formats",
+      "Integrated into HELM Security panel"
+    ],
+    "impactScore": 78,
+    "lessonsLearned": "Rust is perfect for security tooling: fast, safe, no runtime. The Tolkien theming made dry security scans actually fun to run.",
+    "tags": ["security", "rust", "cli", "network"]
+  },
+  {
+    "id": "vault-rag",
+    "name": "vault-rag",
+    "type": "rag-server",
+    "status": "active",
+    "era": { "start": "2025-07-01" },
+    "stack": ["python", "fastmcp", "qdrant", "tantivy", "sqlite"],
+    "deployedTo": "local",
+    "description": "Hybrid RAG MCP server for Obsidian vault. Semantic + full-text search over personal knowledge base.",
+    "keyOutputs": [
+      "Hybrid search: Qdrant vectors + Tantivy full-text",
+      "MCP protocol integration for Claude Desktop/Code",
+      "29 passing tests",
+      "Deploying to WSL2 for always-on access"
+    ],
+    "impactScore": 85,
+    "lessonsLearned": "Hybrid search (semantic + keyword) beats either alone. MCP is the right abstraction for tool-use AI. Tantivy is insanely fast for full-text.",
+    "tags": ["rag", "mcp", "obsidian", "search", "python"]
+  },
+  {
+    "id": "obsidian-mcp",
+    "name": "Obsidian MCP",
+    "type": "mcp-server",
+    "status": "active",
+    "era": { "start": "2025-05-01" },
+    "stack": ["typescript", "mcp-sdk"],
+    "deployedTo": "local",
+    "description": "Custom MCP server for bidirectional Obsidian vault sync with daily breadcrumbs.",
+    "keyOutputs": [
+      "Bidirectional vault read/write via MCP",
+      "Daily breadcrumb generation",
+      "Integration with Claude Desktop and Claude Code"
+    ],
+    "impactScore": 72,
+    "lessonsLearned": "MCP servers are lightweight to build but the protocol needs careful error handling. Daily breadcrumbs turned out to be more useful than expected for context continuity.",
+    "tags": ["mcp", "obsidian", "typescript"]
+  },
+  {
+    "id": "port-enablement",
+    "name": "Port Enablement Site",
+    "type": "other",
+    "status": "active",
+    "era": { "start": "2025-08-01" },
+    "stack": ["html", "css", "javascript", "vercel"],
+    "repo": "https://github.com/kunalnano/port-enablement",
+    "deployedTo": "vercel",
+    "description": "Customer enablement site for Port.io licensing workshops at port-licensing.vercel.app.",
+    "keyOutputs": [
+      "Live enablement site on Vercel",
+      "SSO/RBAC workshop materials",
+      "Interactive licensing exercises"
+    ],
+    "impactScore": 68,
+    "lessonsLearned": "Vercel deploy-on-push is the right workflow for enablement content. Customers prefer interactive over static docs.",
+    "tags": ["enablement", "vercel", "port", "customer-facing"]
+  },
+  {
+    "id": "port-cheatsheet",
+    "name": "Port Cheatsheet",
+    "type": "other",
+    "status": "active",
+    "era": { "start": "2025-08-01" },
+    "stack": ["html", "css", "github-pages"],
+    "deployedTo": "github-pages",
+    "description": "SSO/RBAC workshop materials and cheatsheets for Port.io customers, hosted on GitHub Pages.",
+    "keyOutputs": [
+      "Comprehensive SSO configuration guide",
+      "RBAC permission matrix cheatsheet",
+      "Workshop exercise templates"
+    ],
+    "impactScore": 62,
+    "lessonsLearned": "Cheatsheets need to be scannable, not comprehensive. One page that people actually use beats ten pages that gather dust.",
+    "tags": ["enablement", "github-pages", "port", "customer-facing"]
+  },
+  {
+    "id": "explorations",
+    "name": "Explorations",
+    "type": "other",
+    "status": "active",
+    "era": { "start": "2025-02-01" },
+    "stack": ["html", "css", "javascript", "d3", "three.js"],
+    "repo": "https://github.com/kunalnano/explorations",
+    "deployedTo": "github-pages",
+    "description": "Visual essays repo: AncientWisdomMap, BoltzmannBrain, SoftwareTheory. Interactive explorations of ideas.",
+    "keyOutputs": [
+      "AncientWisdomMap: interactive philosophy timeline",
+      "BoltzmannBrain: thermodynamics visualization",
+      "SoftwareTheory: visual essay on software architecture"
+    ],
+    "impactScore": 55,
+    "lessonsLearned": "Visual essays are the best way to learn something deeply. Building the visualization forces you to truly understand the domain.",
+    "tags": ["visualization", "essays", "d3", "creative"]
+  },
+  {
+    "id": "shadow-board-simulator",
+    "name": "Shadow Board Simulator",
+    "type": "simulator",
+    "status": "stalled",
+    "era": { "start": "2025-01-01", "end": "2025-04-01" },
+    "stack": ["typescript", "react", "vitest"],
+    "description": "Board simulation with 181 passing tests. Portfolio piece that proved testing discipline.",
+    "keyOutputs": [
+      "181 passing tests",
+      "Full board simulation logic",
+      "Portfolio demonstration piece"
+    ],
+    "impactScore": 45,
+    "lessonsLearned": "High test count doesn't equal high value. The tests proved I could write them, but the product itself never found an audience. Good for discipline, not for impact.",
+    "tags": ["simulation", "testing", "portfolio"]
+  },
+  {
+    "id": "deepov",
+    "name": "Deepov",
+    "type": "other",
+    "status": "stalled",
+    "era": { "start": "2025-03-01", "end": "2025-05-01" },
+    "stack": ["typescript", "react"],
+    "description": "Meal planning app. Good idea, never finished. Classic side project entropy.",
+    "keyOutputs": [
+      "UI prototype for meal planning",
+      "Recipe data model"
+    ],
+    "impactScore": 15,
+    "lessonsLearned": "Consumer apps need sustained motivation. Building tools for yourself is easier to sustain than building products for hypothetical users.",
+    "tags": ["app", "stalled"]
+  },
+  {
+    "id": "aegis",
+    "name": "AEGIS",
+    "type": "dashboard",
+    "status": "dead",
+    "era": { "start": "2025-03-01", "end": "2025-06-01" },
+    "stack": ["python", "event-bus"],
+    "description": "System monitoring dashboard with Python event bus. No frontend. Features ported to HELM.",
+    "keyOutputs": [
+      "Event bus architecture pattern",
+      "Process monitoring logic (later ported to HELM)",
+      "Proof of concept for system dashboard"
+    ],
+    "impactScore": 30,
+    "lessonsLearned": "A monitoring tool without a frontend is a logging tool nobody reads. The event bus pattern was sound but Python was the wrong choice for a desktop app. Electron won.",
+    "parentAgent": "helm",
+    "tags": ["monitoring", "python", "predecessor"]
+  },
+  {
+    "id": "hive",
+    "name": "HIVE",
+    "type": "workflow-agent",
+    "status": "dead",
+    "era": { "start": "2025-04-01", "end": "2025-04-15" },
+    "stack": ["bash", "tmux"],
+    "description": "Multi-agent tmux orchestration system. Never activated. Too complex for a single operator.",
+    "keyOutputs": [
+      "tmux session management scripts",
+      "Multi-agent coordination spec"
+    ],
+    "impactScore": 10,
+    "lessonsLearned": "Multi-agent orchestration for one person is over-engineering. You don't need a hive mind when you're the only bee.",
+    "tags": ["multi-agent", "tmux", "over-engineered"]
+  },
+  {
+    "id": "hydra-multiplexer",
+    "name": "HYDRA Multiplexer",
+    "type": "multiplexer",
+    "status": "evolved",
+    "era": { "start": "2025-05-01", "end": "2025-06-01" },
+    "stack": ["typescript", "websocket"],
+    "description": "WebSocket multiplexer spec for agent coordination. Spec only, never built. The name and vision evolved into HELM.",
+    "keyOutputs": [
+      "WebSocket multiplexer specification",
+      "Agent coordination protocol design",
+      "Name and concept that became HELM"
+    ],
+    "impactScore": 25,
+    "lessonsLearned": "Sometimes the best output of a project is the next project. The multiplexer spec was too abstract, but it crystallized what HELM needed to be: a dashboard, not a router.",
+    "tags": ["spec", "websocket", "predecessor"]
+  },
+  {
+    "id": "command-center-v3",
+    "name": "Command Center v3",
+    "type": "workflow-agent",
+    "status": "stalled",
+    "era": { "start": "2025-02-01", "end": "2025-05-01" },
+    "stack": ["python", "yaml"],
+    "description": "Agent mesh with 5 workflows. Over-engineered for a single operator.",
+    "keyOutputs": [
+      "5 workflow definitions",
+      "Agent mesh coordination logic",
+      "YAML-based workflow config"
+    ],
+    "impactScore": 20,
+    "lessonsLearned": "Workflow engines are seductive to build and painful to maintain. A single operator doesn't need a 5-workflow mesh. Keep it simple.",
+    "tags": ["workflow", "over-engineered", "python"]
+  },
+  {
+    "id": "platform-health-engine",
+    "name": "Platform Health Engine",
+    "type": "other",
+    "status": "active",
+    "era": { "start": "2025-07-01" },
+    "stack": ["framework", "methodology"],
+    "description": "4-gauge framework: Adoption, Revenue, Blockers, Product Truth. Framework for customer health scoring, not software.",
+    "keyOutputs": [
+      "4-gauge health scoring model",
+      "Adoption metric definitions",
+      "Revenue correlation framework",
+      "Applied to multiple customer accounts"
+    ],
+    "impactScore": 75,
+    "lessonsLearned": "Frameworks that map to real decisions get used. The 4 gauges survived contact with actual customer reviews, which is the real test.",
+    "tags": ["framework", "customer-success", "health-scoring"]
+  },
+  {
+    "id": "eaf-v3",
+    "name": "EAF v3.1",
+    "type": "other",
+    "status": "active",
+    "era": { "start": "2025-06-01" },
+    "stack": ["framework", "methodology", "docs"],
+    "description": "Enterprise Adoption Framework v3.1 with playbooks. Structured approach to enterprise customer onboarding.",
+    "keyOutputs": [
+      "Enterprise adoption playbook",
+      "Phase-gated onboarding templates",
+      "Success criteria definitions",
+      "Applied across customer portfolio"
+    ],
+    "impactScore": 70,
+    "lessonsLearned": "Adoption frameworks need to be prescriptive enough to follow but flexible enough to adapt. v3 found the balance after v1 and v2 were too rigid.",
+    "tags": ["framework", "enterprise", "adoption", "customer-success"]
+  },
+  {
+    "id": "clawdbot",
+    "name": "Clawdbot / OpenClaw",
+    "type": "bot",
+    "status": "stalled",
+    "era": { "start": "2025-05-01", "end": "2025-07-01" },
+    "stack": ["typescript", "anthropic-sdk", "slack-api"],
+    "description": "Slack bot running Claude API for channel summarization. Onboarded but not fully deployed.",
+    "keyOutputs": [
+      "Slack bot scaffolding",
+      "Claude API integration for summarization",
+      "Channel digest prototype"
+    ],
+    "impactScore": 35,
+    "lessonsLearned": "Slack bots need a champion in the workspace to drive adoption. Technical integration was easy; organizational adoption was the hard part.",
+    "tags": ["slack", "bot", "claude-api", "summarization"]
+  },
+  {
+    "id": "yennefer-vtube",
+    "name": "Yennefer VTube Avatar",
+    "type": "other",
+    "status": "dead",
+    "era": { "start": "2025-04-01", "end": "2025-04-15" },
+    "stack": ["live2d", "design"],
+    "description": "Live2D avatar pipeline design for Yennefer. Designed but never built.",
+    "keyOutputs": [
+      "Live2D pipeline architecture doc",
+      "Avatar design concepts"
+    ],
+    "impactScore": 5,
+    "lessonsLearned": "Cool concept, zero execution. Live2D has a steep learning curve and the voice assistant worked fine without a face. Scope creep in its purest form.",
+    "tags": ["live2d", "avatar", "design-only"]
+  },
+  {
+    "id": "memory-kg-mcp",
+    "name": "Memory KG MCP",
+    "type": "mcp-server",
+    "status": "stalled",
+    "era": { "start": "2025-08-01" },
+    "stack": ["typescript", "mcp-sdk", "knowledge-graph"],
+    "deployedTo": "local",
+    "description": "Knowledge graph MCP server using @modelcontextprotocol/server-memory. One test entity since August 2025.",
+    "keyOutputs": [
+      "MCP server setup",
+      "1 test entity stored"
+    ],
+    "impactScore": 18,
+    "lessonsLearned": "A knowledge graph with one entity is just a JSON file with extra steps. Need to either commit to populating it or admit vault-rag does the job better.",
+    "tags": ["mcp", "knowledge-graph", "stalled"]
+  },
+  {
+    "id": "ccusage",
+    "name": "ccusage",
+    "type": "cli-tool",
+    "status": "active",
+    "era": { "start": "2025-09-01" },
+    "stack": ["typescript", "cli"],
+    "description": "Token usage analytics CLI for Claude Code sessions. Tracks spend, sessions, and model breakdown.",
+    "keyOutputs": [
+      "CLI for parsing Claude Code usage logs",
+      "Cost tracking and model breakdown",
+      "Integrated into HELM CC Usage panel"
+    ],
+    "impactScore": 65,
+    "lessonsLearned": "Usage tracking changes behavior. Once you can see the spend, you naturally optimize. Simple CLI that solved a real daily need.",
+    "tags": ["cli", "analytics", "claude-code", "cost-tracking"]
+  },
+  {
+    "id": "meeting-assistant",
+    "name": "Real-time Meeting Assistant",
+    "type": "other",
+    "status": "stalled",
+    "era": { "start": "2025-07-01", "end": "2025-08-01" },
+    "stack": ["python", "whisper", "websocket"],
+    "description": "Real-time meeting transcription and summarization prototype.",
+    "keyOutputs": [
+      "Whisper integration for live transcription",
+      "WebSocket streaming prototype"
+    ],
+    "impactScore": 22,
+    "lessonsLearned": "Real-time audio processing needs dedicated GPU time. Competing with Granola and Otter.ai is a losing battle for a solo builder. Better to integrate than compete.",
+    "tags": ["meeting", "transcription", "prototype"]
+  }
+]

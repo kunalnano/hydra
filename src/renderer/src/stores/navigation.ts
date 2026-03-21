@@ -6,6 +6,7 @@ export type HelmPageId =
   | 'swarm'
   | 'grid'
   | 'ai'
+  | 'registry'
   | 'radio'
   | 'logs'
 

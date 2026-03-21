@@ -107,7 +107,7 @@
 }
 
 .winamp-led-panel,
-.winamp-vu-panel,
+.winamp-ripple-panel,
 .winamp-readout-cell,
 .winamp-playlist-screen,
 .winamp-textbox,
@@ -178,30 +178,55 @@
   color: #f6e89d;
 }
 
-.winamp-vu-panel {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.24rem;
+.winamp-ripple-panel {
+  position: relative;
   min-height: 7rem;
-  padding: 0.5rem;
   border-radius: 0.28rem;
+  overflow: hidden;
   background:
+    radial-gradient(circle at 50% 68%, rgba(94, 179, 255, 0.16), transparent 44%),
+    radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.08), transparent 20%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 30%),
+    repeating-linear-gradient(180deg, rgba(143, 215, 255, 0.03) 0 1px, transparent 1px 6px),
     var(--winamp-screen);
 }
 
-.winamp-vu-bar {
-  width: 0.38rem;
-  border-radius: 0.12rem 0.12rem 0 0;
-  background: linear-gradient(180deg, #fff4a5 0%, #89ebff 42%, #2f7bff 100%);
-  opacity: 0.24;
-  animation: radio-pulse 1.2s ease-in-out infinite paused;
-  box-shadow: 0 0 10px rgba(97, 190, 255, 0.2);
+.winamp-ripple-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 28%),
+    radial-gradient(circle at 50% 72%, rgba(255, 255, 255, 0.06), transparent 40%);
 }
 
-.winamp-vu-bar--active {
-  opacity: 0.88;
-  animation-play-state: running;
+.winamp-ripple-panel--playing {
+  box-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.38),
+    inset -1px -1px 0 rgba(165, 195, 230, 0.12),
+    0 0 0 1px rgba(94, 179, 255, 0.12);
+}
+
+.winamp-ripple-panel--loading {
+  box-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.38),
+    inset -1px -1px 0 rgba(165, 195, 230, 0.12),
+    0 0 0 1px rgba(255, 225, 125, 0.18);
+}
+
+.winamp-ripple-panel--error {
+  box-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.38),
+    inset -1px -1px 0 rgba(165, 195, 230, 0.12),
+    0 0 0 1px rgba(255, 107, 122, 0.18);
+}
+
+.winamp-ripple-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 7rem;
 }
 
 .winamp-readout-strip {
@@ -808,7 +833,7 @@
 [data-skin='forge'] .winamp-led-status { color: #ffd280; }
 
 [data-skin='forge'] .winamp-led-panel,
-[data-skin='forge'] .winamp-vu-panel,
+[data-skin='forge'] .winamp-ripple-panel,
 [data-skin='forge'] .winamp-readout-cell,
 [data-skin='forge'] .winamp-signal-canvas-shell,
 [data-skin='forge'] .winamp-signal-card,
@@ -821,9 +846,33 @@
     inset -1px -1px 0 rgba(255, 210, 130, 0.06);
 }
 
-[data-skin='forge'] .winamp-vu-bar {
-  background: linear-gradient(180deg, #ffd280 0%, #e8a840 42%, #c88020 100%);
-  box-shadow: 0 0 10px rgba(255, 180, 60, 0.2);
+[data-skin='forge'] .winamp-ripple-panel {
+  background:
+    radial-gradient(circle at 50% 68%, rgba(255, 210, 130, 0.16), transparent 44%),
+    radial-gradient(circle at 50% 24%, rgba(255, 235, 190, 0.06), transparent 20%),
+    linear-gradient(180deg, rgba(255, 210, 130, 0.02), transparent 30%),
+    repeating-linear-gradient(180deg, rgba(255, 210, 130, 0.03) 0 1px, transparent 1px 6px),
+    var(--winamp-screen);
+}
+
+[data-skin='forge'] .winamp-ripple-panel::after {
+  background:
+    linear-gradient(180deg, rgba(255, 210, 130, 0.08), transparent 28%),
+    radial-gradient(circle at 50% 72%, rgba(255, 210, 130, 0.08), transparent 40%);
+}
+
+[data-skin='forge'] .winamp-ripple-panel--playing {
+  box-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.35),
+    inset -1px -1px 0 rgba(255, 210, 130, 0.06),
+    0 0 0 1px rgba(255, 210, 130, 0.14);
+}
+
+[data-skin='forge'] .winamp-ripple-panel--loading {
+  box-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.35),
+    inset -1px -1px 0 rgba(255, 210, 130, 0.06),
+    0 0 0 1px rgba(255, 210, 130, 0.18);
 }
 
 [data-skin='forge'] .winamp-readout-cell {
