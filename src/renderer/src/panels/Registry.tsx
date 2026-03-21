@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigationStore } from '../stores/navigation'
 import type { AgentRegistryEntry, RegistryAgentStatus, RegistryAgentType } from '../../../shared/types'
 
 const STATUS_COLORS: Record<RegistryAgentStatus, string> = {
@@ -303,9 +304,22 @@ function AgentDetail({
 }): JSX.Element {
   const parent = entry.parentAgent ? allEntries.find((e) => e.id === entry.parentAgent) : null
   const children = allEntries.filter((e) => e.parentAgent === entry.id)
+  const setCurrentPage = useNavigationStore((s) => s.setCurrentPage)
+  const canLaunchAsHive = entry.type === 'workflow-agent' || entry.type === 'multiplexer'
 
   return (
     <div className="space-y-5">
+      {/* Launch as HIVE */}
+      {canLaunchAsHive && entry.status === 'active' && (
+        <button
+          type="button"
+          onClick={() => setCurrentPage('swarm')}
+          className="w-full py-2 rounded text-xs font-semibold bg-amber-950/30 border border-amber-700/30 text-amber-400 hover:bg-amber-950/50 transition-colors"
+        >
+          Launch as HIVE Agent
+        </button>
+      )}
+
       {/* Header */}
       <div>
         <div className="flex items-center gap-3 mb-2">

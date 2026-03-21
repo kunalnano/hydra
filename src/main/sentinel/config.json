@@ -13,6 +13,8 @@
     "port-conflict": { "enabled": true, "cooldownMs": 300000 },
     "vault-rag-down": { "enabled": true, "cooldownMs": 60000 },
     "lm-studio-idle": { "enabled": true, "cooldownMs": 1800000 },
-    "long-running-agent": { "enabled": true, "cooldownMs": 7200000 }
+    "long-running-agent": { "enabled": true, "cooldownMs": 7200000 },
+    "hive-idle-reclaim": { "enabled": true, "cooldownMs": 1800000 },
+    "hive-worktree-conflict": { "enabled": true, "cooldownMs": 300000 }
   }
 }

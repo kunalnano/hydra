@@ -23,7 +23,10 @@ import type {
   DBSnapshot,
   AgentRegistryEntry,
   SentinelStatus,
-  SentinelAlert
+  SentinelAlert,
+  HiveSpawnRequest,
+  HiveSpawnResult,
+  HiveSessionInfo
 } from '../shared/types'
 
 const api = {
@@ -246,6 +249,37 @@ const api = {
     ipcRenderer.on(IPC_CHANNELS.SENTINEL_ALERTS, handler)
     return (): void => {
       ipcRenderer.removeListener(IPC_CHANNELS.SENTINEL_ALERTS, handler)
+    }
+  },
+
+  // HIVE
+  hiveSpawn: (request: HiveSpawnRequest): Promise<HiveSpawnResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.HIVE_SPAWN, request),
+
+  hiveKillSession: (sessionId: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.HIVE_KILL_SESSION, sessionId),
+
+  hiveListSessions: (): Promise<HiveSessionInfo[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.HIVE_LIST_SESSIONS),
+
+  hiveSendMessage: (sessionId: string, message: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.HIVE_SEND_MESSAGE, sessionId, message),
+
+  hiveUpdateContext: (objective: string, sections?: Record<string, string>): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.HIVE_UPDATE_CONTEXT, objective, sections),
+
+  hiveGetContext: (): Promise<string> =>
+    ipcRenderer.invoke(IPC_CHANNELS.HIVE_GET_CONTEXT),
+
+  hiveAttach: (sessionId: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.HIVE_ATTACH, sessionId),
+
+  onHiveSessionUpdate: (callback: (sessions: HiveSessionInfo[]) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, sessions: HiveSessionInfo[]): void =>
+      callback(sessions)
+    ipcRenderer.on(IPC_CHANNELS.HIVE_SESSION_UPDATE, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.HIVE_SESSION_UPDATE, handler)
     }
   }
 }

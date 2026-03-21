@@ -137,4 +137,114 @@ describe('sentinel rules', () => {
       expect(alert!.severity).toBe('info')
     })
   })
+
+  describe('hive-idle-reclaim', () => {
+    const rule = getRule('hive-idle-reclaim')
+
+    it('returns null when no HIVE agents', () => {
+      expect(rule.check(makeState(), null)).toBeNull()
+    })
+
+    it('returns null when HIVE agent is active', () => {
+      const state = makeState({
+        agents: [{
+          id: 'a1', name: 'test', type: 'claude-code' as const, status: 'active' as const,
+          source: 'process' as const, hiveSessionId: 'hive-builder-abc', hiveRole: 'builder',
+          uptime: 3600000
+        }]
+      })
+      expect(rule.check(state, null)).toBeNull()
+    })
+
+    it('fires when HIVE agent is idle for 30+ minutes', () => {
+      const state = makeState({
+        agents: [{
+          id: 'a1', name: 'test', type: 'claude-code' as const, status: 'idle' as const,
+          source: 'process' as const, hiveSessionId: 'hive-builder-abc', hiveRole: 'builder',
+          uptime: 2400000 // 40 minutes
+        }]
+      })
+      const alert = rule.check(state, null)
+      expect(alert).not.toBeNull()
+      expect(alert!.ruleId).toBe('hive-idle-reclaim')
+      expect(alert!.severity).toBe('info')
+      expect(alert!.body).toContain('builder')
+    })
+
+    it('does not fire for short idle periods', () => {
+      const state = makeState({
+        agents: [{
+          id: 'a1', name: 'test', type: 'claude-code' as const, status: 'idle' as const,
+          source: 'process' as const, hiveSessionId: 'hive-builder-abc', hiveRole: 'builder',
+          uptime: 600000 // 10 minutes
+        }]
+      })
+      expect(rule.check(state, null)).toBeNull()
+    })
+  })
+
+  describe('hive-worktree-conflict', () => {
+    const rule = getRule('hive-worktree-conflict')
+
+    it('returns null when no HIVE agents', () => {
+      expect(rule.check(makeState(), null)).toBeNull()
+    })
+
+    it('returns null when HIVE agents have different directories', () => {
+      const state = makeState({
+        agents: [
+          {
+            id: 'a1', name: 'arch', type: 'claude-code' as const, status: 'active' as const,
+            source: 'process' as const, hiveSessionId: 'hive-1', hiveRole: 'architect',
+            workingDir: '/project/a'
+          },
+          {
+            id: 'a2', name: 'build', type: 'claude-code' as const, status: 'active' as const,
+            source: 'process' as const, hiveSessionId: 'hive-2', hiveRole: 'builder',
+            workingDir: '/project/b'
+          }
+        ]
+      })
+      expect(rule.check(state, null)).toBeNull()
+    })
+
+    it('fires when two HIVE agents share the same directory', () => {
+      const state = makeState({
+        agents: [
+          {
+            id: 'a1', name: 'arch', type: 'claude-code' as const, status: 'active' as const,
+            source: 'process' as const, hiveSessionId: 'hive-1', hiveRole: 'architect',
+            workingDir: '/project/shared'
+          },
+          {
+            id: 'a2', name: 'build', type: 'claude-code' as const, status: 'active' as const,
+            source: 'process' as const, hiveSessionId: 'hive-2', hiveRole: 'builder',
+            workingDir: '/project/shared'
+          }
+        ]
+      })
+      const alert = rule.check(state, null)
+      expect(alert).not.toBeNull()
+      expect(alert!.ruleId).toBe('hive-worktree-conflict')
+      expect(alert!.severity).toBe('warning')
+      expect(alert!.body).toContain('architect')
+      expect(alert!.body).toContain('builder')
+    })
+
+    it('ignores non-HIVE agents sharing directories', () => {
+      const state = makeState({
+        agents: [
+          {
+            id: 'a1', name: 'agent1', type: 'claude-code' as const, status: 'active' as const,
+            source: 'process' as const, workingDir: '/project/shared'
+          },
+          {
+            id: 'a2', name: 'agent2', type: 'claude-code' as const, status: 'active' as const,
+            source: 'process' as const, workingDir: '/project/shared'
+          }
+        ]
+      })
+      expect(rule.check(state, null)).toBeNull()
+    })
+  })
 })

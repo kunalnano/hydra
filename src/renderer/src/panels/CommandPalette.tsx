@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSystemStore } from '../stores/system'
 import { useNavigationStore, type HelmPageId } from '../stores/navigation'
+import { useHiveStore } from '../stores/hive'
 
 interface PaletteCommand {
   id: string
@@ -85,6 +86,8 @@ export function CommandPalette({
   const killProcess = useSystemStore((s) => s.killProcess)
   const signalProcess = useSystemStore((s) => s.signalProcess)
   const setCurrentPage = useNavigationStore((s) => s.setCurrentPage)
+  const hiveSessions = useHiveStore((s) => s.sessions)
+  const hiveKillSession = useHiveStore((s) => s.killSession)
 
   const commands: PaletteCommand[] = PAGE_COMMANDS.map((pageCommand) => ({
     id: `open-${pageCommand.page}`,
@@ -151,6 +154,44 @@ export function CommandPalette({
       description: 'Force an immediate refresh of all system monitors',
       action: () => {
         useSystemStore.getState().refresh()
+      }
+    })
+
+    // HIVE commands
+    const hiveRoles = ['architect', 'builder', 'analyst', 'ops', 'strategist'] as const
+    for (const role of hiveRoles) {
+      commands.push({
+        id: `hive-launch-${role}`,
+        label: `Launch HIVE ${role.charAt(0).toUpperCase() + role.slice(1)}`,
+        aliases: [`hive ${role}`, `spawn ${role}`, `launch ${role}`],
+        description: `Open Swarm page to launch a HIVE ${role} agent`,
+        action: () => {
+          setCurrentPage('swarm')
+        }
+      })
+    }
+
+    if (hiveSessions.filter((s) => s.status === 'running').length > 0) {
+      commands.push({
+        id: 'hive-kill-all',
+        label: 'Kill all HIVE agents',
+        aliases: ['hive down', 'hive stop', 'kill hive'],
+        description: `Kill all ${hiveSessions.filter((s) => s.status === 'running').length} running HIVE sessions`,
+        action: async () => {
+          for (const session of hiveSessions.filter((s) => s.status === 'running')) {
+            await hiveKillSession(session.id)
+          }
+        }
+      })
+    }
+
+    commands.push({
+      id: 'hive-context',
+      label: 'Update HIVE context',
+      aliases: ['hive context', 'shared context'],
+      description: 'Open Swarm page to update shared HIVE context',
+      action: () => {
+        setCurrentPage('swarm')
       }
     })
   }

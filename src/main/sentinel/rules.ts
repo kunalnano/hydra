@@ -177,5 +177,56 @@ export const defaultRules: SentinelRule[] = [
       }
       return null
     }
+  },
+  {
+    id: 'hive-idle-reclaim',
+    name: 'HIVE Idle Reclaim',
+    description: 'Fires when a HIVE agent has been idle for 30+ minutes',
+    enabled: true,
+    cooldownMs: 1800000,
+    check: (state) => {
+      const thirtyMinutes = 30 * 60 * 1000
+      for (const agent of state.agents) {
+        if (agent.hiveSessionId && agent.status === 'idle' && agent.uptime && agent.uptime > thirtyMinutes) {
+          return makeAlert(
+            'hive-idle-reclaim',
+            'info',
+            'HIVE agent idle',
+            `HIVE ${agent.hiveRole ?? 'agent'} (${agent.name}) has been idle for 30+ minutes.`,
+            'Consider killing the session to free resources.'
+          )
+        }
+      }
+      return null
+    }
+  },
+  {
+    id: 'hive-worktree-conflict',
+    name: 'HIVE Worktree Conflict',
+    description: 'Fires when two HIVE agents share the same working directory',
+    enabled: true,
+    cooldownMs: 300000,
+    check: (state) => {
+      const hiveAgents = state.agents.filter((a) => a.hiveSessionId && a.workingDir)
+      const dirMap = new Map<string, string[]>()
+      for (const agent of hiveAgents) {
+        const dir = agent.workingDir!
+        const names = dirMap.get(dir) || []
+        names.push(`${agent.hiveRole ?? agent.name}`)
+        dirMap.set(dir, names)
+      }
+      for (const [dir, names] of dirMap) {
+        if (names.length > 1) {
+          return makeAlert(
+            'hive-worktree-conflict',
+            'warning',
+            'HIVE worktree conflict',
+            `${names.join(' and ')} are both targeting ${dir}.`,
+            'Use separate directories or worktrees to avoid file conflicts.'
+          )
+        }
+      }
+      return null
+    }
   }
 ]

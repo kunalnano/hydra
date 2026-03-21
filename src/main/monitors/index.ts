@@ -12,6 +12,7 @@ import { promisify } from 'util'
 import { isMacOS } from '../platform'
 import { killProcess, sendProcessSignal, killGroup } from '../actions'
 import { loadConfig } from '../config'
+import { decorateAgentsWithHive, resolveHiveConfig } from '../hive/index'
 
 const execAsync = promisify(exec)
 import { evaluateRules } from '../intelligence/auto-heal'
@@ -182,11 +183,17 @@ async function collectSystemState(): Promise<SystemState> {
   const cpuInfo = cpus()
   const totalMemory = totalmem()
 
+  const agents = [...processAgents, ...fileAgents]
+
+  // Decorate agents with HIVE session info
+  const hiveConfig = resolveHiveConfig(monitorConfig.hive)
+  decorateAgentsWithHive(agents, hiveConfig.tmuxSessionPrefix)
+
   const state: SystemState = {
     timestamp: Date.now(),
     processes: processGroups,
     ports,
-    agents: [...processAgents, ...fileAgents],
+    agents,
     gitRepos: latestGitRepos,
     cpu: {
       usage:
