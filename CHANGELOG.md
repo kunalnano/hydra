@@ -4,17 +4,31 @@ Entries are ordered newest first. `Unreleased` covers mainline work after the la
 
 ## Unreleased
 
-### Shell
-- Added `Secure View` so demos and screenshots can redact local hosts, filesystem paths, and LM Studio endpoints without manually doctoring images
-- Replaced the old micro-metric header cluster with a live operator wire so the top band reads like one intentional shell surface
+- No unreleased entries yet.
 
-### Panels
-- Reworked the AI page presentation around a protected mech-entity hero shot and a cleaner interface tray
-- Rebuilt `Staff of Gandalf` as a more graphical security command deck with a stronger hero, scan cards, and a dedicated terminal frame
+## v4.0.0 — 2026-03-21
+
+### Product
+- Renamed Hydra to HELM across app identity, config surfaces, and the visible shell language
+- Collapsed the shell into seven owned pages so `Bridge`, `Fleet`, `Swarm`, `Grid`, `AI`, `Radio`, and `Logs` stop repeating the same story
+- Added the `Phantom` skin alongside the existing `Deck`, `Orbiter`, and `Forge` themes
+
+### Operations
+- Added Swarm drill-down so agent rows open into PID, command, ports, goals, and timeline context
+- Rebuilt Grid around a live traffic-topology canvas with scoped `loopback`, `LAN`, and `internet` peers
+- Replaced filler header trivia with local AI ticker updates for agents, skills, and operator activity
+
+### Persistence
+- Moved the shell toward true continuity with persisted snapshots, alerts, briefings, notifications, timeline events, and log history
+- Tightened startup hydration so persisted state shows up in the UI instead of feeling fresh every launch
+
+### FM Radio
+- Restored the signal globe as a real station-to-home route, now rendered from actual world land geometry instead of placeholder continent blobs
+- Fixed the home receiving point to Bulverde, Texas for a stable route anchor
 
 ### Docs
-- Refreshed README showcase media with sanitized AI and security captures plus a new mainline showcase GIF
-- Added dedicated `v3.1.0` release notes under `docs/releases/` and aligned the GitHub release body to the same content
+- Refreshed the README with current 4.0 captures for AI control, the signal map, and the traffic grid
+- Added dedicated release notes for `v4.0.0` and pointed release automation at tag-specific notes
 
 ## v3.1.0 — 2026-03-18
 

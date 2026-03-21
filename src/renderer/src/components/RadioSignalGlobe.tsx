@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { geoGraticule10, geoInterpolate, geoOrthographic, geoPath } from 'd3-geo'
+import { feature } from 'topojson-client'
+import landAtlas from 'world-atlas/land-110m.json'
 import type { RadioStation } from '../panels/fm-stations'
 
 const TAU = Math.PI * 2
-const LAND_SAMPLE_STEP_DEGREES = 4
+const ROUTE_SAMPLE_COUNT = 72
+const LAND_FEATURE = feature(landAtlas as any, (landAtlas as any).objects.land) as any
+const WORLD_GRATICULE = geoGraticule10()
+
 const HOME_LOCATION: DeviceLocation = {
   coords: [29.7438332, -98.4530729],
   label: 'Bulverde, TX',
@@ -30,128 +36,6 @@ const STATION_COORDS: Record<string, [number, number]> = {
   'bbc-6music': [51.5072, -0.1276]
 }
 
-const LAND_POLYGONS: Array<Array<[number, number]>> = [
-  [
-    [72, -168],
-    [67, -150],
-    [61, -142],
-    [58, -132],
-    [55, -124],
-    [50, -121],
-    [47, -128],
-    [42, -125],
-    [34, -117],
-    [25, -109],
-    [18, -98],
-    [18, -88],
-    [24, -81],
-    [31, -78],
-    [40, -73],
-    [48, -66],
-    [56, -60],
-    [64, -62],
-    [70, -82],
-    [73, -112]
-  ],
-  [
-    [83, -72],
-    [77, -60],
-    [73, -48],
-    [69, -38],
-    [64, -30],
-    [62, -18],
-    [68, -18],
-    [76, -28],
-    [82, -42],
-    [84, -58]
-  ],
-  [
-    [12, -81],
-    [7, -78],
-    [2, -80],
-    [-8, -78],
-    [-18, -74],
-    [-28, -71],
-    [-38, -69],
-    [-50, -63],
-    [-55, -53],
-    [-52, -44],
-    [-42, -38],
-    [-28, -40],
-    [-12, -48],
-    [-2, -54],
-    [6, -60],
-    [11, -70]
-  ],
-  [
-    [72, -10],
-    [70, 10],
-    [69, 28],
-    [66, 48],
-    [62, 68],
-    [58, 88],
-    [54, 108],
-    [49, 128],
-    [42, 145],
-    [34, 158],
-    [26, 146],
-    [18, 122],
-    [11, 102],
-    [8, 84],
-    [14, 68],
-    [22, 56],
-    [30, 44],
-    [38, 34],
-    [46, 24],
-    [54, 14],
-    [60, 4],
-    [58, -6],
-    [48, -10],
-    [39, -6],
-    [35, 4],
-    [36, 18],
-    [42, 28],
-    [47, 20],
-    [52, 10],
-    [59, 0],
-    [65, -8]
-  ],
-  [
-    [37, -18],
-    [35, -8],
-    [33, 6],
-    [31, 18],
-    [26, 30],
-    [20, 40],
-    [12, 50],
-    [1, 50],
-    [-10, 44],
-    [-20, 36],
-    [-30, 27],
-    [-35, 14],
-    [-32, 2],
-    [-26, -7],
-    [-14, -12],
-    [-1, -11],
-    [11, -8],
-    [22, -11],
-    [31, -16]
-  ],
-  [
-    [-11, 113],
-    [-18, 117],
-    [-25, 124],
-    [-32, 132],
-    [-38, 142],
-    [-37, 151],
-    [-28, 153],
-    [-19, 147],
-    [-13, 139],
-    [-12, 127],
-    [-16, 118]
-  ]
-]
-
 type SignalMode = 'station' | 'local' | 'custom' | 'idle'
 type DeviceLocationSource = 'fixed'
 
@@ -165,6 +49,14 @@ interface RadioSignalGlobeProps {
   station: RadioStation | null
   mode: SignalMode
   sourceLabel: string | null
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
+
+function toLonLat([lat, lon]: [number, number]): [number, number] {
+  return [lon, lat]
 }
 
 function colorWithAlpha(color: string, alpha: number, fallback: string): string {
@@ -193,128 +85,31 @@ function colorWithAlpha(color: string, alpha: number, fallback: string): string 
   return fallback
 }
 
-function project(
-  lat: number,
-  lon: number,
-  cx: number,
-  cy: number,
-  radius: number,
-  rotationOffset: number
-): { x: number; y: number; visible: boolean } {
-  const phi = (lat * Math.PI) / 180
-  const lambda = (lon * Math.PI) / 180 + rotationOffset
+function buildRouteLine(start: [number, number], end: [number, number]): { type: 'LineString'; coordinates: [number, number][] } {
+  const interpolate = geoInterpolate(toLonLat(start), toLonLat(end))
   return {
-    x: cx + radius * Math.cos(phi) * Math.sin(lambda),
-    y: cy - radius * Math.sin(phi),
-    visible: radius * Math.cos(phi) * Math.cos(lambda) > 0
-  }
-}
-
-function greatCirclePoints(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number,
-  count: number
-): Array<[number, number]> {
-  const p1 = (lat1 * Math.PI) / 180
-  const l1 = (lon1 * Math.PI) / 180
-  const p2 = (lat2 * Math.PI) / 180
-  const l2 = (lon2 * Math.PI) / 180
-  const distance = Math.acos(
-    Math.min(
-      1,
-      Math.max(-1, Math.sin(p1) * Math.sin(p2) + Math.cos(p1) * Math.cos(p2) * Math.cos(l2 - l1))
+    type: 'LineString',
+    coordinates: Array.from({ length: ROUTE_SAMPLE_COUNT + 1 }, (_, index) =>
+      interpolate(index / ROUTE_SAMPLE_COUNT) as [number, number]
     )
-  )
-
-  if (distance < 0.001) return [[lat1, lon1], [lat2, lon2]]
-
-  const points: Array<[number, number]> = []
-  for (let index = 0; index <= count; index++) {
-    const fraction = index / count
-    const a = Math.sin((1 - fraction) * distance) / Math.sin(distance)
-    const b = Math.sin(fraction * distance) / Math.sin(distance)
-    const x = a * Math.cos(p1) * Math.cos(l1) + b * Math.cos(p2) * Math.cos(l2)
-    const y = a * Math.cos(p1) * Math.sin(l1) + b * Math.cos(p2) * Math.sin(l2)
-    const z = a * Math.sin(p1) + b * Math.sin(p2)
-
-    points.push([
-      Math.atan2(z, Math.sqrt(x * x + y * y)) * (180 / Math.PI),
-      Math.atan2(y, x) * (180 / Math.PI)
-    ])
   }
-
-  return points
 }
 
-function pointInPolygon(lat: number, lon: number, polygon: Array<[number, number]>): boolean {
-  let inside = false
+function getFocus(stationCoords: [number, number] | null, homeCoords: [number, number], time: number): [number, number, number] {
+  const anchor = stationCoords
+    ? (geoInterpolate(toLonLat(stationCoords), toLonLat(homeCoords))(0.5) as [number, number])
+    : toLonLat(homeCoords)
 
-  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
-    const [latA, lonA] = polygon[index]
-    const [latB, lonB] = polygon[previous]
-    const intersects =
-      lonA > lon !== lonB > lon &&
-      lat < ((latB - latA) * (lon - lonA)) / ((lonB - lonA) || 0.00001) + latA
+  const yawDrift = stationCoords ? Math.sin(time * 0.22) * 4.5 : Math.sin(time * 0.18) * 6
+  const pitchDrift = stationCoords ? Math.cos(time * 0.16) * 1.8 : Math.cos(time * 0.14) * 2.4
+  const roll = Math.sin(time * 0.08) * 1.1
 
-    if (intersects) {
-      inside = !inside
-    }
-  }
-
-  return inside
+  return [
+    -anchor[0] + yawDrift,
+    -clamp(anchor[1] * 0.88 + pitchDrift, -55, 55),
+    roll
+  ]
 }
-
-function buildLandSamples(polygons: Array<Array<[number, number]>>): Array<[number, number]> {
-  const points: Array<[number, number]> = []
-
-  for (const polygon of polygons) {
-    const latitudes = polygon.map(([lat]) => lat)
-    const longitudes = polygon.map(([, lon]) => lon)
-    const minLat = Math.floor(Math.min(...latitudes))
-    const maxLat = Math.ceil(Math.max(...latitudes))
-    const minLon = Math.floor(Math.min(...longitudes))
-    const maxLon = Math.ceil(Math.max(...longitudes))
-
-    for (let lat = minLat; lat <= maxLat; lat += LAND_SAMPLE_STEP_DEGREES) {
-      for (let lon = minLon; lon <= maxLon; lon += LAND_SAMPLE_STEP_DEGREES) {
-        const sampleLat = lat + LAND_SAMPLE_STEP_DEGREES / 2
-        const sampleLon = lon + LAND_SAMPLE_STEP_DEGREES / 2
-        if (pointInPolygon(sampleLat, sampleLon, polygon)) {
-          points.push([sampleLat, sampleLon])
-        }
-      }
-    }
-  }
-
-  return points
-}
-
-function densifyPolygon(polygon: Array<[number, number]>, step = 3): Array<[number, number]> {
-  const points: Array<[number, number]> = []
-
-  for (let index = 0; index < polygon.length; index++) {
-    const current = polygon[index]
-    const next = polygon[(index + 1) % polygon.length]
-    const latDelta = next[0] - current[0]
-    const lonDelta = next[1] - current[1]
-    const segments = Math.max(1, Math.ceil(Math.max(Math.abs(latDelta), Math.abs(lonDelta)) / step))
-
-    for (let segment = 0; segment < segments; segment++) {
-      const t = segment / segments
-      points.push([
-        current[0] + latDelta * t,
-        current[1] + lonDelta * t
-      ])
-    }
-  }
-
-  return points
-}
-
-const LAND_SAMPLE_POINTS = buildLandSamples(LAND_POLYGONS)
-const LAND_COASTLINES = LAND_POLYGONS.map((polygon) => densifyPolygon(polygon))
 
 function haversineMiles(from: [number, number], to: [number, number]): number {
   const earthRadiusMiles = 3958.8
@@ -333,6 +128,43 @@ function haversineMiles(from: [number, number], to: [number, number]): number {
 function formatDistance(miles: number): string {
   if (miles >= 1000) return `${(miles / 1000).toFixed(1)}k mi`
   return `${Math.round(miles)} mi`
+}
+
+function drawMarker(
+  context: CanvasRenderingContext2D,
+  projection: ReturnType<typeof geoOrthographic>,
+  coords: [number, number],
+  {
+    haloColor,
+    coreColor,
+    pulseScale = 0,
+    time = 0
+  }: {
+    haloColor: string
+    coreColor: string
+    pulseScale?: number
+    time?: number
+  }
+): void {
+  const projected = projection(toLonLat(coords))
+  if (!projected) return
+
+  const [x, y] = projected
+  if (pulseScale > 0) {
+    const pulse = 0.55 + Math.sin(time * 2.4) * 0.35
+    context.beginPath()
+    context.arc(x, y, 5 + pulse * pulseScale, 0, TAU)
+    context.fillStyle = haloColor
+    context.fill()
+  }
+
+  context.beginPath()
+  context.arc(x, y, 3.2, 0, TAU)
+  context.fillStyle = coreColor
+  context.shadowBlur = 12
+  context.shadowColor = coreColor
+  context.fill()
+  context.shadowBlur = 0
 }
 
 function SignalCard({
@@ -361,7 +193,6 @@ export function RadioSignalGlobe({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef(0)
   const deviceLocation = HOME_LOCATION
-
   const stationCoords = station ? STATION_COORDS[station.id] ?? null : null
 
   useEffect(() => {
@@ -393,163 +224,127 @@ export function RadioSignalGlobe({
       const time = performance.now() / 1000
       const cx = width / 2
       const cy = height / 2
-      const radius = Math.min(cx, cy) * 0.74
-      const rotation = time * (TAU / 75)
+      const radius = Math.min(cx, cy) * 0.78
       const style = getComputedStyle(canvas)
       const accent = style.getPropertyValue('--winamp-blue-bright')
       const dim = style.getPropertyValue('--winamp-screen-dim')
-      const landFill = colorWithAlpha(accent, 0.12, 'rgba(108, 173, 196, 0.12)')
-      const coastlineStroke = colorWithAlpha(accent, 0.3, 'rgba(138, 203, 255, 0.3)')
-      const gridStroke = colorWithAlpha(dim, 0.18, 'rgba(120, 180, 255, 0.08)')
 
+      const atmosphere = colorWithAlpha(accent, 0.15, 'rgba(135, 212, 255, 0.15)')
+      const landFill = colorWithAlpha(accent, 0.18, 'rgba(121, 187, 255, 0.18)')
+      const coastlineStroke = colorWithAlpha(accent, 0.56, 'rgba(170, 220, 255, 0.56)')
+      const gridStroke = colorWithAlpha(dim, 0.16, 'rgba(124, 160, 210, 0.16)')
+      const rimStroke = colorWithAlpha(accent, 0.3, 'rgba(170, 220, 255, 0.3)')
+      const routeStroke = 'rgba(255, 212, 120, 0.88)'
+
+      const projection = geoOrthographic()
+        .translate([cx, cy])
+        .scale(radius)
+        .clipAngle(90)
+        .precision(0.4)
+        .rotate(getFocus(stationCoords, deviceLocation.coords, time))
+
+      const path = geoPath(projection, context)
+      const sphere = { type: 'Sphere' as const }
+
+      context.setTransform(1, 0, 0, 1, 0, 0)
       context.clearRect(0, 0, canvas.width, canvas.height)
-      context.save()
       context.scale(dpr, dpr)
 
+      context.save()
       context.beginPath()
-      context.arc(cx, cy, radius, 0, TAU)
-      context.fillStyle = 'rgba(7, 9, 14, 0.76)'
+      path(sphere as any)
+      context.shadowBlur = 24
+      context.shadowColor = atmosphere
+      context.fillStyle = atmosphere
       context.fill()
-
-      for (const [lat, lon] of LAND_SAMPLE_POINTS) {
-        const point = project(lat, lon, cx, cy, radius, rotation)
-        if (!point.visible) continue
-
-        context.beginPath()
-        context.arc(point.x, point.y, 1.6, 0, TAU)
-        context.fillStyle = landFill
-        context.fill()
-      }
-
-      context.strokeStyle = coastlineStroke
-      context.lineWidth = 1.1
-      for (const coastline of LAND_COASTLINES) {
-        context.beginPath()
-        let open = false
-        for (const [lat, lon] of coastline) {
-          const point = project(lat, lon, cx, cy, radius, rotation)
-          if (point.visible) {
-            if (!open) {
-              context.moveTo(point.x, point.y)
-              open = true
-            } else {
-              context.lineTo(point.x, point.y)
-            }
-          } else {
-            open = false
-          }
-        }
-        context.stroke()
-      }
-
-      context.strokeStyle = gridStroke
-      context.lineWidth = 0.6
-      for (let lat = -60; lat <= 60; lat += 30) {
-        context.beginPath()
-        let open = false
-        for (let lon = -180; lon <= 180; lon += 3) {
-          const point = project(lat, lon, cx, cy, radius, rotation)
-          if (point.visible) {
-            if (!open) {
-              context.moveTo(point.x, point.y)
-              open = true
-            } else {
-              context.lineTo(point.x, point.y)
-            }
-          } else {
-            open = false
-          }
-        }
-        context.stroke()
-      }
-
-      for (let lon = -180; lon < 180; lon += 30) {
-        context.beginPath()
-        let open = false
-        for (let lat = -90; lat <= 90; lat += 3) {
-          const point = project(lat, lon, cx, cy, radius, rotation)
-          if (point.visible) {
-            if (!open) {
-              context.moveTo(point.x, point.y)
-              open = true
-            } else {
-              context.lineTo(point.x, point.y)
-            }
-          } else {
-            open = false
-          }
-        }
-        context.stroke()
-      }
+      context.shadowBlur = 0
 
       context.beginPath()
-      context.arc(cx, cy, radius, 0, TAU)
-      context.strokeStyle = 'rgba(140, 200, 255, 0.18)'
-      context.lineWidth = 1
-      context.stroke()
-
-      const devicePoint = project(
-        deviceLocation.coords[0],
-        deviceLocation.coords[1],
+      path(sphere as any)
+      const globeGradient = context.createRadialGradient(
+        cx - radius * 0.35,
+        cy - radius * 0.42,
+        radius * 0.12,
         cx,
         cy,
-        radius,
-        rotation
+        radius * 1.05
       )
+      globeGradient.addColorStop(0, 'rgba(35, 45, 70, 0.98)')
+      globeGradient.addColorStop(0.6, 'rgba(12, 18, 30, 0.96)')
+      globeGradient.addColorStop(1, 'rgba(5, 8, 16, 0.98)')
+      context.fillStyle = globeGradient
+      context.fill()
+
+      context.save()
+      context.beginPath()
+      path(sphere as any)
+      context.clip()
+
+      const sheen = context.createLinearGradient(
+        cx - radius,
+        cy - radius * 0.85,
+        cx + radius * 0.7,
+        cy + radius
+      )
+      sheen.addColorStop(0, 'rgba(255, 255, 255, 0.06)')
+      sheen.addColorStop(0.35, 'rgba(255, 255, 255, 0.02)')
+      sheen.addColorStop(1, 'rgba(255, 255, 255, 0)')
+      context.fillStyle = sheen
+      context.fillRect(cx - radius - 2, cy - radius - 2, radius * 2 + 4, radius * 2 + 4)
+
+      context.beginPath()
+      path(WORLD_GRATICULE as any)
+      context.strokeStyle = gridStroke
+      context.lineWidth = 0.7
+      context.stroke()
+
+      context.beginPath()
+      path(LAND_FEATURE)
+      context.fillStyle = landFill
+      context.fill()
+      context.strokeStyle = coastlineStroke
+      context.lineWidth = 1.05
+      context.stroke()
 
       if (stationCoords) {
-        const arcPoints = greatCirclePoints(
-          stationCoords[0],
-          stationCoords[1],
-          deviceLocation.coords[0],
-          deviceLocation.coords[1],
-          44
-        ).map(([lat, lon]) => project(lat, lon, cx, cy, radius, rotation))
+        const route = buildRouteLine(stationCoords, deviceLocation.coords)
+        context.beginPath()
+        path(route as any)
+        context.strokeStyle = 'rgba(255, 212, 120, 0.22)'
+        context.lineWidth = 4.6
+        context.stroke()
 
         context.beginPath()
-        let open = false
-        for (const point of arcPoints) {
-          if (point.visible) {
-            if (!open) {
-              context.moveTo(point.x, point.y)
-              open = true
-            } else {
-              context.lineTo(point.x, point.y)
-            }
-          } else {
-            open = false
-          }
-        }
-        context.strokeStyle = 'rgba(255, 212, 120, 0.75)'
+        path(route as any)
+        context.strokeStyle = routeStroke
         context.lineWidth = 1.8
-        context.setLineDash([5, 7])
-        context.lineDashOffset = -time * 24
+        context.setLineDash([7, 7])
+        context.lineDashOffset = -time * 26
         context.stroke()
         context.setLineDash([])
 
-        const stationPoint = project(stationCoords[0], stationCoords[1], cx, cy, radius, rotation)
-        if (stationPoint.visible) {
-          context.beginPath()
-          context.arc(stationPoint.x, stationPoint.y, 3.2, 0, TAU)
-          context.fillStyle = 'rgba(135, 212, 255, 0.9)'
-          context.fill()
-        }
+        drawMarker(context, projection, stationCoords, {
+          haloColor: 'rgba(94, 179, 255, 0.14)',
+          coreColor: 'rgba(135, 212, 255, 0.95)'
+        })
       }
 
-      if (devicePoint.visible) {
-        const pulse = 0.45 + Math.sin(time * 2.8) * 0.35
-        context.beginPath()
-        context.arc(devicePoint.x, devicePoint.y, 4 + pulse * 3, 0, TAU)
-        context.fillStyle = `rgba(255, 212, 120, ${(0.12 + pulse * 0.1).toFixed(2)})`
-        context.fill()
-
-        context.beginPath()
-        context.arc(devicePoint.x, devicePoint.y, 3.2, 0, TAU)
-        context.fillStyle = 'rgba(255, 212, 120, 0.95)'
-        context.fill()
-      }
+      drawMarker(context, projection, deviceLocation.coords, {
+        haloColor: 'rgba(255, 212, 120, 0.16)',
+        coreColor: 'rgba(255, 212, 120, 0.96)',
+        pulseScale: 3.4,
+        time
+      })
 
       context.restore()
+
+      context.beginPath()
+      path(sphere as any)
+      context.strokeStyle = rimStroke
+      context.lineWidth = 1.2
+      context.stroke()
+      context.restore()
+
       animationRef.current = requestAnimationFrame(render)
     }
 
@@ -572,7 +367,7 @@ export function RadioSignalGlobe({
 
   const pathDetail = useMemo(() => {
     if (stationCoords) {
-      return 'Great-circle route over the world map from station origin to home.'
+      return 'Great-circle route over a real-world orthographic map from station origin to home.'
     }
     if (mode === 'local') {
       return 'Local file playback stays on-device.'
@@ -594,19 +389,19 @@ export function RadioSignalGlobe({
       <div className="winamp-signal-readout">
         <SignalCard
           label="Origin"
-          value={station ? station.location : mode === 'local' ? 'Local library' : mode === 'custom' ? 'Direct stream' : 'No signal'}
+          value={
+            station
+              ? station.location
+              : mode === 'local'
+                ? 'Local library'
+                : mode === 'custom'
+                  ? 'Direct stream'
+                  : 'No signal'
+          }
           detail={station ? `${station.callSign} · ${station.frequency}` : sourceLabel ?? 'Choose a source to map.'}
         />
-        <SignalCard
-          label="Receiving"
-          value={deviceLocation.label}
-          detail={receivingDetail}
-        />
-        <SignalCard
-          label="Path"
-          value={pathValue}
-          detail={pathDetail}
-        />
+        <SignalCard label="Receiving" value={deviceLocation.label} detail={receivingDetail} />
+        <SignalCard label="Path" value={pathValue} detail={pathDetail} />
       </div>
     </div>
   )

@@ -31,10 +31,14 @@
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
     "@tailwindcss/vite": "^4.1.18",
+    "@types/topojson-client": "^3.1.5",
     "better-sqlite3": "^12.6.2",
+    "d3-geo": "^3.1.1",
     "dotenv": "^17.3.1",
     "react-resizable-panels": "^4.7.1",
     "tailwindcss": "^4.1.18",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
