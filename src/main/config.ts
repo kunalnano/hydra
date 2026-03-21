@@ -49,10 +49,12 @@ export function loadConfig(): HelmConfig {
   } catch {
     config = { ...DEFAULT_CONFIG }
   }
-  // .env overrides config file for lmStudioUrl
-  if (process.env.LM_STUDIO_URL && !config.lmStudioUrl) {
-    config.lmStudioUrl = process.env.LM_STUDIO_URL
+
+  const envLmStudioUrl = process.env.LM_STUDIO_URL?.trim()
+  if (envLmStudioUrl) {
+    config.lmStudioUrl = envLmStudioUrl
   }
+
   return config
 }
 
