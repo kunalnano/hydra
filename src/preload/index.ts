@@ -26,7 +26,8 @@ import type {
   SentinelAlert,
   HiveSpawnRequest,
   HiveSpawnResult,
-  HiveSessionInfo
+  HiveSessionInfo,
+  UpdateStatus
 } from '../shared/types'
 
 const api = {
@@ -249,6 +250,21 @@ const api = {
     ipcRenderer.on(IPC_CHANNELS.SENTINEL_ALERTS, handler)
     return (): void => {
       ipcRenderer.removeListener(IPC_CHANNELS.SENTINEL_ALERTS, handler)
+    }
+  },
+
+  getUpdateStatus: (): Promise<UpdateStatus> =>
+    ipcRenderer.invoke(IPC_CHANNELS.UPDATE_STATUS),
+
+  checkForUpdates: (): Promise<UpdateStatus> =>
+    ipcRenderer.invoke(IPC_CHANNELS.UPDATE_CHECK_NOW),
+
+  onUpdateStatus: (callback: (status: UpdateStatus) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: UpdateStatus): void =>
+      callback(status)
+    ipcRenderer.on(IPC_CHANNELS.UPDATE_STATUS, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.UPDATE_STATUS, handler)
     }
   },
 

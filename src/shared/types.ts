@@ -434,6 +434,8 @@ export const IPC_CHANNELS = {
   REGISTRY_GET_TOP: 'registry:get-top',
   SENTINEL_STATUS: 'sentinel:status',
   SENTINEL_ALERTS: 'sentinel:alerts',
+  UPDATE_STATUS: 'updater:status',
+  UPDATE_CHECK_NOW: 'updater:check-now',
   // HIVE channels
   HIVE_SPAWN: 'hive:spawn',
   HIVE_KILL_SESSION: 'hive:kill-session',
@@ -462,6 +464,20 @@ export interface SentinelStatus {
   activeAlerts: SentinelAlert[]
   lastPoll: number
   rulesEnabled: number
+}
+
+export type UpdateStatusKind = 'idle' | 'checking' | 'up-to-date' | 'available' | 'error'
+
+export interface UpdateStatus {
+  kind: UpdateStatusKind
+  currentVersion: string
+  latestVersion?: string
+  releaseName?: string
+  releaseUrl?: string
+  changelogUrl?: string
+  checkedAt?: number
+  publishedAt?: string
+  message?: string
 }
 
 export interface GitActionResult {

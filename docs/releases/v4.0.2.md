@@ -9,6 +9,7 @@ This patch removes the first-run setup friction that made clean clones brittle. 
 - Centralized repo-root and packaged-resource path resolution for `.env`, registry seed data, Sentinel config, HIVE role prompts, and helper scripts.
 - Replaced the old Fleet default scan root with the current clone when HYDRA is launched from the repo root.
 - Added a tracked, commented `.env.example` for optional LM Studio, repo scan, log, Sentinel, HIVE, and ElevenLabs overrides.
+- Added an in-app update banner and a command-palette update check so older running clones can see newer releases and changelog links.
 - Added a README setup warning with two repair paths:
   - guided setup through `docs/llm-setup-prompt.md`
   - agent-driven repair through `CLAUDE.md`

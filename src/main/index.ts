@@ -37,10 +37,12 @@ import { getAgentRegistry, getAgentById, updateAgentEntry, getTopAgents } from '
 import { getRadioRelayUrl, stopRadioRelayServer } from './radio-relay'
 import { getSkillFeed } from './skills'
 import { setupHiveIPC, teardownHive, resolveHiveConfig } from './hive/index'
+import { checkForUpdates, getUpdateStatus } from './updater'
 import type { HelmConfig, SystemState, AgentRegistryEntry } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
+let updateCheckInterval: ReturnType<typeof setInterval> | null = null
 
 // FM radio playback resolves relay URLs asynchronously, so Chromium no longer
 // treats the eventual audio.play() call as being inside the original click.
@@ -107,6 +109,12 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(IPC_CHANNELS.UPDATE_STATUS, getUpdateStatus())
+    }
+  })
+
   startMonitoring(mainWindow)
   startSentinel(mainWindow, getLatestState)
 
@@ -133,6 +141,20 @@ function createWindow(): void {
     mainWindow = null
     stopMonitoring()
   })
+}
+
+function broadcastUpdateStatus(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.webContents.send(IPC_CHANNELS.UPDATE_STATUS, getUpdateStatus())
+}
+
+async function refreshUpdateStatus(): Promise<void> {
+  const status = await checkForUpdates()
+  console.log('[updater]', status.message || status.kind, {
+    currentVersion: status.currentVersion,
+    latestVersion: status.latestVersion
+  })
+  broadcastUpdateStatus()
 }
 
 function createTrayIcon(color: 'green' | 'yellow' | 'red'): Electron.NativeImage {
@@ -270,6 +292,11 @@ app.whenReady().then(() => {
   // Sentinel IPC handlers
   ipcMain.handle(IPC_CHANNELS.SENTINEL_STATUS, () => getSentinelStatus())
   ipcMain.handle(IPC_CHANNELS.SENTINEL_ALERTS, () => getSentinelAlerts())
+  ipcMain.handle(IPC_CHANNELS.UPDATE_STATUS, () => getUpdateStatus())
+  ipcMain.handle(IPC_CHANNELS.UPDATE_CHECK_NOW, async () => {
+    await refreshUpdateStatus()
+    return getUpdateStatus()
+  })
 
   // Audio file picker for FM Radio local library
   ipcMain.handle('dialog:openAudioFile', async () => {
@@ -296,6 +323,10 @@ app.whenReady().then(() => {
 
   createTray()
   createWindow()
+  void refreshUpdateStatus()
+  updateCheckInterval = setInterval(() => {
+    void refreshUpdateStatus()
+  }, 6 * 60 * 60 * 1000)
 
   globalShortcut.register('CommandOrControl+B', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -324,6 +355,10 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   globalShortcut.unregisterAll()
+  if (updateCheckInterval) {
+    clearInterval(updateCheckInterval)
+    updateCheckInterval = null
+  }
   teardownHive()
   stopSentinel()
   stopMonitoring()

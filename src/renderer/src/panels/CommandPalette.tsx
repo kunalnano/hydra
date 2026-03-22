@@ -157,6 +157,14 @@ export function CommandPalette({
       }
     })
 
+    commands.push({
+      id: 'check-updates',
+      label: 'Check for updates',
+      aliases: ['release', 'release notes', 'changelog', 'update app'],
+      description: 'Check GitHub for a newer HELM release and refresh the update banner',
+      action: () => window.helm.checkForUpdates()
+    })
+
     // HIVE commands
     const hiveRoles = ['architect', 'builder', 'analyst', 'ops', 'strategist'] as const
     for (const role of hiveRoles) {

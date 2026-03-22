@@ -22,8 +22,9 @@ import { HELM_SKINS, useSkinStore } from './stores/skin'
 import { usePrivacyStore } from './stores/privacy'
 import { HeaderTicker } from './components/HeaderTicker'
 import { SkinGlobe } from './components/SkinGlobe'
+import { UpdateBanner } from './components/UpdateBanner'
 import { getAudioElement } from './stores/audio-engine'
-import type { SystemState, SentinelStatus } from '../../shared/types'
+import type { SystemState, SentinelStatus, UpdateStatus } from '../../shared/types'
 
 interface PageMeta {
   id: HelmPageId
@@ -693,6 +694,7 @@ function App(): JSX.Element {
   const setCurrentPage = useNavigationStore((s) => s.setCurrentPage)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [skinOpen, setSkinOpen] = useState(false)
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
 
   useEffect(() => {
     initialize()
@@ -705,6 +707,30 @@ function App(): JSX.Element {
       delete document.documentElement.dataset.skin
     }
   }, [activeSkin])
+
+  useEffect(() => {
+    let cancelled = false
+
+    window.helm.getUpdateStatus().then((status) => {
+      if (!cancelled) {
+        setUpdateStatus(status)
+        if (status.kind === 'idle') {
+          void window.helm.checkForUpdates()
+        }
+      }
+    })
+
+    const unsubscribe = window.helm.onUpdateStatus((status) => {
+      if (!cancelled) {
+        setUpdateStatus(status)
+      }
+    })
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     const handler = (event: KeyboardEvent): void => {
@@ -747,6 +773,11 @@ function App(): JSX.Element {
       <div className="shrink-0 px-4 pt-2 overflow-x-auto">
         <ScorecardsStrip />
       </div>
+      {updateStatus?.kind === 'available' && (
+        <div className="shrink-0 px-4 pt-2">
+          <UpdateBanner status={updateStatus} />
+        </div>
+      )}
       {(currentPage === 'bridge' || currentPage === 'fleet') && (
         <div className="shrink-0 px-4 pt-1.5">
           <SessionDeltaBanner />

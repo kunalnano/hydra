@@ -32,6 +32,7 @@ Requires Node.js 18+, LM Studio running locally, and at least one model loaded i
 - Removed repo-root and machine-layout assumptions from startup by resolving `.env`, registry seed data, Sentinel config, HIVE role files, and helper scripts relative to the current clone or packaged resources
 - Replaced developer-specific defaults with documented `.env` overrides for LM Studio, repo scanning, external agent feeds, log paths, Sentinel outputs, HIVE paths, and optional ElevenLabs voice settings
 - Clean-clone setup now works by copying `.env.example` to `.env` from the repo root instead of editing source paths
+- Added an in-app update banner plus a command-palette update check so older running clones can see when a newer release is out
 - Renamed project from HYDRA to **HELM** across all types, CSS, config paths, and UI text
 - Organized the shell around owned pages so every tab tells one story instead of repeating the same panels
 - Added 4th skin: **Phantom** (deep violet neon on obsidian)

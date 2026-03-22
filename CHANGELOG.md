@@ -33,6 +33,7 @@ Entries are ordered newest first. `Unreleased` covers mainline work after the la
 - Resolved bundled runtime assets from the current clone or packaged resources instead of hardcoded repo layouts
 - Replaced the default Fleet scan root with the current clone when HYDRA is launched from the repo root
 - Added a documented `.env.example` with optional overrides for LM Studio, repo scanning, agent feeds, logs, Sentinel, HIVE, and optional ElevenLabs voice settings
+- Added an in-app update banner and a command-palette update check so older running clones can see newer releases and changelog links
 
 ### Reliability
 - Made Sentinel vault logging, LuLu parser lookup, Yennefer voice config, and Staff scan report output configurable instead of assuming one machine layout
