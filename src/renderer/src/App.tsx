@@ -17,6 +17,7 @@ import { CommandPalette } from './panels/CommandPalette'
 import { CCUsagePanel } from './panels/CCUsage'
 import { FMRadioPanel } from './panels/FMRadio'
 import { RegistryPanel } from './panels/Registry'
+import { VaultPagePanel } from './panels/VaultPage'
 import { HiveLauncher } from './panels/HiveLauncher'
 import { HELM_SKINS, useSkinStore } from './stores/skin'
 import { usePrivacyStore } from './stores/privacy'
@@ -64,6 +65,12 @@ const PAGES: PageMeta[] = [
     description: 'Owns LM Studio control, AI briefings, and usage tracking.'
   },
   {
+    id: 'vault',
+    label: 'Vault',
+    kicker: 'Knowledge base',
+    description: 'Search, browse, and manage your Obsidian vault via hybrid RAG.'
+  },
+  {
     id: 'registry',
     label: 'Registry',
     kicker: 'Hall of fame',
@@ -101,7 +108,8 @@ const PANEL_DOTS: Record<string, string> = {
   'Spend & Usage': 'bg-violet-400',
   'Agent Roster': 'bg-amber-400',
   'Agent Registry': 'bg-yellow-400',
-  'HIVE Control': 'bg-amber-500'
+  'HIVE Control': 'bg-amber-500',
+  'Vault': 'bg-indigo-400'
 }
 
 const PANEL_ACCENT_HEX: Record<string, string> = {
@@ -122,7 +130,8 @@ const PANEL_ACCENT_HEX: Record<string, string> = {
   'Spend & Usage': '#a78bfa',
   'Agent Roster': '#fbbf24',
   'Agent Registry': '#facc15',
-  'HIVE Control': '#f59e0b'
+  'HIVE Control': '#f59e0b',
+  'Vault': '#818cf8'
 }
 
 const PAGE_MONOGRAMS: Record<HelmPageId, string> = {
@@ -131,6 +140,7 @@ const PAGE_MONOGRAMS: Record<HelmPageId, string> = {
   swarm: 'SW',
   grid: 'GR',
   ai: 'AI',
+  vault: 'VT',
   registry: 'RG',
   radio: 'FM',
   logs: 'LG'
@@ -142,6 +152,7 @@ const PAGE_GLYPH_GRADIENTS: Record<HelmPageId, string> = {
   swarm: 'from-amber-200/95 via-orange-300/80 to-rose-300/75',
   grid: 'from-emerald-200/95 via-teal-300/80 to-sky-300/65',
   ai: 'from-fuchsia-200/95 via-violet-300/80 to-sky-300/65',
+  vault: 'from-indigo-200/95 via-blue-300/80 to-violet-300/65',
   registry: 'from-yellow-200/95 via-amber-300/80 to-orange-300/65',
   radio: 'from-pink-200/95 via-fuchsia-300/80 to-cyan-300/70',
   logs: 'from-lime-200/95 via-emerald-300/75 to-cyan-300/65'
@@ -510,6 +521,16 @@ function AIPage(): JSX.Element {
   )
 }
 
+function VaultPage(): JSX.Element {
+  return (
+    <div className="space-y-4">
+      <DashPanel title="Vault" className="min-h-[620px]">
+        <VaultPagePanel />
+      </DashPanel>
+    </div>
+  )
+}
+
 function RegistryPage(): JSX.Element {
   return (
     <div className="space-y-4">
@@ -579,6 +600,9 @@ function NavBadge({
       break
     case 'ai':
       badge = state.memory.usagePercent >= 80 ? 'hot' : 'ready'
+      break
+    case 'vault':
+      badge = '1.8k'
       break
     case 'registry':
       badge = '\u{1F3C6}'
@@ -678,6 +702,7 @@ function PageContent({ currentPage }: { currentPage: HelmPageId }): JSX.Element 
     case 'swarm':    return <SwarmPage />
     case 'grid':     return <GridPage />
     case 'ai':       return <AIPage />
+    case 'vault':    return <VaultPage />
     case 'registry': return <RegistryPage />
     case 'radio':    return <RadioPage />
     case 'logs':     return <LogsPage />
