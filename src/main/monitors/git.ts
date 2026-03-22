@@ -1,16 +1,21 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { existsSync } from 'fs'
+import { join } from 'path'
 import type { GitRepoInfo, GitCommit, GitActionResult } from '../../shared/types'
+import { getAppRoot, loadEnvironment, resolvePathSetting } from '../app-paths'
 
 const execAsync = promisify(exec)
 
-const DEFAULT_SCAN_DIRS = ['~/Documents/ai/myAIProjects']
+function getDefaultScanDirs(): string[] {
+  const repoRoot = getAppRoot()
+  return existsSync(join(repoRoot, '.git')) ? [repoRoot] : []
+}
 
 export function resolveGitScanDirs(scanDirs?: string[]): string[] {
-  const dirs = scanDirs && scanDirs.length > 0 ? scanDirs : DEFAULT_SCAN_DIRS
-  return dirs
-    .map((dir) => dir.replace(/^~/, process.env.HOME || ''))
-    .filter((dir) => dir.length > 0)
+  loadEnvironment()
+  const dirs = scanDirs && scanDirs.length > 0 ? scanDirs : getDefaultScanDirs()
+  return dirs.map((dir) => resolvePathSetting(dir)).filter((dir) => dir.length > 0)
 }
 
 export function parseGitStatus(

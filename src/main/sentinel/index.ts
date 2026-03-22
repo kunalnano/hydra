@@ -1,10 +1,10 @@
 import { readFileSync, existsSync } from 'fs'
-import { join } from 'path'
 import type { BrowserWindow } from 'electron'
 import type { SystemState, SentinelAlert, SentinelStatus } from '../../shared/types'
 import { IPC_CHANNELS } from '../../shared/types'
 import { defaultRules, type SentinelRule } from './rules'
 import { dispatchAlert, type NotifyChannelConfig } from './notify'
+import { loadEnvironment, resolveMainAssetPath, resolvePathSetting } from '../app-paths'
 
 interface SentinelConfig {
   enabled: boolean
@@ -25,28 +25,77 @@ let rules: SentinelRule[] = []
 let mainWindowRef: BrowserWindow | null = null
 let getStateRef: (() => SystemState | null) | null = null
 
+function parseBooleanEnv(name: string): boolean | undefined {
+  const rawValue = process.env[name]?.trim().toLowerCase()
+  if (!rawValue) return undefined
+
+  if (['1', 'true', 'yes', 'on'].includes(rawValue)) return true
+  if (['0', 'false', 'no', 'off'].includes(rawValue)) return false
+  return undefined
+}
+
+function parsePositiveIntEnv(name: string): number | undefined {
+  const rawValue = process.env[name]?.trim()
+  if (!rawValue) return undefined
+
+  const parsed = Number.parseInt(rawValue, 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined
+  return parsed
+}
+
 function loadConfig(): SentinelConfig {
-  // Try bundled config, then fallback to defaults
+  loadEnvironment()
+
+  const configuredPath = process.env.HELM_SENTINEL_CONFIG_PATH?.trim()
   const paths = [
-    join(__dirname, 'sentinel', 'config.json'),
-    join(__dirname, '..', 'src', 'main', 'sentinel', 'config.json'),
-    join(process.cwd(), 'src', 'main', 'sentinel', 'config.json')
-  ]
+    configuredPath ? resolvePathSetting(configuredPath) : null,
+    resolveMainAssetPath('sentinel', 'config.json')
+  ].filter((value): value is string => Boolean(value))
 
   for (const p of paths) {
     if (existsSync(p)) {
       try {
-        return JSON.parse(readFileSync(p, 'utf-8'))
+        const parsed = JSON.parse(readFileSync(p, 'utf-8')) as SentinelConfig
+        const slackWebhook = process.env.HELM_SENTINEL_SLACK_WEBHOOK?.trim()
+        const macosNotification = parseBooleanEnv('HELM_SENTINEL_MACOS_NOTIFICATIONS')
+        const vaultLogEnabled = parseBooleanEnv('HELM_SENTINEL_VAULT_LOG_ENABLED')
+        const pollIntervalMs = parsePositiveIntEnv('HELM_SENTINEL_POLL_INTERVAL_MS')
+        const vaultLogDir = process.env.HELM_SENTINEL_VAULT_LOG_DIR?.trim()
+
+        return {
+          ...parsed,
+          pollIntervalMs: pollIntervalMs ?? parsed.pollIntervalMs,
+          channels: {
+            ...parsed.channels,
+            macos_notification: macosNotification ?? parsed.channels.macos_notification,
+            slack_webhook: slackWebhook || parsed.channels.slack_webhook,
+            vault_log: vaultLogEnabled ?? parsed.channels.vault_log,
+            vault_log_dir: vaultLogDir
+              ? resolvePathSetting(vaultLogDir)
+              : parsed.channels.vault_log_dir ?? null
+          }
+        }
       } catch {
         continue
       }
     }
   }
 
+  const slackWebhook = process.env.HELM_SENTINEL_SLACK_WEBHOOK?.trim()
+  const macosNotification = parseBooleanEnv('HELM_SENTINEL_MACOS_NOTIFICATIONS')
+  const vaultLogEnabled = parseBooleanEnv('HELM_SENTINEL_VAULT_LOG_ENABLED')
+  const pollIntervalMs = parsePositiveIntEnv('HELM_SENTINEL_POLL_INTERVAL_MS')
+  const vaultLogDir = process.env.HELM_SENTINEL_VAULT_LOG_DIR?.trim()
+
   return {
     enabled: true,
-    pollIntervalMs: 30000,
-    channels: { macos_notification: true, slack_webhook: null, vault_log: true },
+    pollIntervalMs: pollIntervalMs ?? 30000,
+    channels: {
+      macos_notification: macosNotification ?? true,
+      slack_webhook: slackWebhook || null,
+      vault_log: vaultLogEnabled ?? true,
+      vault_log_dir: vaultLogDir ? resolvePathSetting(vaultLogDir) : null
+    },
     rules: {}
   }
 }

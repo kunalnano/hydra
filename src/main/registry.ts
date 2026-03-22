@@ -2,21 +2,23 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 import type { AgentRegistryEntry, AgentInfo } from '../shared/types'
+import { loadEnvironment, resolveMainAssetPath, resolvePathSetting } from './app-paths'
 
 const HELM_DIR = join(homedir(), '.config', 'helm')
 const REGISTRY_FILE = join(HELM_DIR, 'agent-registry.json')
 
-// In dev mode, __dirname is the output dir. Try multiple locations for the seed.
-const SEED_PATHS = [
-  join(__dirname, 'data', 'agent-registry.json'),
-  join(__dirname, '..', 'src', 'main', 'data', 'agent-registry.json'),
-  join(process.cwd(), 'src', 'main', 'data', 'agent-registry.json')
-]
-
 let cache: AgentRegistryEntry[] | null = null
 
 function findSeedFile(): string | null {
-  for (const p of SEED_PATHS) {
+  loadEnvironment()
+
+  const configuredSeed = process.env.HELM_REGISTRY_SEED_PATH?.trim()
+  const seedPaths = [
+    configuredSeed ? resolvePathSetting(configuredSeed) : null,
+    resolveMainAssetPath('data', 'agent-registry.json')
+  ].filter((value): value is string => Boolean(value))
+
+  for (const p of seedPaths) {
     if (existsSync(p)) return p
   }
   return null

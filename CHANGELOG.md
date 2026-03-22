@@ -26,6 +26,23 @@ Entries are ordered newest first. `Unreleased` covers mainline work after the la
 - 6 registry data validation tests
 - 13 sentinel rule unit tests
 
+## v4.0.2 — 2026-03-22
+
+### OOTB Setup
+- Removed startup assumptions that depended on the caller's working directory
+- Resolved bundled runtime assets from the current clone or packaged resources instead of hardcoded repo layouts
+- Replaced the default Fleet scan root with the current clone when HYDRA is launched from the repo root
+- Added a documented `.env.example` with optional overrides for LM Studio, repo scanning, agent feeds, logs, Sentinel, HIVE, and optional ElevenLabs voice settings
+
+### Reliability
+- Made Sentinel vault logging, LuLu parser lookup, Yennefer voice config, and Staff scan report output configurable instead of assuming one machine layout
+- Added packaged-resource shipping for registry seed data, Sentinel config, HIVE role prompts, and the LuLu parser helper
+
+### Docs
+- Added an LLM-friendly setup prompt at `docs/llm-setup-prompt.md`
+- Reordered the README so quick start comes before shell walkthrough details
+- Added release collateral for the OOTB setup patch
+
 ## v4.0.1 — 2026-03-21
 
 ### FM Radio

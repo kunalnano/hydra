@@ -3,6 +3,7 @@ import { appendFileSync, mkdirSync, existsSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 import type { SentinelAlert } from '../../shared/types'
+import { loadEnvironment, resolvePathSetting } from '../app-paths'
 
 export interface NotifyChannel {
   id: string
@@ -23,8 +24,19 @@ function sendMacOSNotification(alert: SentinelAlert): void {
 }
 
 // Channel: Obsidian vault log
-function sendVaultLog(alert: SentinelAlert): void {
-  const vaultDir = join(homedir(), 'Documents', 'ai', 'obsidian-vault', 'sentinel')
+function getDefaultVaultLogDir(): string {
+  return join(homedir(), 'Documents', 'ai', 'obsidian-vault', 'sentinel')
+}
+
+function resolveVaultLogDir(configuredDir?: string | null): string {
+  loadEnvironment()
+  const envDir = process.env.HELM_SENTINEL_VAULT_LOG_DIR?.trim()
+  const candidate = envDir || configuredDir?.trim() || getDefaultVaultLogDir()
+  return resolvePathSetting(candidate)
+}
+
+function sendVaultLog(alert: SentinelAlert, configuredDir?: string | null): void {
+  const vaultDir = resolveVaultLogDir(configuredDir)
   if (!existsSync(vaultDir)) {
     mkdirSync(vaultDir, { recursive: true })
   }
@@ -73,6 +85,7 @@ export interface NotifyChannelConfig {
   macos_notification: boolean
   slack_webhook: string | null
   vault_log: boolean
+  vault_log_dir?: string | null
   // Future:
   // twilio_sms: { to: string; from: string; authToken: string } | null
   // gmail: { to: string; from: string; appPassword: string } | null
@@ -84,7 +97,7 @@ export function dispatchAlert(alert: SentinelAlert, config: NotifyChannelConfig)
   }
 
   if (config.vault_log) {
-    sendVaultLog(alert)
+    sendVaultLog(alert, config.vault_log_dir)
   }
 
   if (config.slack_webhook) {

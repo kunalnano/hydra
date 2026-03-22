@@ -8,6 +8,7 @@ import type {
   HiveSpawnRequest,
   HiveSessionInfo
 } from '../../shared/types'
+import { resolveMainAssetPath } from '../app-paths'
 import {
   spawnHiveAgent,
   killHiveSession,
@@ -23,35 +24,35 @@ const BUILT_IN_ROLES: HiveRoleTemplate[] = [
     name: 'architect',
     displayName: 'Architect',
     model: 'opus',
-    claudeMdPath: join(__dirname, 'hive', 'roles', 'architect.md'),
+    claudeMdPath: resolveMainAssetPath('hive', 'roles', 'architect.md'),
     description: 'System design, planning, and architectural decisions'
   },
   {
     name: 'builder',
     displayName: 'Builder',
     model: 'sonnet',
-    claudeMdPath: join(__dirname, 'hive', 'roles', 'builder.md'),
+    claudeMdPath: resolveMainAssetPath('hive', 'roles', 'builder.md'),
     description: 'Implementation, code, tests, and prototypes'
   },
   {
     name: 'analyst',
     displayName: 'Analyst',
     model: 'sonnet',
-    claudeMdPath: join(__dirname, 'hive', 'roles', 'analyst.md'),
+    claudeMdPath: resolveMainAssetPath('hive', 'roles', 'analyst.md'),
     description: 'Research, data analysis, and investigation'
   },
   {
     name: 'ops',
     displayName: 'Ops',
     model: 'sonnet',
-    claudeMdPath: join(__dirname, 'hive', 'roles', 'ops.md'),
+    claudeMdPath: resolveMainAssetPath('hive', 'roles', 'ops.md'),
     description: 'Infrastructure, automation, CI/CD, and reliability'
   },
   {
     name: 'strategist',
     displayName: 'Strategist',
     model: 'opus',
-    claudeMdPath: join(__dirname, 'hive', 'roles', 'strategist.md'),
+    claudeMdPath: resolveMainAssetPath('hive', 'roles', 'strategist.md'),
     description: 'Business strategy, customer success, and domain work'
   }
 ]

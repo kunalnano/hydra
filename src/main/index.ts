@@ -1,9 +1,9 @@
-import { config as dotenvConfig } from 'dotenv'
 import { join, basename } from 'path'
 import { pathToFileURL } from 'node:url'
+import { loadEnvironment } from './app-paths'
 
 // Load .env before anything else reads process.env
-dotenvConfig({ path: join(process.cwd(), '.env') })
+loadEnvironment()
 
 import {
   app,

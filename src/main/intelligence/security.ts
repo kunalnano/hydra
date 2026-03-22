@@ -2,12 +2,13 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import type { SecurityScanResult, SecurityPosture } from '../../shared/types'
 import { loadConfig } from '../config'
+import { loadEnvironment, resolvePathSetting } from '../app-paths'
 
 const execAsync = promisify(exec)
 
 const SCAN_TIMEOUT_MS = 120_000
 
-import { homedir } from 'os'
+import { homedir, tmpdir } from 'os'
 import { join } from 'path'
 import { access } from 'fs/promises'
 
@@ -87,12 +88,18 @@ async function detectLocalNetwork(): Promise<void> {
 // Fire and forget — resolve before first scan
 detectLocalNetwork()
 
+function getSecurityReportPath(): string {
+  loadEnvironment()
+  const configuredPath = process.env.HELM_SECURITY_REPORT_PATH?.trim()
+  return configuredPath ? resolvePathSetting(configuredPath) : join(tmpdir(), 'helm-scan-report.md')
+}
+
 export const SCAN_COMMANDS = [
   {
     command: 'survey',
     description: 'Full security assessment',
     get args(): string {
-      return `${localNetworkTarget} -o /tmp/helm-scan-report.md`
+      return `${localNetworkTarget} -o ${getSecurityReportPath()}`
     }
   },
   {

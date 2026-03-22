@@ -2,6 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { BriefingResult, SystemState } from '../../shared/types'
 import { IPC_CHANNELS } from '../../shared/types'
 
+const originalElevenLabsApiKey = process.env.ELEVENLABS_API_KEY
+const originalElevenLabsVoiceId = process.env.ELEVENLABS_VOICE_ID
+const originalHelmEnvPath = process.env.HELM_ENV_PATH
+
 const loadConfig = vi.fn(() => ({
   gitRepoPaths: [],
   monitorInterval: 2000,
@@ -71,11 +75,34 @@ describe('Yennefer IPC channel', () => {
 })
 
 describe('loadElevenLabsConfig', () => {
+  afterEach(() => {
+    vi.resetModules()
+
+    if (originalElevenLabsApiKey === undefined) {
+      delete process.env.ELEVENLABS_API_KEY
+    } else {
+      process.env.ELEVENLABS_API_KEY = originalElevenLabsApiKey
+    }
+
+    if (originalElevenLabsVoiceId === undefined) {
+      delete process.env.ELEVENLABS_VOICE_ID
+    } else {
+      process.env.ELEVENLABS_VOICE_ID = originalElevenLabsVoiceId
+    }
+
+    if (originalHelmEnvPath === undefined) {
+      delete process.env.HELM_ENV_PATH
+    } else {
+      process.env.HELM_ENV_PATH = originalHelmEnvPath
+    }
+  })
+
   it('returns null when .env file does not exist', async () => {
+    process.env.HELM_ENV_PATH = '/tmp/does-not-exist.env'
     const { loadElevenLabsConfig } = await import('./yennefer')
     const result = loadElevenLabsConfig()
-    // Unless the user has the exact file at ~/workspace/active/yennefer/.env, returns null
-    // This tests graceful fallback when key is missing
+    // This tests graceful fallback when neither direct env vars nor an external
+    // ElevenLabs .env file are available.
     if (result === null) {
       expect(result).toBeNull()
     } else {
@@ -83,6 +110,19 @@ describe('loadElevenLabsConfig', () => {
       expect(result).toHaveProperty('apiKey')
       expect(result).toHaveProperty('voiceId')
     }
+  })
+
+  it('prefers ELEVENLABS_* values loaded directly into the environment', async () => {
+    process.env.HELM_ENV_PATH = '/tmp/does-not-exist.env'
+    process.env.ELEVENLABS_API_KEY = 'eleven-test-key'
+    process.env.ELEVENLABS_VOICE_ID = 'voice-123'
+
+    const { loadElevenLabsConfig } = await import('./yennefer')
+
+    expect(loadElevenLabsConfig()).toEqual({
+      apiKey: 'eleven-test-key',
+      voiceId: 'voice-123'
+    })
   })
 })
 

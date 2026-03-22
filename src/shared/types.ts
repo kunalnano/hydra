@@ -556,5 +556,5 @@ export interface HelmConfig {
   yenneferEnabled?: boolean
   yenneferStyle?: YenneferStyle
   radioHomeLocation?: RadioHomeLocation
-  hive?: HiveConfig
+  hive?: Partial<HiveConfig>
 }
