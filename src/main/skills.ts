@@ -2,8 +2,15 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 import type { SkillFeed, SkillUpdate } from '../shared/types'
+import { loadEnvironment, resolvePathSetting } from './app-paths'
 
 const DEFAULT_SKILLS_ROOT = join(homedir(), '.codex', 'skills')
+
+function getSkillsRoot(): string {
+  loadEnvironment()
+  const configuredRoot = process.env.HELM_SKILLS_ROOT?.trim()
+  return configuredRoot ? resolvePathSetting(configuredRoot) : DEFAULT_SKILLS_ROOT
+}
 
 function humanizeSkillName(name: string): string {
   return name
@@ -67,7 +74,7 @@ function collectSkillDirectories(
   return updates
 }
 
-export function getSkillFeed(limit = 6, skillsRoot = DEFAULT_SKILLS_ROOT): SkillFeed {
+export function getSkillFeed(limit = 6, skillsRoot = getSkillsRoot()): SkillFeed {
   const userSkills = collectSkillDirectories(skillsRoot, 'user')
   const systemSkills = collectSkillDirectories(join(skillsRoot, '.system'), 'system')
   const allSkills = [...userSkills, ...systemSkills].sort((a, b) => b.updatedAt - a.updatedAt)

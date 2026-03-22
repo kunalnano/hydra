@@ -12,6 +12,19 @@ files:
 asar: true
 asarUnpack:
   - resources/**
+extraResources:
+  - from: src/main/data
+    to: app-resources/data
+  - from: src/main/hive/roles
+    to: app-resources/hive/roles
+  - from: src/main/sentinel
+    to: app-resources/sentinel
+    filter:
+      - config.json
+  - from: src/main/monitors
+    to: app-resources/monitors
+    filter:
+      - lulu-parser.py
 win:
   executableName: helm
 nsis:

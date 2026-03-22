@@ -153,28 +153,45 @@ describe('ensureConfigDir', () => {
 
 describe('loadConfig env overrides', () => {
   let tmpHome: string
-  const originalHome = process.env.HOME
-  const originalLmStudioUrl = process.env.LM_STUDIO_URL
+  const ENV_KEYS = [
+    'HOME',
+    'HELM_ENV_PATH',
+    'LM_STUDIO_URL',
+    'HELM_GIT_REPO_PATHS',
+    'HELM_AGENT_FEED_PATHS',
+    'HELM_LOG_FILE_PATHS',
+    'HELM_HIVE_ENABLED',
+    'HELM_HIVE_SHARED_CONTEXT_PATH',
+    'HELM_HIVE_CLAUDE_BIN_PATH',
+    'HELM_HIVE_IDLE_RECLAIM_MINUTES'
+  ] as const
+  const originalEnv = Object.fromEntries(
+    ENV_KEYS.map((key) => [key, process.env[key]])
+  ) as Record<(typeof ENV_KEYS)[number], string | undefined>
 
   beforeEach(() => {
     vi.resetModules()
     tmpHome = mkdtempSync(join(tmpdir(), 'helm-config-home-'))
     process.env.HOME = tmpHome
+    process.env.HELM_ENV_PATH = join(tmpHome, 'missing.env')
     delete process.env.LM_STUDIO_URL
+    delete process.env.HELM_GIT_REPO_PATHS
+    delete process.env.HELM_AGENT_FEED_PATHS
+    delete process.env.HELM_LOG_FILE_PATHS
+    delete process.env.HELM_HIVE_ENABLED
+    delete process.env.HELM_HIVE_SHARED_CONTEXT_PATH
+    delete process.env.HELM_HIVE_CLAUDE_BIN_PATH
+    delete process.env.HELM_HIVE_IDLE_RECLAIM_MINUTES
   })
 
   afterEach(() => {
     vi.resetModules()
-    if (originalHome === undefined) {
-      delete process.env.HOME
-    } else {
-      process.env.HOME = originalHome
-    }
-
-    if (originalLmStudioUrl === undefined) {
-      delete process.env.LM_STUDIO_URL
-    } else {
-      process.env.LM_STUDIO_URL = originalLmStudioUrl
+    for (const key of ENV_KEYS) {
+      if (originalEnv[key] === undefined) {
+        delete process.env[key]
+      } else {
+        process.env[key] = originalEnv[key]
+      }
     }
 
     rmSync(tmpHome, { recursive: true, force: true })
@@ -235,6 +252,32 @@ describe('loadConfig env overrides', () => {
       label: 'Operator base',
       latitude: 30.1234,
       longitude: -97.9876
+    })
+  })
+
+  it('parses repo-relative env overrides for paths and HIVE settings', async () => {
+    process.env.HELM_GIT_REPO_PATHS = '.,./docs'
+    process.env.HELM_AGENT_FEED_PATHS = './fixtures/agents,./fixtures/agents-alt'
+    process.env.HELM_LOG_FILE_PATHS = './logs/*.log'
+    process.env.HELM_HIVE_ENABLED = 'true'
+    process.env.HELM_HIVE_SHARED_CONTEXT_PATH = './.helm/hive/shared/context.md'
+    process.env.HELM_HIVE_CLAUDE_BIN_PATH = './bin/claude'
+    process.env.HELM_HIVE_IDLE_RECLAIM_MINUTES = '45'
+
+    const { loadConfig } = await import('./config')
+    const config = loadConfig()
+
+    expect(config.gitRepoPaths).toEqual([process.cwd(), join(process.cwd(), 'docs')])
+    expect(config.agentFeedPaths).toEqual([
+      join(process.cwd(), 'fixtures', 'agents'),
+      join(process.cwd(), 'fixtures', 'agents-alt')
+    ])
+    expect(config.logFilePaths).toEqual([join(process.cwd(), 'logs', '*.log')])
+    expect(config.hive).toMatchObject({
+      enabled: true,
+      sharedContextPath: join(process.cwd(), '.helm', 'hive', 'shared', 'context.md'),
+      claudeBinPath: join(process.cwd(), 'bin', 'claude'),
+      idleReclaimMinutes: 45
     })
   })
 })

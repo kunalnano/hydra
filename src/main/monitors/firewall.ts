@@ -4,24 +4,23 @@ import { promisify } from 'util'
 import { join } from 'path'
 import type { FirewallRule, FirewallState } from '../../shared/types'
 import { isMacOS } from '../platform'
+import { loadEnvironment, resolveMainAssetPath, resolvePathSetting } from '../app-paths'
 
 const execFileAsync = promisify(execFile)
 const LULU_RULES_PATH = '/Library/Objective-See/LuLu/rules.plist'
 
 /** Build candidate paths for the Python parser script. */
 function getParserPaths(): string[] {
+  loadEnvironment()
+
+  const configuredParser = process.env.HELM_LULU_PARSER_PATH?.trim()
   const candidates = [
-    join(__dirname, '../../src/main/monitors/lulu-parser.py'),
-    join(process.cwd(), 'src/main/monitors/lulu-parser.py')
-  ]
-  // In packaged Electron app, try relative to resources
-  try {
-    const { app } = require('electron')
-    candidates.unshift(join(app.getAppPath(), 'src/main/monitors/lulu-parser.py'))
-  } catch {
-    // Not in Electron context (e.g. tests)
-  }
-  return candidates
+    configuredParser ? resolvePathSetting(configuredParser) : null,
+    resolveMainAssetPath('monitors', 'lulu-parser.py'),
+    join(__dirname, '../../src/main/monitors/lulu-parser.py')
+  ].filter((value): value is string => Boolean(value))
+
+  return [...new Set(candidates)]
 }
 
 let cachedState: FirewallState | null = null

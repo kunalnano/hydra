@@ -58,7 +58,7 @@ export function LogsPanel(): JSX.Element {
         <div className="text-center">
           <div>No log sources found</div>
           <div className="text-xs mt-1 text-gray-700">
-            Logs will appear from ~/.claude/projects/*/logs/ or /tmp/helm-*.log
+            Logs will appear from the default Claude log roots or any paths configured in `.env`.
           </div>
         </div>
       </div>

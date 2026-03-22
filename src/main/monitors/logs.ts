@@ -3,6 +3,7 @@ import { readFile, stat } from 'fs/promises'
 import { basename, join } from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { tmpdir } from 'os'
 import type { HelmConfig, LogLine } from '../../shared/types'
 
 const execAsync = promisify(exec)
@@ -113,7 +114,7 @@ async function discoverLogFiles(config?: HelmConfig): Promise<string[]> {
   const home = process.env.HOME || ''
   const defaultPatterns = [
     join(home, '.claude', 'projects', '*', 'logs', '*.log'),
-    '/tmp/helm-*.log'
+    join(tmpdir(), 'helm-*.log')
   ]
 
   const files: string[] = []

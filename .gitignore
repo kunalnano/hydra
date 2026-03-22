@@ -8,6 +8,7 @@ reports/
 docs/plans/
 tasks/
 .env*
+!.env.example
 *.local
 *.sqlite
 *.db

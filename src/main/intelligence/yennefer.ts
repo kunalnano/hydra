@@ -7,6 +7,7 @@ import type { SystemState, BriefingResult, YenneferStyle } from '../../shared/ty
 import { healLmStudioConnection, isLmStudioConnectivityError } from './lmstudio'
 import { loadConfig } from '../config'
 import { getRecentBriefings } from '../db/queries'
+import { loadEnvironment, resolvePathSetting } from '../app-paths'
 
 const YENNEFER_STYLE_GUIDANCE: Record<YenneferStyle, string> = {
   adaptive:
@@ -220,7 +221,18 @@ interface ElevenLabsConfig {
 
 export function loadElevenLabsConfig(): ElevenLabsConfig | null {
   try {
-    const envPath = join(homedir(), 'workspace', 'active', 'yennefer', '.env')
+    loadEnvironment()
+
+    const directApiKey = process.env.ELEVENLABS_API_KEY?.trim()
+    const directVoiceId = process.env.ELEVENLABS_VOICE_ID?.trim()
+    if (directApiKey && directVoiceId) {
+      return { apiKey: directApiKey, voiceId: directVoiceId }
+    }
+
+    const configuredEnvPath = process.env.HELM_YENNEFER_ENV_PATH?.trim()
+    const envPath = configuredEnvPath
+      ? resolvePathSetting(configuredEnvPath)
+      : join(homedir(), 'workspace', 'active', 'yennefer', '.env')
     const content = readFileSync(envPath, 'utf-8')
     let apiKey = ''
     let voiceId = ''

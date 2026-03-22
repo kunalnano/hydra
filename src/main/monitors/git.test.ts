@@ -129,7 +129,6 @@ describe('resolveGitScanDirs', () => {
 
   it('falls back to the default root when config is empty', () => {
     const dirs = resolveGitScanDirs([])
-    expect(dirs).toHaveLength(1)
-    expect(dirs[0]).toContain('/Documents/ai/myAIProjects')
+    expect(dirs).toEqual([process.cwd()])
   })
 })

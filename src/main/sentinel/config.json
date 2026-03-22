@@ -4,7 +4,8 @@
   "channels": {
     "macos_notification": true,
     "slack_webhook": null,
-    "vault_log": true
+    "vault_log": true,
+    "vault_log_dir": null
   },
   "rules": {
     "agent-crash": { "enabled": true, "cooldownMs": 300000 },
