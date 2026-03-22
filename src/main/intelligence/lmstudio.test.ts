@@ -114,6 +114,37 @@ describe('healLmStudioConnection', () => {
     )
   })
 
+  it('repairs a stale remote URL by sweeping the saved subnet when ARP is empty', async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url === 'http://10.55.0.22:1234/v1/models') {
+        return {
+          ok: true,
+          json: async () => ({ data: [{ id: 'qwen-subnet' }] })
+        } as Response
+      }
+
+      throw new Error(`connect ECONNREFUSED ${url}`)
+    })
+
+    const { healLmStudioConnection } = await import('./lmstudio')
+    const result = await healLmStudioConnection({ persist: true, fetchImpl: fetchImpl as typeof fetch })
+
+    expect(result.success).toBe(true)
+    expect(result.repaired).toBe(true)
+    expect(result.url).toBe('http://10.55.0.22:1234')
+    expect(result.model).toBe('qwen-subnet')
+    expect(result.previousUrl).toBe('http://10.55.0.10:1234')
+    expect(saveConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ lmStudioUrl: 'http://10.55.0.22:1234' })
+    )
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'http://10.55.0.22:1234/v1/models',
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer lm-studio' }
+      })
+    )
+  })
+
   it('reports the checked endpoints when nothing is reachable', async () => {
     const fetchImpl = vi.fn(async () => {
       throw new Error('connect ECONNREFUSED 127.0.0.1:1234')

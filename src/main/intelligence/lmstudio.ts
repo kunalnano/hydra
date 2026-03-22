@@ -63,6 +63,10 @@ function isPrivateIPv4(ip: string): boolean {
   )
 }
 
+function isIPv4Address(value: string): boolean {
+  return /^\d+\.\d+\.\d+\.\d+$/.test(value)
+}
+
 export function parseArpNeighborIps(output: string): string[] {
   const neighbors = output
     .split('\n')
@@ -85,12 +89,40 @@ async function getArpNeighborUrls(): Promise<string[]> {
   }
 }
 
-async function buildCandidateUrls(): Promise<string[]> {
+function buildSubnetCandidateUrls(baseUrl: string | null): string[] {
+  if (!baseUrl) return []
+
+  try {
+    const parsed = new URL(baseUrl)
+    if (!isIPv4Address(parsed.hostname) || !isPrivateIPv4(parsed.hostname)) {
+      return []
+    }
+
+    const octets = parsed.hostname.split('.').map((segment) => Number.parseInt(segment, 10))
+    const currentHost = octets[3]
+    const base = octets.slice(0, 3).join('.')
+    const orderedHosts: number[] = []
+
+    for (let distance = 1; distance < 255; distance++) {
+      const higher = currentHost + distance
+      const lower = currentHost - distance
+
+      if (higher >= 1 && higher <= 254) orderedHosts.push(higher)
+      if (lower >= 1 && lower <= 254) orderedHosts.push(lower)
+    }
+
+    return orderedHosts.map((host) => `${parsed.protocol}//${base}.${host}${parsed.port ? `:${parsed.port}` : ''}`)
+  } catch {
+    return []
+  }
+}
+
+async function buildCandidateUrls(): Promise<{ priority: string[]; subnet: string[] }> {
   const config = loadConfig()
   const configured = normalizeLmStudioUrl(config.lmStudioUrl || '')
   const envUrl = normalizeLmStudioUrl(process.env.LM_STUDIO_URL || '')
 
-  const candidates = [
+  const priority = [
     configured,
     envUrl,
     DEFAULT_LM_STUDIO_URL,
@@ -99,11 +131,21 @@ async function buildCandidateUrls(): Promise<string[]> {
 
   for (const ip of getLocalIPv4s()) {
     if (ip === '127.0.0.1') continue
-    candidates.push(`http://${ip}:1234`)
+    priority.push(`http://${ip}:1234`)
   }
 
   const arpCandidates = await getArpNeighborUrls()
-  return [...new Set([...candidates, ...arpCandidates])]
+  const uniquePriority = [...new Set([...priority, ...arpCandidates])]
+  const uniquePrioritySet = new Set(uniquePriority)
+  const subnet = [
+    ...buildSubnetCandidateUrls(configured),
+    ...buildSubnetCandidateUrls(envUrl)
+  ].filter((candidate) => !uniquePrioritySet.has(candidate))
+
+  return {
+    priority: uniquePriority,
+    subnet: [...new Set(subnet)]
+  }
 }
 
 async function fetchWithTimeout(
@@ -126,7 +168,8 @@ async function fetchWithTimeout(
 
 export async function probeLmStudioEndpoint(
   baseUrl: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs = MODEL_DISCOVERY_TIMEOUT_MS
 ): Promise<LmStudioProbeAttempt> {
   const normalized = normalizeLmStudioUrl(baseUrl)
   if (!normalized) {
@@ -137,7 +180,7 @@ export async function probeLmStudioEndpoint(
     const response = await fetchWithTimeout(
       fetchImpl,
       `${normalized}/v1/models`,
-      MODEL_DISCOVERY_TIMEOUT_MS
+      timeoutMs
     )
 
     if (!response.ok) {
@@ -165,6 +208,30 @@ export async function probeLmStudioEndpoint(
   }
 }
 
+async function probeCandidateBatch(
+  candidates: string[],
+  fetchImpl: typeof fetch,
+  timeoutMs: number,
+  batchSize = 16
+): Promise<{ attempts: LmStudioProbeAttempt[]; success?: LmStudioProbeAttempt }> {
+  const attempts: LmStudioProbeAttempt[] = []
+
+  for (let index = 0; index < candidates.length; index += batchSize) {
+    const batch = candidates.slice(index, index + batchSize)
+    const probes = await Promise.all(
+      batch.map((candidate) => probeLmStudioEndpoint(candidate, fetchImpl, timeoutMs))
+    )
+    attempts.push(...probes)
+
+    const success = probes.find((probe) => probe.ok)
+    if (success) {
+      return { attempts, success }
+    }
+  }
+
+  return { attempts }
+}
+
 export async function healLmStudioConnection(options?: {
   persist?: boolean
   fetchImpl?: typeof fetch
@@ -176,8 +243,8 @@ export async function healLmStudioConnection(options?: {
   const previousLabel = previousUrl || configuredValue || undefined
   const attempts: LmStudioProbeAttempt[] = []
 
-  const candidates = await buildCandidateUrls()
-  for (const candidate of candidates) {
+  const { priority, subnet } = await buildCandidateUrls()
+  for (const candidate of priority) {
     const probe = await probeLmStudioEndpoint(candidate, fetchImpl)
     attempts.push(probe)
 
@@ -198,6 +265,30 @@ export async function healLmStudioConnection(options?: {
       model: probe.model,
       previousUrl: repaired ? previousLabel : undefined,
       attempts
+    }
+  }
+
+  if (subnet.length > 0) {
+    const subnetScan = await probeCandidateBatch(subnet, fetchImpl, 750, 24)
+    attempts.push(...subnetScan.attempts)
+
+    if (subnetScan.success) {
+      const repaired = Boolean(previousLabel && previousUrl !== subnetScan.success.url)
+      if (options?.persist && repaired) {
+        saveConfig({ ...config, lmStudioUrl: subnetScan.success.url })
+      }
+
+      return {
+        success: true,
+        repaired,
+        message: repaired
+          ? `LM Studio endpoint repaired: ${previousLabel} -> ${subnetScan.success.url}`
+          : `LM Studio reachable at ${subnetScan.success.url}`,
+        url: subnetScan.success.url,
+        model: subnetScan.success.model,
+        previousUrl: repaired ? previousLabel : undefined,
+        attempts
+      }
     }
   }
 
