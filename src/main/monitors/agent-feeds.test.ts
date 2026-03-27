@@ -145,7 +145,17 @@ describe('agent feed monitor', () => {
       'utf-8'
     )
 
-    const config = { gitRepoPaths: [], monitorInterval: 2000, snapshotInterval: 30000, agentFeedPaths: [tempDir] }
+    const config = {
+      gitRepoPaths: [],
+      monitorInterval: 2000,
+      snapshotInterval: 30000,
+      vaultRagEndpoint: 'http://127.0.0.1:8742',
+      vaultPath: '/Users/test/Documents/ai/obsidian-vault',
+      vaultRagLocation: 'local' as const,
+      vaultRagRemoteHost: 'stormbreaker',
+      vaultRagAutoCheck: true,
+      agentFeedPaths: [tempDir]
+    }
     const agents = loadExternalAgents(config, Date.parse('2026-03-07T20:01:00Z'))
     const events = loadExternalAgentTimelineEvents(config)
 

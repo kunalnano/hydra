@@ -434,6 +434,12 @@ export const IPC_CHANNELS = {
   REGISTRY_GET_TOP: 'registry:get-top',
   SENTINEL_STATUS: 'sentinel:status',
   SENTINEL_ALERTS: 'sentinel:alerts',
+  VAULT_HEALTH: 'vault:health',
+  VAULT_SEARCH: 'vault:search',
+  VAULT_OPEN_CHUNK: 'vault:open-chunk',
+  VAULT_REINDEX: 'vault:reindex',
+  VAULT_PUSH_NOTE: 'vault:push-note',
+  VAULT_PULL_SYNC: 'vault:pull-sync',
   // HIVE channels
   HIVE_SPAWN: 'hive:spawn',
   HIVE_KILL_SESSION: 'hive:kill-session',
@@ -542,6 +548,62 @@ export interface RadioHomeLocation {
   longitude: number
 }
 
+export interface VaultSearchResult {
+  chunk_id: string
+  snippet: string
+  source_path: string
+  heading_path: string | null
+  client: string | null
+  doc_type: string | null
+  fused_score: number
+  matched_in: 'dense' | 'sparse' | 'both'
+  dense_score: number | null
+  sparse_score: number | null
+}
+
+export interface VaultSearchResponse {
+  results: VaultSearchResult[]
+  query: string
+  result_count: number
+}
+
+export interface VaultChunk {
+  chunk_id: string
+  text: string
+  source_path: string
+  heading_path: string | null
+  client: string | null
+  doc_type: string | null
+  tags: string[]
+  entity_refs: string[]
+  identifiers: string[]
+  updated_at: string | null
+  word_count: number | null
+}
+
+export interface VaultHealthStatus {
+  online: boolean
+  endpoint: string
+  qdrant_ok: boolean
+  last_check: number
+  last_reindex: string | null
+  total_chunks: number | null
+  error: string | null
+}
+
+export interface VaultPushResult {
+  success: boolean
+  file_path: string | null
+  error: string | null
+}
+
+export interface VaultReindexResult {
+  success: boolean
+  files_processed: number | null
+  duration_ms: number | null
+  error: string | null
+}
+
 export interface HelmConfig {
   apiKey?: string
   gitRepoPaths: string[]
@@ -556,5 +618,10 @@ export interface HelmConfig {
   yenneferEnabled?: boolean
   yenneferStyle?: YenneferStyle
   radioHomeLocation?: RadioHomeLocation
+  vaultRagEndpoint: string
+  vaultPath: string
+  vaultRagLocation: 'local' | 'remote'
+  vaultRagRemoteHost: string
+  vaultRagAutoCheck: boolean
   hive?: HiveConfig
 }

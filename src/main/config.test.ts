@@ -7,6 +7,14 @@ import { tmpdir } from 'os'
 // via a helper that writes/reads from tmp directories.
 import type { HelmConfig } from '../shared/types'
 
+const TEST_VAULT_DEFAULTS = {
+  vaultRagEndpoint: 'http://127.0.0.1:8742',
+  vaultPath: '/Users/test/Documents/ai/obsidian-vault',
+  vaultRagLocation: 'local' as const,
+  vaultRagRemoteHost: 'stormbreaker',
+  vaultRagAutoCheck: true
+}
+
 // Since config.ts uses hardcoded paths based on os.homedir(), we test the
 // core logic by directly exercising JSON serialization and default merging.
 // For the file I/O functions, we test with the real module against tmp dirs.
@@ -16,7 +24,8 @@ describe('config defaults', () => {
     const defaults: HelmConfig = {
       gitRepoPaths: [],
       monitorInterval: 2000,
-      snapshotInterval: 30000
+      snapshotInterval: 30000,
+      ...TEST_VAULT_DEFAULTS
     }
     expect(defaults.monitorInterval).toBe(2000)
     expect(defaults.snapshotInterval).toBe(30000)
@@ -29,7 +38,8 @@ describe('config defaults', () => {
     const defaults: HelmConfig = {
       gitRepoPaths: [],
       monitorInterval: 2000,
-      snapshotInterval: 30000
+      snapshotInterval: 30000,
+      ...TEST_VAULT_DEFAULTS
     }
     const partial = { apiKey: 'sk-test-123', monitorInterval: 5000 }
     const merged = { ...defaults, ...partial }
@@ -62,7 +72,8 @@ describe('config JSON serialization', () => {
         label: 'Home base',
         latitude: 29.7,
         longitude: -98.4
-      }
+      },
+      ...TEST_VAULT_DEFAULTS
     }
 
     const configPath = join(tmpDir, 'config.json')
@@ -90,7 +101,8 @@ describe('config JSON serialization', () => {
     const defaults: HelmConfig = {
       gitRepoPaths: [],
       monitorInterval: 2000,
-      snapshotInterval: 30000
+      snapshotInterval: 30000,
+      ...TEST_VAULT_DEFAULTS
     }
     // Simulate loadConfig behavior
     let result: HelmConfig
@@ -111,7 +123,8 @@ describe('config JSON serialization', () => {
     const defaults: HelmConfig = {
       gitRepoPaths: [],
       monitorInterval: 2000,
-      snapshotInterval: 30000
+      snapshotInterval: 30000,
+      ...TEST_VAULT_DEFAULTS
     }
     let result: HelmConfig
     try {

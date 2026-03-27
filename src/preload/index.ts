@@ -26,7 +26,12 @@ import type {
   SentinelAlert,
   HiveSpawnRequest,
   HiveSpawnResult,
-  HiveSessionInfo
+  HiveSessionInfo,
+  VaultHealthStatus,
+  VaultSearchResponse,
+  VaultChunk,
+  VaultReindexResult,
+  VaultPushResult
 } from '../shared/types'
 
 const api = {
@@ -251,6 +256,27 @@ const api = {
       ipcRenderer.removeListener(IPC_CHANNELS.SENTINEL_ALERTS, handler)
     }
   },
+
+  // Vault RAG
+  vaultHealth: (): Promise<VaultHealthStatus> =>
+    ipcRenderer.invoke(IPC_CHANNELS.VAULT_HEALTH),
+
+  vaultSearch: (
+    query: string,
+    filters?: { client?: string; doc_type?: string; top_k?: number }
+  ): Promise<VaultSearchResponse> => ipcRenderer.invoke(IPC_CHANNELS.VAULT_SEARCH, query, filters),
+
+  vaultOpenChunk: (chunkId: string): Promise<VaultChunk | { error: string }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.VAULT_OPEN_CHUNK, chunkId),
+
+  vaultReindex: (): Promise<VaultReindexResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.VAULT_REINDEX),
+
+  vaultPushNote: (title: string, content: string, folder?: string): Promise<VaultPushResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.VAULT_PUSH_NOTE, title, content, folder),
+
+  vaultPullSync: (): Promise<{ success: boolean; files_updated: number; error?: string }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.VAULT_PULL_SYNC),
 
   // HIVE
   hiveSpawn: (request: HiveSpawnRequest): Promise<HiveSpawnResult> =>

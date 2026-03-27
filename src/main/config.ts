@@ -11,7 +11,12 @@ const DEFAULT_CONFIG: HelmConfig = {
   gitRepoPaths: [],
   monitorInterval: 2000,
   snapshotInterval: 30000,
-  yenneferStyle: 'adaptive'
+  yenneferStyle: 'adaptive',
+  vaultRagEndpoint: 'http://127.0.0.1:8742',
+  vaultPath: join(homedir(), 'Documents', 'ai', 'obsidian-vault'),
+  vaultRagLocation: 'local',
+  vaultRagRemoteHost: 'stormbreaker',
+  vaultRagAutoCheck: true
 }
 
 export function getConfigPath(): string {

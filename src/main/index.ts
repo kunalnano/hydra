@@ -37,6 +37,7 @@ import { getAgentRegistry, getAgentById, updateAgentEntry, getTopAgents } from '
 import { getRadioRelayUrl, stopRadioRelayServer } from './radio-relay'
 import { getSkillFeed } from './skills'
 import { setupHiveIPC, teardownHive, resolveHiveConfig } from './hive/index'
+import { VaultClient } from './vault-client'
 import type { HelmConfig, SystemState, AgentRegistryEntry } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -251,6 +252,36 @@ app.whenReady().then(() => {
   // Config IPC handler
   ipcMain.handle(IPC_CHANNELS.CONFIG_GET, () => loadConfig())
   ipcMain.handle(IPC_CHANNELS.CONFIG_SAVE, (_event, config: HelmConfig) => saveConfig(config))
+
+  const getVaultClient = (): VaultClient => {
+    const currentConfig = loadConfig()
+    return new VaultClient({
+      vaultRagEndpoint: currentConfig.vaultRagEndpoint ?? 'http://127.0.0.1:8742',
+      vaultPath: currentConfig.vaultPath ?? '/Users/alsharma/Documents/ai/obsidian-vault',
+      vaultRagLocation: currentConfig.vaultRagLocation ?? 'local',
+      vaultRagRemoteHost: currentConfig.vaultRagRemoteHost ?? 'stormbreaker'
+    })
+  }
+
+  ipcMain.handle(IPC_CHANNELS.VAULT_HEALTH, () => getVaultClient().health())
+  ipcMain.handle(
+    IPC_CHANNELS.VAULT_SEARCH,
+    (
+      _event,
+      query: string,
+      filters?: { client?: string; doc_type?: string; top_k?: number }
+    ) => getVaultClient().search(query, filters)
+  )
+  ipcMain.handle(IPC_CHANNELS.VAULT_OPEN_CHUNK, (_event, chunkId: string) =>
+    getVaultClient().openChunk(chunkId)
+  )
+  ipcMain.handle(IPC_CHANNELS.VAULT_REINDEX, () => getVaultClient().triggerReindex())
+  ipcMain.handle(
+    IPC_CHANNELS.VAULT_PUSH_NOTE,
+    (_event, title: string, content: string, folder?: string) =>
+      getVaultClient().pushNote(title, content, folder)
+  )
+  ipcMain.handle(IPC_CHANNELS.VAULT_PULL_SYNC, () => getVaultClient().pullSync())
 
   // Git commit history IPC handler
   ipcMain.handle(IPC_CHANNELS.GIT_COMMIT_HISTORY, (_event, repoPath: string, limit: number) =>
