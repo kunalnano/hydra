@@ -23,8 +23,9 @@ function sendMacOSNotification(alert: SentinelAlert): void {
 }
 
 // Channel: Obsidian vault log
-function sendVaultLog(alert: SentinelAlert): void {
-  const vaultDir = join(homedir(), 'Documents', 'ai', 'obsidian-vault', 'sentinel')
+function sendVaultLog(alert: SentinelAlert, vaultPath?: string): void {
+  const base = vaultPath ?? join(homedir(), 'Documents', 'ai', 'obsidian-vault')
+  const vaultDir = join(base, 'sentinel')
   if (!existsSync(vaultDir)) {
     mkdirSync(vaultDir, { recursive: true })
   }
@@ -73,6 +74,7 @@ export interface NotifyChannelConfig {
   macos_notification: boolean
   slack_webhook: string | null
   vault_log: boolean
+  vault_path?: string
   // Future:
   // twilio_sms: { to: string; from: string; authToken: string } | null
   // gmail: { to: string; from: string; appPassword: string } | null
@@ -84,7 +86,7 @@ export function dispatchAlert(alert: SentinelAlert, config: NotifyChannelConfig)
   }
 
   if (config.vault_log) {
-    sendVaultLog(alert)
+    sendVaultLog(alert, config.vault_path)
   }
 
   if (config.slack_webhook) {

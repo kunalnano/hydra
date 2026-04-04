@@ -10,6 +10,7 @@ export type HelmPageId =
   | 'registry'
   | 'radio'
   | 'logs'
+  | 'bricks'
 
 interface NavigationStore {
   currentPage: HelmPageId

@@ -31,7 +31,8 @@ import type {
   VaultSearchResponse,
   VaultChunk,
   VaultReindexResult,
-  VaultPushResult
+  VaultPushResult,
+  BrickQueueState
 } from '../shared/types'
 
 const api = {
@@ -307,7 +308,17 @@ const api = {
     return (): void => {
       ipcRenderer.removeListener(IPC_CHANNELS.HIVE_SESSION_UPDATE, handler)
     }
-  }
+  },
+
+  // Brick Queue
+  getBrickQueue: (): Promise<BrickQueueState> =>
+    ipcRenderer.invoke(IPC_CHANNELS.BRICK_LIST),
+
+  approveBrick: (brickId: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.BRICK_APPROVE, brickId),
+
+  rejectBrick: (brickId: string, note?: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.BRICK_REJECT, brickId, note)
 }
 
 contextBridge.exposeInMainWorld('helm', api)

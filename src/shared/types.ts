@@ -448,7 +448,11 @@ export const IPC_CHANNELS = {
   HIVE_UPDATE_CONTEXT: 'hive:update-context',
   HIVE_GET_CONTEXT: 'hive:get-context',
   HIVE_ATTACH: 'hive:attach',
-  HIVE_SESSION_UPDATE: 'hive:session-update'
+  HIVE_SESSION_UPDATE: 'hive:session-update',
+  // Brick Queue channels
+  BRICK_LIST: 'brick:list',
+  BRICK_APPROVE: 'brick:approve',
+  BRICK_REJECT: 'brick:reject'
 } as const
 
 // Sentinel types
@@ -624,4 +628,36 @@ export interface HelmConfig {
   vaultRagRemoteHost: string
   vaultRagAutoCheck: boolean
   hive?: HiveConfig
+}
+
+// Brick Queue types
+export type BrickLane = 'backlog' | 'claimed' | 'done' | 'reviewed'
+
+export interface BrickItem {
+  id: string
+  title: string
+  description: string
+  priority: string
+  category: string
+  repo: string
+  requires?: string[]
+  estimated_effort: string
+  depends_on: string[]
+  created: string
+  created_by: string
+  status: string
+  claimed_by: string | null
+  claimed_at: string | null
+  completed_at: string | null
+  output: string | null
+  review_status: string | null
+  notes?: string
+  lane: BrickLane
+}
+
+export interface BrickQueueState {
+  backlog: BrickItem[]
+  claimed: BrickItem[]
+  done: BrickItem[]
+  reviewed: BrickItem[]
 }

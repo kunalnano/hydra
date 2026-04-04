@@ -127,9 +127,8 @@ describe('resolveGitScanDirs', () => {
     expect(resolveGitScanDirs(['/tmp/repos', '/var/work'])).toEqual(['/tmp/repos', '/var/work'])
   })
 
-  it('falls back to the default root when config is empty', () => {
+  it('returns empty array when config is empty', () => {
     const dirs = resolveGitScanDirs([])
-    expect(dirs).toHaveLength(1)
-    expect(dirs[0]).toContain('/Documents/ai/myAIProjects')
+    expect(dirs).toHaveLength(0)
   })
 })

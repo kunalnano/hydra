@@ -19,6 +19,7 @@ import { FMRadioPanel } from './panels/FMRadio'
 import { RegistryPanel } from './panels/Registry'
 import { VaultPagePanel } from './panels/VaultPage'
 import { HiveLauncher } from './panels/HiveLauncher'
+import { BrickQueuePanel } from './panels/BrickQueue'
 import { HELM_SKINS, useSkinStore } from './stores/skin'
 import { usePrivacyStore } from './stores/privacy'
 import { HeaderTicker } from './components/HeaderTicker'
@@ -87,6 +88,12 @@ const PAGES: PageMeta[] = [
     label: 'Logs',
     kicker: 'Event stream',
     description: 'Raw stream only. Follow live events without the summarized views.'
+  },
+  {
+    id: 'bricks',
+    label: 'Bricks',
+    kicker: 'Work queue',
+    description: 'Brick queue: backlog, claimed, done. Approve or reject completed work.'
   }
 ]
 
@@ -109,7 +116,8 @@ const PANEL_DOTS: Record<string, string> = {
   'Agent Roster': 'bg-amber-400',
   'Agent Registry': 'bg-yellow-400',
   'HIVE Control': 'bg-amber-500',
-  'Vault': 'bg-indigo-400'
+  'Vault': 'bg-indigo-400',
+  'Brick Queue': 'bg-teal-400'
 }
 
 const PANEL_ACCENT_HEX: Record<string, string> = {
@@ -131,7 +139,8 @@ const PANEL_ACCENT_HEX: Record<string, string> = {
   'Agent Roster': '#fbbf24',
   'Agent Registry': '#facc15',
   'HIVE Control': '#f59e0b',
-  'Vault': '#818cf8'
+  'Vault': '#818cf8',
+  'Brick Queue': '#2dd4bf'
 }
 
 const PAGE_MONOGRAMS: Record<HelmPageId, string> = {
@@ -143,7 +152,8 @@ const PAGE_MONOGRAMS: Record<HelmPageId, string> = {
   vault: 'VT',
   registry: 'RG',
   radio: 'FM',
-  logs: 'LG'
+  logs: 'LG',
+  bricks: 'BQ'
 }
 
 const PAGE_GLYPH_GRADIENTS: Record<HelmPageId, string> = {
@@ -155,7 +165,8 @@ const PAGE_GLYPH_GRADIENTS: Record<HelmPageId, string> = {
   vault: 'from-indigo-200/95 via-blue-300/80 to-violet-300/65',
   registry: 'from-yellow-200/95 via-amber-300/80 to-orange-300/65',
   radio: 'from-pink-200/95 via-fuchsia-300/80 to-cyan-300/70',
-  logs: 'from-lime-200/95 via-emerald-300/75 to-cyan-300/65'
+  logs: 'from-lime-200/95 via-emerald-300/75 to-cyan-300/65',
+  bricks: 'from-teal-200/95 via-cyan-300/80 to-blue-300/65'
 }
 
 function DashPanel({
@@ -561,6 +572,16 @@ function LogsPage(): JSX.Element {
   )
 }
 
+function BricksPage(): JSX.Element {
+  return (
+    <div className="space-y-4">
+      <DashPanel title="Brick Queue" className="min-h-[600px]">
+        <BrickQueuePanel />
+      </DashPanel>
+    </div>
+  )
+}
+
 function NavGlyph({ pageId, active }: { pageId: HelmPageId; active: boolean }): JSX.Element {
   return (
     <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/16 bg-black/10 text-[10px] font-semibold tracking-[0.22em] text-white/90 shadow-[0_12px_24px_rgba(4,10,22,0.2)]">
@@ -706,6 +727,7 @@ function PageContent({ currentPage }: { currentPage: HelmPageId }): JSX.Element 
     case 'registry': return <RegistryPage />
     case 'radio':    return <RadioPage />
     case 'logs':     return <LogsPage />
+    case 'bricks':   return <BricksPage />
     default:         return <BridgePage />
   }
 }

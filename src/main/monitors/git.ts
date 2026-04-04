@@ -4,7 +4,7 @@ import type { GitRepoInfo, GitCommit, GitActionResult } from '../../shared/types
 
 const execAsync = promisify(exec)
 
-const DEFAULT_SCAN_DIRS = ['~/Documents/ai/myAIProjects']
+const DEFAULT_SCAN_DIRS: string[] = []
 
 export function resolveGitScanDirs(scanDirs?: string[]): string[] {
   const dirs = scanDirs && scanDirs.length > 0 ? scanDirs : DEFAULT_SCAN_DIRS

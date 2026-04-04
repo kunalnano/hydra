@@ -1,5 +1,6 @@
 import { config as dotenvConfig } from 'dotenv'
 import { join, basename } from 'path'
+import { homedir } from 'os'
 import { pathToFileURL } from 'node:url'
 
 // Load .env before anything else reads process.env
@@ -20,6 +21,7 @@ import {
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { startMonitoring, stopMonitoring, onStateUpdate, getLatestState } from './monitors/index'
 import { startSentinel, stopSentinel, getSentinelStatus, getSentinelAlerts } from './sentinel/index'
+import { getBrickQueue, approveBrick, rejectBrick } from './bricks'
 import { getRepoCommitHistory } from './monitors/git'
 import { getDb, closeDb } from './db/index'
 import {
@@ -257,7 +259,7 @@ app.whenReady().then(() => {
     const currentConfig = loadConfig()
     return new VaultClient({
       vaultRagEndpoint: currentConfig.vaultRagEndpoint ?? 'http://127.0.0.1:8742',
-      vaultPath: currentConfig.vaultPath ?? '/Users/alsharma/Documents/ai/obsidian-vault',
+      vaultPath: currentConfig.vaultPath ?? join(homedir(), 'Documents', 'ai', 'obsidian-vault'),
       vaultRagLocation: currentConfig.vaultRagLocation ?? 'local',
       vaultRagRemoteHost: currentConfig.vaultRagRemoteHost ?? 'stormbreaker'
     })
@@ -301,6 +303,13 @@ app.whenReady().then(() => {
   // Sentinel IPC handlers
   ipcMain.handle(IPC_CHANNELS.SENTINEL_STATUS, () => getSentinelStatus())
   ipcMain.handle(IPC_CHANNELS.SENTINEL_ALERTS, () => getSentinelAlerts())
+
+  // Brick Queue IPC handlers
+  ipcMain.handle(IPC_CHANNELS.BRICK_LIST, () => getBrickQueue())
+  ipcMain.handle(IPC_CHANNELS.BRICK_APPROVE, (_event, brickId: string) => approveBrick(brickId))
+  ipcMain.handle(IPC_CHANNELS.BRICK_REJECT, (_event, brickId: string, note?: string) =>
+    rejectBrick(brickId, note)
+  )
 
   // Audio file picker for FM Radio local library
   ipcMain.handle('dialog:openAudioFile', async () => {
